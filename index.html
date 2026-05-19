@@ -3817,9 +3817,16 @@ function renderRekap(d) {
     html += '<div style="background:linear-gradient(90deg,var(--pln-biru),var(--pln-biru2));color:#fff;border-radius:var(--radius);padding:var(--sp-sm) var(--sp-md);margin-bottom:var(--sp-sm);font-size:var(--fs-xs);font-weight:700;">🏢 Data Rekap: '+esc(s.ulp)+'</div>';
   }
 
-  // ── Total daya dari allGardu (sudah di-load) ──
+  // ── Total daya: gunakan data.totalKva dari server (fn_get_rekap v11)
+  //    Fallback ke allGardu hanya jika server tidak mengembalikan totalKva
+  //    (misal: masih pakai fn_get_rekap versi lama yang belum ada field totalKva)
   var totalKva = 0;
-  allGardu.forEach(function(g){ totalKva += parseFloat(g['KAPASITAS_KVA']||0)||0; });
+  if (d.totalKva != null && parseFloat(d.totalKva) > 0) {
+    totalKva = parseFloat(d.totalKva);
+  } else {
+    // Fallback: hitung dari allGardu (kurang akurat jika data belum fully loaded)
+    allGardu.forEach(function(g){ totalKva += parseFloat(g['KAPASITAS_KVA']||0)||0; });
+  }
   var totalKvaStr = totalKva > 0 ? (totalKva>=1000?(totalKva/1000).toFixed(1)+' MVA':totalKva.toLocaleString()+' kVA') : '—';
 
   // ── 6 Stat Cards berwarna ──
