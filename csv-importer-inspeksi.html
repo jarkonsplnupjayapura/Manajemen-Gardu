@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Import Inspeksi — PLN UP3 Jayapura</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg:        #0d0f14;
+    --surface:   #13161d;
+    --card:      #191d27;
+    --border:    #252a38;
+    --border2:   #2f3649;
+    --accent:    #3b82f6;
+    --accent2:   #60a5fa;
+    --success:   #22c55e;
+    --warn:      #f59e0b;
+    --danger:    #ef4444;
+    --skip:      #6b7280;
+    --text:      #e2e8f0;
+    --text2:     #94a3b8;
+    --text3:     #64748b;
+    --mono:      'IBM Plex Mono', monospace;
+    --sans:      'IBM Plex Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+  .logo-text {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text);
+  }
+  .logo-sub {
+    font-size: 12px;
+    color: var(--text3);
+    font-family: var(--mono);
+  }
+  header .spacer { flex: 1; }
+  .header-badge {
+    background: #1e3a5f;
+    color: var(--accent2);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    border: 1px solid #2a5080;
+  }
+
+  /* ── LAYOUT ── */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  /* ── CONFIG PANEL ── */
+  .config-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px; height: 12px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1/-1; }
+  label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text3);
+    font-family: var(--mono);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  input[type="text"], input[type="password"], input[type="url"] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  input:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--text3); }
+
+  /* ── UPLOAD ZONE ── */
+  .upload-zone {
+    border: 2px dashed var(--border2);
+    border-radius: 10px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+    position: relative;
+    margin-bottom: 24px;
+  }
+  .upload-zone:hover, .upload-zone.drag { 
+    border-color: var(--accent); 
+    background: #0f1829;
+  }
+  .upload-zone.has-file {
+    border-style: solid;
+    border-color: var(--success);
+    background: #0a1f10;
+  }
+  .upload-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .upload-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .upload-sub {
+    font-size: 13px;
+    color: var(--text3);
+  }
+  .upload-file-info {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .upload-zone.has-file .upload-file-info { display: flex; }
+  .upload-zone.has-file .upload-prompt { display: none; }
+  #file-input { display: none; }
+
+  /* ── PREVIEW TABLE ── */
+  .preview-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    display: none;
+  }
+  .preview-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .preview-stats {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  .stat-chip {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  .stat-chip.total  { background: #1e293b; color: var(--accent2); }
+  .stat-chip.valid  { background: #14291e; color: var(--success); }
+  .stat-chip.skip   { background: #1f2937; color: var(--skip); }
+  .stat-chip.error  { background: #2a1515; color: var(--danger); }
+
+  .table-wrap {
+    overflow-x: auto;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  thead th {
+    background: #0d0f14;
+    color: var(--text3);
+    font-weight: 500;
+    padding: 8px 12px;
+    text-align: left;
+    position: sticky;
+    top: 0;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+    font-size: 11px;
+  }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #1e2433; }
+  tbody td {
+    padding: 7px 12px;
+    color: var(--text2);
+    white-space: nowrap;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .row-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+  .row-status.insert { background: #14291e; color: var(--success); }
+  .row-status.skip   { background: #1f2937; color: var(--skip); }
+  .row-status.error  { background: #2a1515; color: var(--danger); }
+
+  /* ── ACTION BAR ── */
+  .action-bar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 7px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover:not(:disabled) { background: #2563eb; }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+  }
+  .btn-outline:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .btn-danger {
+    background: transparent;
+    border: 1px solid #7f1d1d;
+    color: var(--danger);
+  }
+  .btn-danger:hover:not(:disabled) { background: #2a1515; }
+  .action-spacer { flex: 1; }
+
+  /* ── PROGRESS ── */
+  .progress-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 24px;
+    display: none;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 10px;
+  }
+  .progress-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+  .progress-log {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    max-height: 160px;
+    overflow-y: auto;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .log-line {
+    padding: 2px 0;
+    border-bottom: 1px solid #1a1f2e;
+    display: flex;
+    gap: 10px;
+  }
+  .log-line:last-child { border-bottom: none; }
+  .log-time { color: var(--text3); min-width: 60px; }
+  .log-msg.ok    { color: var(--success); }
+  .log-msg.warn  { color: var(--warn); }
+  .log-msg.err   { color: var(--danger); }
+  .log-msg.info  { color: var(--accent2); }
+
+  /* ── RESULT SUMMARY ── */
+  .result-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    display: none;
+  }
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+  .result-card .num {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .result-card .lbl { font-size: 12px; color: var(--text3); }
+  .result-card.inserted .num { color: var(--success); }
+  .result-card.skipped .num  { color: var(--skip); }
+  .result-card.errored .num  { color: var(--danger); }
+  .result-card.total .num    { color: var(--accent2); }
+
+  .error-list {
+    background: #1a0f0f;
+    border: 1px solid #5c1a1a;
+    border-radius: 8px;
+    padding: 16px;
+    max-height: 180px;
+    overflow-y: auto;
+    font-family: var(--mono);
+    font-size: 12px;
+    display: none;
+  }
+  .error-list .err-row {
+    padding: 5px 0;
+    border-bottom: 1px solid #2a1515;
+    color: var(--danger);
+    display: flex;
+    gap: 10px;
+  }
+  .error-list .err-row:last-child { border-bottom: none; }
+  .err-row .row-num { color: var(--text3); min-width: 50px; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── TOAST ── */
+  .toast-area {
+    position: fixed; bottom: 24px; right: 24px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 999;
+  }
+  .toast {
+    background: var(--card);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    max-width: 320px;
+    animation: slideIn 0.3s ease;
+    display: flex; gap: 10px; align-items: center;
+  }
+  .toast.success { border-color: #166534; }
+  .toast.error   { border-color: #7f1d1d; }
+  @keyframes slideIn {
+    from { transform: translateX(20px); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+  }
+
+  .info-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text3);
+    font-family: var(--mono);
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .note-box {
+    background: #111827;
+    border: 1px solid #1e3a5f;
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 24px;
+    line-height: 1.8;
+  }
+  .note-box strong { color: var(--accent2); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">PLN</div>
+    <div>
+      <div class="logo-text">Import Inspeksi Gardu</div>
+      <div class="logo-sub">UP3 Jayapura — CSV Uploader</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="header-badge">Laporan Pengukuran Bulanan</div>
+</header>
+
+<div class="container">
+
+  <!-- KONEKSI SUPABASE -->
+  <div class="config-panel">
+    <div class="panel-title">Koneksi Supabase</div>
+    <div class="form-grid three">
+      <div class="form-group full">
+        <label>Supabase URL</label>
+        <input type="url" id="supa-url" placeholder="https://xxxxxxxxxxxx.supabase.co" />
+      </div>
+      <div class="form-group full">
+        <label>Service Role Key (atau anon key dengan RLS off untuk inspeksi)</label>
+        <input type="password" id="supa-key" placeholder="eyJhbGci..." />
+      </div>
+    </div>
+    <div class="info-row">
+      ⓘ Kunci disimpan hanya di memori browser, tidak dikirim ke server lain. Pastikan RLS inspeksi mengizinkan INSERT/UPDATE.
+    </div>
+  </div>
+
+  <!-- NOTE -->
+  <div class="note-box">
+    <strong>Cara kerja import:</strong><br>
+    • CSV kolom <code>NOGARDU</code> berisi suffix seperti <code>-1</code>, <code>-K</code> dll — akan di-strip otomatis ke kode gardu induk (contoh: <code>ARB001-1</code> → <code>ARB001</code>).<br>
+    • Jika kombinasi <strong>(no_gardu + tgl_ukur + jam_ukur)</strong> sudah ada di database → <strong>dilewati (SKIP)</strong>, tidak ada duplikat.<br>
+    • Jika belum ada → <strong>INSERT</strong> baru.<br>
+    • Angka dengan prefix <code>'</code> (petik) dari Excel akan dibersihkan otomatis.
+  </div>
+
+  <!-- UPLOAD ZONE -->
+  <div class="upload-zone" id="upload-zone">
+    <div class="upload-prompt">
+      <span class="upload-icon">📂</span>
+      <div class="upload-title">Drag & drop file CSV di sini</div>
+      <div class="upload-sub">atau klik untuk pilih file · Format: Laporan Pengukuran Bulanan PLN</div>
+    </div>
+    <div class="upload-file-info">
+      <span style="font-size:24px">✅</span>
+      <span id="file-name-display" style="color:var(--success)"></span>
+      <span style="color:var(--text3)" id="file-size-display"></span>
+    </div>
+    <input type="file" id="file-input" accept=".csv">
+  </div>
+
+  <!-- PREVIEW TABLE -->
+  <div class="preview-panel" id="preview-panel">
+    <div class="preview-header">
+      <div class="panel-title" style="margin:0">Preview Data</div>
+      <div class="preview-stats">
+        <span class="stat-chip total" id="chip-total">0 baris</span>
+        <span class="stat-chip valid" id="chip-insert">0 baru</span>
+        <span class="stat-chip skip" id="chip-skip">0 skip</span>
+        <span class="stat-chip error" id="chip-error">0 error</span>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#CSV</th>
+            <th>STATUS</th>
+            <th>NO GARDU</th>
+            <th>TGL UKUR</th>
+            <th>JAM UKUR</th>
+            <th>PETUGAS</th>
+            <th>DAYA</th>
+            <th>PROSEN%</th>
+            <th>TDK SEIMBANG%</th>
+            <th>KETERANGAN</th>
+          </tr>
+        </thead>
+        <tbody id="preview-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ACTION BAR -->
+  <div class="action-bar" id="action-bar" style="display:none">
+    <button class="btn btn-outline" onclick="resetAll()">↩ Reset</button>
+    <div class="action-spacer"></div>
+    <button class="btn btn-primary" id="btn-import" onclick="startImport()">
+      ⬆ Import ke Supabase
+    </button>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-panel" id="progress-panel">
+    <div class="panel-title">Proses Import</div>
+    <div class="progress-label">
+      <span id="prog-text">Mempersiapkan...</span>
+      <span id="prog-pct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+    <div class="progress-log" id="prog-log"></div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result-panel" id="result-panel">
+    <div class="panel-title">Hasil Import</div>
+    <div class="result-grid">
+      <div class="result-card total">
+        <div class="num" id="res-total">0</div>
+        <div class="lbl">Total Diproses</div>
+      </div>
+      <div class="result-card inserted">
+        <div class="num" id="res-insert">0</div>
+        <div class="lbl">Berhasil INSERT</div>
+      </div>
+      <div class="result-card skipped">
+        <div class="num" id="res-skip">0</div>
+        <div class="lbl">Dilewati (sudah ada)</div>
+      </div>
+      <div class="result-card errored">
+        <div class="num" id="res-err">0</div>
+        <div class="lbl">Gagal / Error</div>
+      </div>
+    </div>
+    <div class="error-list" id="error-list"></div>
+    <div style="margin-top:16px;display:flex;gap:12px">
+      <button class="btn btn-outline" onclick="resetAll()">Import File Baru</button>
+      <button class="btn btn-outline" id="btn-export-errors" onclick="exportErrors()" style="display:none">⬇ Export Error CSV</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast-area" id="toast-area"></div>
+
+<script>
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let parsedRows = [];   // all parsed rows [{no_gardu, tgl_ukur, ...}]
+let rowStatuses = [];  // 'pending' | 'insert' | 'skip' | 'error'
+let errorLog = [];     // [{row, msg}]
+let abortFlag = false;
+
+// ══════════════════════════════════════════
+// DRAG & DROP / FILE INPUT
+// ══════════════════════════════════════════
+const zone = document.getElementById('upload-zone');
+const fileInput = document.getElementById('file-input');
+
+zone.addEventListener('click', () => fileInput.click());
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.name.endsWith('.csv')) handleFile(f);
+  else toast('File harus berformat .csv', 'error');
+});
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  zone.classList.add('has-file');
+  document.getElementById('file-name-display').textContent = file.name;
+  document.getElementById('file-size-display').textContent = formatBytes(file.size);
+
+  const reader = new FileReader();
+  reader.onload = e => parseCSV(e.target.result);
+  reader.readAsText(file, 'UTF-8');
+}
+
+// ══════════════════════════════════════════
+// CSV PARSER
+// ══════════════════════════════════════════
+function parseCSV(text) {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+
+  // Find header row (contains "NOGARDU")
+  let headerIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('NOGARDU') || lines[i].includes('NO,UNITUP')) {
+      headerIdx = i; break;
+    }
+  }
+  if (headerIdx === -1) { toast('Header CSV tidak ditemukan', 'error'); return; }
+
+  const headers = csvParseLine(lines[headerIdx]).map(h => h.trim().toUpperCase());
+
+  parsedRows = [];
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const cols = csvParseLine(line);
+    if (!cols[0] || !cols[0].trim() || isNaN(parseInt(cols[0]))) continue; // skip non-data
+
+    const get = (col) => {
+      const idx = headers.indexOf(col);
+      if (idx === -1) return null;
+      const v = (cols[idx] || '').trim().replace(/^'/, ''); // strip Excel ' prefix
+      return v === '' ? null : v;
+    };
+
+    // Strip gardu suffix: ARB001-1 → ARB001, ABE529-K → ABE529
+    const rawGardu = get('NOGARDU') || '';
+    const noGardu = rawGardu.replace(/[-_][0-9A-Za-z]+$/, '').toUpperCase().trim();
+    if (!noGardu) continue;
+
+    // Parse date: DD/MM/YYYY → YYYY-MM-DD
+    const tglRaw = get('TGLUKUR') || '';
+    const tglParsed = parseTgl(tglRaw);
+    if (!tglParsed) continue;
+
+    const jamRaw = get('JAM UKUR') || null;
+
+    // Parse jurusan columns
+    const jurusan = parseJurusan(cols, headers);
+
+    parsedRows.push({
+      _csvRow: i + 1,
+      _noGarduRaw: rawGardu,
+      no_gardu:     noGardu,
+      tgl_ukur:     tglParsed,
+      jam_ukur:     jamRaw,
+      petugas:      get('PETUGAS'),
+      daya:         parseNum(get('DAYA')),
+      fasa:         get('FASA'),
+      daya_pakai:   parseNum(get('DAYA PAKAI')),
+      prosen:       parseNum(get('PROSEN')),
+      tdk_seimbang: parseNum(get('TDKSEIMBANG')),
+      r_total:      parseNum(get('R TOTAL')),
+      s_total:      parseNum(get('S TOTAL')),
+      t_total:      parseNum(get('T TOTAL')),
+      n_total:      parseNum(get('N TOTAL')),
+      v_r_n:        parseNum(getByAlias(cols, headers, ['R - N', 'R-N'])),
+      v_s_n:        parseNum(getByAlias(cols, headers, ['S - N', 'S-N'])),
+      v_t_n:        parseNum(getByAlias(cols, headers, ['T - N', 'T-N'])),
+      v_r_s:        parseNum(getByAlias(cols, headers, ['R - S', 'R-S'])),
+      v_s_t:        parseNum(getByAlias(cols, headers, ['S - T', 'S-T'])),
+      v_r_t:        parseNum(getByAlias(cols, headers, ['R - T', 'R-T'])),
+      thd_r:        parseNum(get('THD-R')),
+      thd_s:        parseNum(get('THD-S')),
+      thd_t:        parseNum(get('THD-T')),
+      ipeak_r:      parseNum(get('IPEAK-R')),
+      ipeak_s:      parseNum(get('IPEAK-S')),
+      ipeak_t:      parseNum(get('IPEAK-T')),
+      tpf_r:        parseNum(get('TPF-R')),
+      tpf_s:        parseNum(get('TPF-S')),
+      tpf_t:        parseNum(get('TPF-T')),
+      jurusan:      jurusan,
+    });
+  }
+
+  rowStatuses = parsedRows.map(() => 'pending');
+  renderPreview();
+  document.getElementById('preview-panel').style.display = 'block';
+  document.getElementById('action-bar').style.display = 'flex';
+  toast(`${parsedRows.length} baris data berhasil diparsing`, 'success');
+}
+
+function parseJurusan(cols, headers) {
+  const jurGroups = [];
+  const jurNames = ['JURUSAN 1','JURUSAN 2','JURUSAN 3','JURUSAN 4','JURUSAN 5','JURUSAN 6'];
+
+  for (const jurName of jurNames) {
+    const startIdx = headers.indexOf(jurName);
+    if (startIdx === -1) continue;
+
+    // TITIK UKUR is 17 cols after JURUSAN header (cols: r,s,t,n, voltages*3, thd*3, ipeak*3, tpf*3, titik)
+    const titikIdx = headers.indexOf(`TITIK UKUR JUR ${jurName.slice(-1)}`, startIdx);
+
+    const nama = cols[startIdx] ? cols[startIdx].trim() : null;
+    if (!nama || nama === '0') continue;
+
+    const jur = { nama };
+    const fields = [
+      ['r_total',  startIdx+1], ['s_total', startIdx+2], ['t_total', startIdx+3], ['n_total', startIdx+4],
+      ['thd_r',    startIdx+5], ['thd_s',   startIdx+6], ['thd_t',   startIdx+7],
+      ['ipeak_r',  startIdx+8], ['ipeak_s', startIdx+9], ['ipeak_t', startIdx+10],
+      ['tpf_r',    startIdx+11],['tpf_s',  startIdx+12], ['tpf_t',  startIdx+13],
+    ];
+    for (const [key, idx] of fields) {
+      const v = parseNum((cols[idx] || '').replace(/^'/,'').trim());
+      if (v !== null && v !== 0) jur[key] = v;
+    }
+    if (titikIdx > 0 && cols[titikIdx]) {
+      const t = cols[titikIdx].trim();
+      if (t && t !== '0') jur.titik_ukur = t;
+    }
+    jurGroups.push(jur);
+  }
+
+  return jurGroups.length > 0 ? jurGroups : null;
+}
+
+function getByAlias(cols, headers, aliases) {
+  for (const alias of aliases) {
+    const idx = headers.indexOf(alias);
+    if (idx !== -1) return (cols[idx] || '').replace(/^'/,'').trim() || null;
+  }
+  return null;
+}
+
+function parseTgl(str) {
+  if (!str) return null;
+  // DD/MM/YYYY
+  const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  // YYYY-MM-DD passthrough
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  return null;
+}
+
+function parseNum(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = parseFloat(String(v).replace(/^'/,''));
+  return isNaN(n) ? null : n;
+}
+
+function csvParseLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"' && inQ && line[i+1] === '"') { cur += '"'; i++; }
+    else if (c === '"') { inQ = !inQ; }
+    else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+    else cur += c;
+  }
+  result.push(cur);
+  return result;
+}
+
+// ══════════════════════════════════════════
+// RENDER PREVIEW
+// ══════════════════════════════════════════
+function renderPreview() {
+  const tbody = document.getElementById('preview-body');
+  tbody.innerHTML = '';
+
+  let cInsert = 0, cSkip = 0, cErr = 0;
+  for (let i = 0; i < parsedRows.length; i++) {
+    const r = parsedRows[i];
+    const st = rowStatuses[i];
+    if (st === 'skip') cSkip++;
+    else if (st === 'error') cErr++;
+    else cInsert++;
+
+    const tr = document.createElement('tr');
+    const stLabel = st === 'skip'   ? '<span class="row-status skip">⊘ SKIP</span>' :
+                    st === 'error'  ? '<span class="row-status error">✕ ERROR</span>' :
+                                      '<span class="row-status insert">＋ INSERT</span>';
+    tr.innerHTML = `
+      <td>${r._csvRow}</td>
+      <td>${stLabel}</td>
+      <td title="${r._noGarduRaw}">${r.no_gardu}</td>
+      <td>${r.tgl_ukur}</td>
+      <td>${r.jam_ukur || '-'}</td>
+      <td>${r.petugas || '-'}</td>
+      <td>${r.daya ?? '-'}</td>
+      <td>${r.prosen ?? '-'}</td>
+      <td>${r.tdk_seimbang ?? '-'}</td>
+      <td>${r.jurusan ? r.jurusan.length + ' jur' : '-'}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  const total = parsedRows.length;
+  document.getElementById('chip-total').textContent  = `${total} baris`;
+  document.getElementById('chip-insert').textContent = `${cInsert} baru`;
+  document.getElementById('chip-skip').textContent   = `${cSkip} skip`;
+  document.getElementById('chip-error').textContent  = `${cErr} error`;
+}
+
+// ══════════════════════════════════════════
+// IMPORT
+// ══════════════════════════════════════════
+async function startImport() {
+  const url = document.getElementById('supa-url').value.trim().replace(/\/$/, '');
+  const key = document.getElementById('supa-key').value.trim();
+
+  if (!url || !key) { toast('Isi Supabase URL dan API Key terlebih dahulu', 'error'); return; }
+  if (parsedRows.length === 0) { toast('Tidak ada data untuk diimport', 'error'); return; }
+
+  document.getElementById('btn-import').disabled = true;
+  document.getElementById('progress-panel').style.display = 'block';
+  document.getElementById('result-panel').style.display = 'none';
+  document.getElementById('prog-log').innerHTML = '';
+  errorLog = [];
+  abortFlag = false;
+
+  let inserted = 0, skipped = 0, errored = 0;
+  const total = parsedRows.length;
+
+  for (let i = 0; i < parsedRows.length; i++) {
+    if (abortFlag) break;
+    const row = parsedRows[i];
+    const pct = Math.round(((i+1)/total)*100);
+
+    updateProgress(pct, `Memproses baris ${i+1} / ${total}`, i+1, total);
+
+    try {
+      const result = await upsertRow(url, key, row);
+      if (result === 'skip') {
+        skipped++;
+        rowStatuses[i] = 'skip';
+        addLog(`Baris ${row._csvRow}: ${row.no_gardu} ${row.tgl_ukur} ${row.jam_ukur || ''} — dilewati`, 'warn');
+      } else {
+        inserted++;
+        rowStatuses[i] = 'insert';
+        addLog(`Baris ${row._csvRow}: ${row.no_gardu} ${row.tgl_ukur} — berhasil INSERT`, 'ok');
+      }
+    } catch (err) {
+      errored++;
+      rowStatuses[i] = 'error';
+      errorLog.push({ csvRow: row._csvRow, no_gardu: row.no_gardu, tgl: row.tgl_ukur, msg: err.message });
+      addLog(`Baris ${row._csvRow}: ${row.no_gardu} — ERROR: ${err.message}`, 'err');
+    }
+
+    // Re-render every 20 rows for performance
+    if (i % 20 === 0 || i === total - 1) renderPreview();
+  }
+
+  renderPreview();
+  showResult(total, inserted, skipped, errored);
+  document.getElementById('btn-import').disabled = false;
+}
+
+async function upsertRow(baseUrl, key, row) {
+  // First: check if exists (SELECT with match on no_gardu + tgl_ukur + jam_ukur)
+  const jamFilter = row.jam_ukur
+    ? `&jam_ukur=eq.${encodeURIComponent(row.jam_ukur)}`
+    : `&jam_ukur=is.null`;
+
+  const checkUrl = `${baseUrl}/rest/v1/inspeksi?select=id` +
+    `&no_gardu=eq.${encodeURIComponent(row.no_gardu)}` +
+    `&tgl_ukur=eq.${encodeURIComponent(row.tgl_ukur)}` +
+    jamFilter +
+    `&limit=1`;
+
+  const checkResp = await fetch(checkUrl, {
+    headers: {
+      'apikey': key,
+      'Authorization': `Bearer ${key}`,
+      'Content-Type': 'application/json',
+    }
+  });
+
+  if (!checkResp.ok) {
+    const errTxt = await checkResp.text();
+    throw new Error(`Check gagal (${checkResp.status}): ${errTxt.slice(0, 120)}`);
+  }
+
+  const existing = await checkResp.json();
+  if (existing.length > 0) return 'skip';  // sudah ada → skip
+
+  // INSERT baru
+  const body = buildBody(row);
+  const insertResp = await fetch(`${baseUrl}/rest/v1/inspeksi`, {
+    method: 'POST',
+    headers: {
+      'apikey': key,
+      'Authorization': `Bearer ${key}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!insertResp.ok) {
+    const errTxt = await insertResp.text();
+    throw new Error(`Insert gagal (${insertResp.status}): ${errTxt.slice(0, 160)}`);
+  }
+
+  return 'insert';
+}
+
+function buildBody(row) {
+  const body = {};
+  const fields = [
+    'no_gardu','tgl_ukur','jam_ukur','petugas','daya','fasa','daya_pakai',
+    'prosen','tdk_seimbang','r_total','s_total','t_total','n_total',
+    'v_r_n','v_s_n','v_t_n','v_r_s','v_s_t','v_r_t',
+    'thd_r','thd_s','thd_t','ipeak_r','ipeak_s','ipeak_t',
+    'tpf_r','tpf_s','tpf_t','jurusan',
+  ];
+  for (const f of fields) {
+    if (row[f] !== undefined && row[f] !== null) body[f] = row[f];
+  }
+  return body;
+}
+
+// ══════════════════════════════════════════
+// UI HELPERS
+// ══════════════════════════════════════════
+function updateProgress(pct, text) {
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-text').textContent = text;
+  document.getElementById('prog-pct').textContent = pct + '%';
+}
+
+function addLog(msg, type = 'info') {
+  const log = document.getElementById('prog-log');
+  const now = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const div = document.createElement('div');
+  div.className = 'log-line';
+  div.innerHTML = `<span class="log-time">${now}</span><span class="log-msg ${type}">${msg}</span>`;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function showResult(total, inserted, skipped, errored) {
+  document.getElementById('res-total').textContent  = total;
+  document.getElementById('res-insert').textContent = inserted;
+  document.getElementById('res-skip').textContent   = skipped;
+  document.getElementById('res-err').textContent    = errored;
+
+  const errList = document.getElementById('error-list');
+  if (errorLog.length > 0) {
+    errList.style.display = 'block';
+    errList.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:8px">DAFTAR ERROR:</div>' +
+      errorLog.map(e =>
+        `<div class="err-row"><span class="row-num">Baris ${e.csvRow}</span><span>${e.no_gardu} ${e.tgl} — ${e.msg}</span></div>`
+      ).join('');
+    document.getElementById('btn-export-errors').style.display = 'inline-flex';
+  } else {
+    errList.style.display = 'none';
+    document.getElementById('btn-export-errors').style.display = 'none';
+  }
+
+  document.getElementById('result-panel').style.display = 'block';
+
+  if (errored === 0 && inserted > 0) {
+    toast(`✓ Import selesai: ${inserted} data berhasil dimasukkan, ${skipped} dilewati`, 'success');
+  } else if (inserted > 0) {
+    toast(`Import selesai: ${inserted} berhasil, ${errored} gagal`, 'success');
+  } else if (skipped === total) {
+    toast(`Semua ${total} baris sudah ada di database (skip semua)`, 'success');
+  } else {
+    toast(`Import selesai dengan ${errored} error`, 'error');
+  }
+}
+
+function exportErrors() {
+  if (errorLog.length === 0) return;
+  const csv = 'Baris CSV,No Gardu,Tanggal,Pesan Error\n' +
+    errorLog.map(e => `${e.csvRow},"${e.no_gardu}","${e.tgl}","${e.msg.replace(/"/g, "''")}"`).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `import-errors-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+function resetAll() {
+  parsedRows = [];
+  rowStatuses = [];
+  errorLog = [];
+  zone.classList.remove('has-file');
+  document.getElementById('file-input').value = '';
+  document.getElementById('preview-panel').style.display = 'none';
+  document.getElementById('action-bar').style.display = 'none';
+  document.getElementById('progress-panel').style.display = 'none';
+  document.getElementById('result-panel').style.display = 'none';
+  document.getElementById('preview-body').innerHTML = '';
+}
+
+function toast(msg, type = 'info') {
+  const area = document.getElementById('toast-area');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ⓘ'}</span><span>${msg}</span>`;
+  area.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.4s'; setTimeout(() => el.remove(), 400); }, 4000);
+}
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  return (b/1024/1024).toFixed(1) + ' MB';
+}
+</script>
+</body>
+</html>
