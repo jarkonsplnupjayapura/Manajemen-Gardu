@@ -67,11 +67,12 @@ async function rpcCall(funcName, params, signal) {
 var _HEAVY_ACTIONS = {
   getGarduKritis: 1, getExportRekap: 1, getRekap: 1, getDaftarGardu: 1
 };
+var _TIMEOUT_MS = { getDaftarGardu: 120000, getGarduKritis: 90000, getExportRekap: 90000, getRekap: 60000 };
 
 function apiCall(action, params, cb) {
   var controller = new AbortController();
   var done = false;
-  var timeoutMs = _HEAVY_ACTIONS[action] ? 60000 : 30000;
+  var timeoutMs = _TIMEOUT_MS[action] || (_HEAVY_ACTIONS[action] ? 60000 : 30000);
   var timer = setTimeout(function() {
     if (done) return;
     done = true;
@@ -189,19 +190,53 @@ async function _verifyToken(p, signal) {
   };
 }
 
-// ── DAFTAR GARDU ─────────────────────────────────────────────
+// ── DAFTAR GARDU — pagination loop melewati limit 1000 Supabase ──────────────
 async function _getDaftarGardu(p, signal) {
-  var url = '/rest/v1/v_gardu_lengkap?select=*&order=no_gardu.asc&limit=5000';
-  if (p && p.ulp) url += '&ulp=eq.' + encodeURIComponent(_normalizeUlpEnum(p.ulp));
+  var PAGE_SIZE = 500;
+  var baseUrl = '/rest/v1/v_gardu_lengkap?select=*&order=no_gardu.asc';
+  if (p && p.ulp) baseUrl += '&ulp=eq.' + encodeURIComponent(_normalizeUlpEnum(p.ulp));
 
-  var res = await sbFetch(url, { signal: signal });
-  if (!res.ok) {
-    var errTxt = await res.text().catch(function() { return res.status; });
-    return { status: 'error', message: 'Gagal memuat daftar gardu (' + res.status + '): ' + errTxt };
+  var allRows = [];
+  var offset  = 0;
+  var hasMore = true;
+
+  while (hasMore) {
+    var rangeStart = offset;
+    var rangeEnd   = offset + PAGE_SIZE - 1;
+    var res = await sbFetch(baseUrl, {
+      signal: signal,
+      headers: {
+        'Range-Unit': 'items',
+        'Range':      rangeStart + '-' + rangeEnd,
+        'Prefer':     'count=none'
+      }
+    });
+
+    if (!res.ok) {
+      var errTxt = await res.text().catch(function() { return res.status; });
+      return { status: 'error', message: 'Gagal memuat daftar gardu (' + res.status + '): ' + errTxt };
+    }
+
+    var rows = await res.json();
+    if (!rows || !rows.length) break;
+
+    allRows = allRows.concat(rows);
+    offset += PAGE_SIZE;
+
+    // Jika hasil < PAGE_SIZE berarti sudah halaman terakhir
+    hasMore = rows.length === PAGE_SIZE;
   }
 
-  var rows = await res.json();
-  var data = rows.map(function(g) {
+  // Deduplikasi berdasarkan no_gardu untuk hindari ghost row
+  var seen = {};
+  var uniqueRows = allRows.filter(function(g) {
+    var key = (g.no_gardu || '').trim().toUpperCase();
+    if (!key || seen[key]) return false;
+    seen[key] = true;
+    return true;
+  });
+
+  var data = uniqueRows.map(function(g) {
     return {
       'NO_GARDU':           g.no_gardu || '',
       'ULP':                g.ulp      || '',
@@ -250,7 +285,7 @@ async function _getDetailLengkap(p, signal) {
 
   var g = garduArr[0];
 
-  // Gunakan RPC fn_get_riwayat_inspeksi daripada tabel inspeksi langsung
+  // Gunakan RPC fn_get_riwayat_inspeksi
   var riwayatRows = [];
   try {
     var riwayatData = await rpcCall('fn_get_riwayat_inspeksi', {
@@ -260,7 +295,7 @@ async function _getDetailLengkap(p, signal) {
     if (riwayatData && riwayatData.status === 'ok') {
       riwayatRows = (riwayatData.data || []).map(function(r) { return _mapInspeksiRow(r); });
     } else {
-      // Fallback: coba REST langsung ke tabel inspeksi
+      // Fallback: REST langsung ke tabel inspeksi
       var resI = await sbFetch(
         '/rest/v1/inspeksi?no_gardu=eq.' + encodeURIComponent(noGardu) +
         '&order=tgl_ukur.desc,jam_ukur.desc&limit=5',
@@ -275,7 +310,7 @@ async function _getDetailLengkap(p, signal) {
     console.warn('[sbApi] Gagal memuat riwayat inspeksi:', e);
   }
 
-  // Map gardu dari v_gardu_lengkap (kolom sama dengan tabel gardu)
+  // Map gardu dari v_gardu_lengkap
   var garduMapped = {
     'NO_GARDU':           g.no_gardu   || '',
     'ULP':                g.ulp        || '',
