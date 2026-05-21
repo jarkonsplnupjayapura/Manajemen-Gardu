@@ -1919,7 +1919,9 @@ function muatDaftarGardu(force, ulpFilter){
   document.getElementById('list-gardu').innerHTML =
     '<div class="loading"><div class="spinner"></div>Memuat daftar gardu...</div>';
 
-  apiGet({action:'getDaftarGardu'}, function(res){
+  var _apiParams = {action:'getDaftarGardu'};
+  if (activeULP) _apiParams.ulp = activeULP;
+  apiGet(_apiParams, function(res){
     if(res.status!=='ok'){
       document.getElementById('list-gardu').innerHTML =
         '<div class="alert alert-err" style="margin:var(--sp-md);">'+
@@ -4400,7 +4402,7 @@ function cariGarduUntukEdit() {
   // Validasi prefix dihapus agar gardu baru (dengan nomor non-standard) tetap bisa dicari
   var s = getSession();
 
-  apiGet({action:'getDetailGardu', noGardu:noGardu}, function(res){
+  apiGet({action:'getDetailLengkap', noGardu:noGardu}, function(res){
     if (res.status!=='ok'||!res.data) { alert('Gardu tidak ditemukan: '+noGardu); return; }
     var g = res.data;
     // [Fix v33] adminUlp hanya bisa edit gardu ULP-nya sendiri
@@ -4529,7 +4531,7 @@ function cariGarduDariScannerAuto(val) {
   var s = getSession();
   document.getElementById('list-scan').innerHTML = '<div class="loading"><div class="spinner"></div>Membuka gardu <b>'+esc(val)+'</b>...</div>';
 
-  apiGet({action:'getDetailGardu', noGardu:val}, function(res) {
+  apiGet({action:'getDetailLengkap', noGardu:val}, function(res) {
     if (res.status === 'ok') {
       var g = res.data;
       // Cek ULP — petugas & adminUlp hanya boleh lihat ULP sendiri
