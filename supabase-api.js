@@ -234,11 +234,15 @@ async function _getDaftarGardu(p, signal) {
 async function _getDetailLengkap(p, signal) {
   var noGardu = (p.noGardu || '').trim().toUpperCase();
 
+  // Gunakan v_gardu_lengkap (view publik) daripada tabel gardu langsung
   var resG = await sbFetch(
-    '/rest/v1/gardu?no_gardu=eq.' + encodeURIComponent(noGardu) + '&limit=1',
+    '/rest/v1/v_gardu_lengkap?no_gardu=eq.' + encodeURIComponent(noGardu) + '&limit=1',
     { signal: signal }
   );
-  if (!resG.ok) return { status: 'error', message: 'Gagal memuat data gardu.' };
+  if (!resG.ok) {
+    var errTxt = await resG.text().catch(function() { return resG.status; });
+    return { status: 'error', message: 'Gagal memuat data gardu (' + resG.status + ').' };
+  }
 
   var garduArr = await resG.json();
   if (!garduArr || !garduArr.length)
@@ -246,17 +250,53 @@ async function _getDetailLengkap(p, signal) {
 
   var g = garduArr[0];
 
-  var resI = await sbFetch(
-    '/rest/v1/inspeksi?no_gardu=eq.' + encodeURIComponent(noGardu) +
-    '&order=tgl_ukur.desc,jam_ukur.desc&limit=5',
-    { signal: signal }
-  );
-  var riwayatRaw = resI.ok ? await resI.json() : [];
+  // Gunakan RPC fn_get_riwayat_inspeksi daripada tabel inspeksi langsung
+  var riwayatRows = [];
+  try {
+    var riwayatData = await rpcCall('fn_get_riwayat_inspeksi', {
+      p_no_gardu: noGardu,
+      p_limit: 5
+    }, signal);
+    if (riwayatData && riwayatData.status === 'ok') {
+      riwayatRows = (riwayatData.data || []).map(function(r) { return _mapInspeksiRow(r); });
+    } else {
+      // Fallback: coba REST langsung ke tabel inspeksi
+      var resI = await sbFetch(
+        '/rest/v1/inspeksi?no_gardu=eq.' + encodeURIComponent(noGardu) +
+        '&order=tgl_ukur.desc,jam_ukur.desc&limit=5',
+        { signal: signal }
+      );
+      if (resI.ok) {
+        var rawI = await resI.json();
+        riwayatRows = (rawI || []).map(function(r) { return _mapInspeksiRow(r); });
+      }
+    }
+  } catch (e) {
+    console.warn('[sbApi] Gagal memuat riwayat inspeksi:', e);
+  }
+
+  // Map gardu dari v_gardu_lengkap (kolom sama dengan tabel gardu)
+  var garduMapped = {
+    'NO_GARDU':           g.no_gardu   || '',
+    'ULP':                g.ulp        || '',
+    'UNITUP':             g.unitup     || '',
+    'PENYULANG':          g.penyulang  || '',
+    'ALAMAT':             g.alamat     || '',
+    'KAPASITAS_KVA':      g.kapasitas_kva != null ? String(g.kapasitas_kva) : '',
+    'DAYA_KVA':           g.kapasitas_kva != null ? String(g.kapasitas_kva) : '',
+    'TIPE':               g.tipe       || '',
+    'MEREK_TRAFO':        g.merek_trafo || '',
+    'STATUS_KEPEMILIKAN': g.status_kepemilikan || '',
+    'STATUS_OPERASIONAL': g.status_operasional || '',
+    'LATITUDE':           g.latitude   || '',
+    'LONGITUDE':          g.longitude  || '',
+    'KETERANGAN':         g.keterangan || ''
+  };
 
   return {
     status:  'ok',
-    data:    _mapGarduRow(g),
-    riwayat: riwayatRaw.map(function(r) { return _mapInspeksiRow(r); })
+    data:    garduMapped,
+    riwayat: riwayatRows
   };
 }
 
