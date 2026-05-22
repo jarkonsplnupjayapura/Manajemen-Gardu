@@ -4405,18 +4405,26 @@ function cariGarduUntukEdit() {
   apiGet({action:'getDetailLengkap', noGardu:noGardu}, function(res){
     if (res.status!=='ok'||!res.data) { alert('Gardu tidak ditemukan: '+noGardu); return; }
     var g = res.data;
-    // [Fix v33] adminUlp hanya bisa edit gardu ULP-nya sendiri
+    // [Fix v34] adminUlp hanya bisa edit gardu ULP-nya sendiri
+    // Bandingkan g['ULP'] (format "ULP JAYAPURA") langsung dengan s.ulp (format "ULP JAYAPURA")
     var s = getSession();
-    if (s && s.role === 'admin' && normalizeULP(g['ULP']||'') !== normalizeULP(ulpAkunToSheet(s.ulp))) {
-      var msgEl = document.getElementById('edit-gardu-msg');
-      if (msgEl) {
-        msgEl.style.display='block'; msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B';
-        msgEl.textContent='❌ Gardu "'+g['NO_GARDU']+'" milik '+g['ULP']+'. Anda hanya bisa edit gardu milik '+s.ulp+'.';
-      } else {
-        alert('Akses ditolak: Gardu ini milik '+g['ULP']+', bukan '+s.ulp+'.');
+    if (s && s.role === 'admin') {
+      var garduUlpNorm = normalizeULP(g['ULP']||'');
+      var userUlpNorm  = normalizeULP(s.ulp||'');
+      // Juga coba cocokkan sheet-name (misal "JAYAPURA") agar tidak ada false-negative
+      var userUlpSheet = normalizeULP(ulpAkunToSheet(s.ulp||''));
+      if (garduUlpNorm !== userUlpNorm && garduUlpNorm !== userUlpSheet &&
+          ('ULP '+userUlpNorm) !== garduUlpNorm) {
+        var msgEl = document.getElementById('edit-gardu-msg');
+        if (msgEl) {
+          msgEl.style.display='block'; msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B';
+          msgEl.textContent='❌ Gardu "'+g['NO_GARDU']+'" milik '+g['ULP']+'. Anda hanya bisa edit gardu milik '+s.ulp+'.';
+        } else {
+          alert('Akses ditolak: Gardu ini milik '+g['ULP']+', bukan '+s.ulp+'.');
+        }
+        document.getElementById('edit-gardu-fields').style.display = 'none';
+        return;
       }
-      document.getElementById('edit-gardu-fields').style.display = 'none';
-      return;
     }
     // Sembunyikan field ULP untuk adminUlp (tidak boleh ganti ULP)
     var ulpFieldWrap = document.getElementById('ef-ulp') && document.getElementById('ef-ulp').parentNode;
@@ -4471,9 +4479,15 @@ function submitEditGardu() {
 
   // adminUlp tidak boleh mengubah ULP ke ULP lain
   var ulpVal = (document.getElementById('ef-ulp').value||'').trim().toUpperCase();
-  if (s && s.role === 'admin' && normalizeULP(ulpVal) !== normalizeULP(ulpAkunToSheet(s.ulp))) {
-    msgEl.style.display='block'; msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B';
-    msgEl.textContent='Anda tidak bisa mengubah ULP gardu ke ULP lain.'; return;
+  if (s && s.role === 'admin') {
+    var ulpValNorm   = normalizeULP(ulpVal);
+    var userUlpNorm  = normalizeULP(s.ulp||'');
+    var userUlpSheet = normalizeULP(ulpAkunToSheet(s.ulp||''));
+    if (ulpValNorm !== userUlpNorm && ulpValNorm !== userUlpSheet &&
+        ('ULP '+ulpValNorm) !== userUlpNorm && ulpValNorm !== ('ULP '+userUlpSheet)) {
+      msgEl.style.display='block'; msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B';
+      msgEl.textContent='Anda tidak bisa mengubah ULP gardu ke ULP lain.'; return;
+    }
   }
 
   // ── Konfirmasi sebelum simpan ──
@@ -4535,7 +4549,11 @@ function cariGarduDariScannerAuto(val) {
     if (res.status === 'ok') {
       var g = res.data;
       // Cek ULP — petugas & adminUlp hanya boleh lihat ULP sendiri
-      if (s && s.role !== 'superadmin' && normalizeULP((g['ULP']||'').trim()) !== normalizeULP(ulpAkunToSheet(s.ulp))) {
+      // Fix: bandingkan "ULP JAYAPURA" vs "ULP JAYAPURA" langsung, plus fallback sheet-name
+      var _garduUlp = normalizeULP(g['ULP']||'');
+      var _userUlp  = normalizeULP(s ? s.ulp||'' : '');
+      var _userSheet= normalizeULP(ulpAkunToSheet(s ? s.ulp||'' : ''));
+      if (s && s.role !== 'superadmin' && _garduUlp !== _userUlp && _garduUlp !== _userSheet && ('ULP '+_userSheet) !== _garduUlp) {
         document.getElementById('list-scan').innerHTML = '<div class="empty-state">🔍 Arahkan kamera ke barcode gardu Anda</div>';
         // Double rAF: tunggu tab selesai render BARU tampilkan popup
         requestAnimationFrame(function(){
@@ -4556,7 +4574,12 @@ function cariGarduDariScannerAuto(val) {
         }
         var garduList = res2.data;
         if (s && s.role !== 'superadmin') {
-          garduList = garduList.filter(function(g){ return normalizeULP((g['ULP']||'').trim()) === normalizeULP(ulpAkunToSheet(s.ulp)); });
+          garduList = garduList.filter(function(g){
+            var _gu = normalizeULP(g['ULP']||'');
+            var _uu = normalizeULP(s.ulp||'');
+            var _us = normalizeULP(ulpAkunToSheet(s.ulp||''));
+            return _gu === _uu || _gu === _us || ('ULP '+_us) === _gu;
+          });
         }
         if (!garduList.length) {
           document.getElementById('list-scan').innerHTML = '<div class="empty-state">🔍 Arahkan kamera ke barcode gardu Anda</div>';
