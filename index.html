@@ -831,26 +831,31 @@ body{
 
   /* Peta: full-height di desktop agar tidak kosong */
   #peta-map{
-    height:calc(100vh - var(--topbar-h) - 180px) !important;
-    min-height:400px;
+    height:calc(100vh - var(--topbar-h) - 170px) !important;
+    min-height:420px;
+    background:#e8edf2;
   }
-  /* Pastikan page peta tidak collapse saat tidak aktif */
+  /* Trick kritis: tab peta TIDAK pakai display:none di desktop
+     supaya Leaflet bisa mengukur container. Pakai visibility+z-index. */
   #tab-peta{min-height:100vh;}
-  /* Trick: jaga agar #peta-map selalu punya ukuran meski tab hidden
-     Dengan override display:none -> visibility:hidden di desktop */
   #tab-peta:not(.active){
     display:block !important;
     visibility:hidden;
-    position:absolute;
+    position:fixed;
+    left:-9999px;
+    top:0;
+    width:calc(100vw - 260px);
     pointer-events:none;
-    top:0;left:0;width:100%;
-    z-index:-1;
+    z-index:-999;
   }
   #tab-peta.active{
+    display:block !important;
     visibility:visible;
     position:relative;
-    z-index:auto;
+    left:auto; top:auto;
+    width:100%;
     pointer-events:auto;
+    z-index:auto;
   }
 
   /* Page body tidak perlu padding nav bawah */
@@ -1626,9 +1631,6 @@ function onLoginSuccess(user) {
   muatDaftarGardu(true, ulpUntukFilter);
   _updateSidebarUserFooter();
 
-  // Init peta awal agar Leaflet bisa mengukur container (container selalu di DOM di desktop)
-  setTimeout(function(){ _initPetaMap(); }, 400);
-
   // Reset rekap agar tidak tampil data ULP sebelumnya saat ganti login
   rekapSudahMuat = false;
   var rekapEl = document.getElementById('rekap-content');
@@ -2007,6 +2009,8 @@ window.onload = function(){
     // Belum login — tampilkan login screen, jangan muat data
     document.getElementById('login-screen').style.display = 'flex';
   }
+  // Init peta map setelah halaman selesai load agar Leaflet bisa ukur container
+  setTimeout(function(){ _initPetaMap(); }, 200);
   // API_URL sudah kosong — digantikan supabase-api.js (tidak perlu validasi)
   // if (!API_URL || ...) { ... }
   var elManual = document.getElementById('scanner-manual');
@@ -2090,11 +2094,9 @@ function bukaTab(id, idx){
   if(id==='tab-rekap' && !rekapSudahMuat) muatRekap();
   if(id==='tab-peta') {
     _updatePetaULPBanner();
-    // Invalidate berkali-kali untuk memastikan peta render setelah tab visible
-    [100, 300, 600].forEach(function(d){
-      setTimeout(function(){ if(_petaMap) _petaMap.invalidateSize(); }, d);
-    });
     muatPetaGardu(false);
+    // Paksa invalidate berkali-kali setelah tab menjadi visible
+    _forceInvalidateMap();
   }
 }
 
@@ -2165,6 +2167,8 @@ function muatDaftarGardu(force, ulpFilter){
     buildFilterULP(filtered);
     renderDaftarGardu(filtered);
     updateFreshnessBanner(res._generatedAt||'');
+    // Pre-render peta di background setelah data gardu tersedia
+    setTimeout(function(){ _petaSudahMuat=false; muatPetaGardu(false); }, 800);
   });
 }
 
@@ -5057,23 +5061,18 @@ function _updatePetaULPBanner() {
 
 function muatPetaGardu(force) {
   if (_petaLoading) return;
-  if (_petaSudahMuat && !force && _petaMap) return;
-  _petaLoading = true;
   _updatePetaULPBanner();
-  var loadEl = document.getElementById('peta-loading');
-  if (loadEl) loadEl.style.display = 'block';
 
-  if (!_petaMap) { _initPetaMap(); }
-  // Invalidate size setelah init karena container mungkin baru visible
-  if (_petaMap) {
-    setTimeout(function(){ _petaMap.invalidateSize(); }, 50);
-    setTimeout(function(){ _petaMap.invalidateSize(); }, 300);
+  // Jika sudah punya data dan tidak force-refresh, langsung render ulang
+  if (_petaSudahMuat && !force && _petaMap) {
+    _forceInvalidateMap();
+    return;
   }
 
   var s = getSession();
   var isNonSuperadmin = s && s.role !== 'superadmin' && s.ulp;
 
-  // Jika non-superadmin & allGardu sudah ada: filter per ULP
+  // Gunakan allGardu yang sudah ada (sudah dimuat di tab Daftar)
   if (allGardu && allGardu.length > 0 && !force) {
     var dataUntukPeta = isNonSuperadmin
       ? allGardu.filter(function(g) {
@@ -5083,21 +5082,57 @@ function muatPetaGardu(force) {
           return garduUlp === userUlp;
         })
       : allGardu;
+    if (!_petaMap) _initPetaMap();
     _renderPetaMarkers(dataUntukPeta);
-    _petaLoading = false;
-    if (loadEl) loadEl.style.display = 'none';
+    _petaSudahMuat = true;
+    _forceInvalidateMap();
     return;
   }
 
-  // Ambil dari server
+  // Fallback: fetch langsung dari Supabase jika allGardu belum ada
+  _petaLoading = true;
+  var loadEl = document.getElementById('peta-loading');
+  if (loadEl) loadEl.style.display = 'block';
+  if (!_petaMap) _initPetaMap();
+
   var params = { action: 'getDaftarGardu' };
   if (isNonSuperadmin) params.ulp = s.ulp;
   apiGet(params, function(res) {
     _petaLoading = false;
     if (loadEl) loadEl.style.display = 'none';
-    if (res.status !== 'ok' || !res.data) return;
+    if (res.status !== 'ok' || !res.data) {
+      var errEl = document.getElementById('peta-err');
+      if (!errEl) {
+        errEl = document.createElement('div');
+        errEl.id = 'peta-err';
+        errEl.className = 'alert alert-err';
+        errEl.style.margin = '12px';
+        var mapEl = document.getElementById('peta-map');
+        if (mapEl && mapEl.parentNode) mapEl.parentNode.insertBefore(errEl, mapEl);
+      }
+      errEl.innerHTML = '<span class="alert-icon">❌</span><span class="alert-text">Gagal memuat data peta: ' + esc(res.message || 'Periksa koneksi') + '<br><button class="btn btn-outline" style="margin-top:8px;" onclick="_petaLoading=false;muatPetaGardu(true)">↻ Coba Lagi</button></span>';
+      return;
+    }
+    var errEl2 = document.getElementById('peta-err');
+    if (errEl2) errEl2.remove();
+    // Simpan ke allGardu juga supaya tidak fetch ulang
+    if (!allGardu || allGardu.length === 0) allGardu = res.data;
     _renderPetaMarkers(res.data);
     _petaSudahMuat = true;
+    _forceInvalidateMap();
+  });
+}
+
+// Paksa Leaflet refresh tile setelah tab visible
+function _forceInvalidateMap() {
+  if (!_petaMap) return;
+  var delays = [50, 150, 350, 700];
+  delays.forEach(function(d) {
+    setTimeout(function() {
+      if (_petaMap) {
+        _petaMap.invalidateSize(true);
+      }
+    }, d);
   });
 }
 
@@ -5191,11 +5226,12 @@ function _renderPetaMarkers(data) {
   if (elAktif)  elAktif.textContent  = aktif;
   if (elKritis) elKritis.textContent = bebanLebih;
   if (bounds.length > 1) {
-    try { _petaMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 }); } catch(e) {}
+    try { _petaMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 }); } catch(e) {}
   } else if (bounds.length === 1) {
     _petaMap.setView(bounds[0], 14);
   }
-  setTimeout(function() { if (_petaMap) _petaMap.invalidateSize(); }, 200);
+  // Multiple invalidate untuk pastikan tile OSM benar-benar dimuat
+  _forceInvalidateMap();
 }
 
 function bukaDetailGarduDariPeta(noGardu) {
