@@ -60,6 +60,11 @@ async function rpcCall(funcName, params, signal) {
   }
   var data = await res.json();
   if (!data) return { status: 'error', message: 'Response kosong dari server.' };
+  // Supabase RPC kadang mengembalikan array [result] — unwrap jika perlu
+  if (Array.isArray(data)) {
+    if (data.length === 0) return { status: 'error', message: 'Response kosong dari server.' };
+    data = data[0];
+  }
   return data;
 }
 
@@ -162,14 +167,17 @@ async function _login(p, signal) {
   if (!data || data.status !== 'ok')
     return { status: 'error', message: data.message || 'Login gagal.' };
 
+  // fn_login bisa mengembalikan data flat (username, nama, role, ulp langsung)
+  // atau nested di dalam data.user — handle keduanya agar tidak crash
+  var u = (data.user && typeof data.user === 'object') ? data.user : data;
   return {
     status: 'ok',
     token:  data.token,
     user: {
-      username: data.user.username,
-      nama:     data.user.nama,
-      role:     data.user.role,
-      ulp:      data.user.ulp || ''
+      username: u.username || '',
+      nama:     u.nama     || u.username || '',
+      role:     u.role     || '',
+      ulp:      u.ulp      || ''
     }
   };
 }
