@@ -709,6 +709,8 @@ body{
 .btn-del-user{background:#FEE2E2;color:#991B1B;}
 
 </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WLEg=" crossorigin=""></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 </head>
@@ -822,18 +824,88 @@ body{
   </div>
 </div>
 
+<!-- TAB PETA PAPUA -->
+<div id="tab-peta" class="page">
+  <div class="topbar">
+    <div class="topbar-logo"><img src="icon-192.png" alt="PLN" onerror="this.parentNode.innerHTML='PLN'"></div>
+    <div class="topbar-info">
+      <div class="topbar-sub">UP3 Jayapura</div>
+      <div class="topbar-title" id="peta-topbar-title">Peta Gardu Papua</div>
+    </div>
+    <button class="topbar-action" onclick="muatPetaGardu(true)" title="Refresh peta">↻ Refresh</button>
+  </div>
+  <div class="page-body">
+    <!-- Banner info ULP — tampil otomatis untuk user non-superadmin -->
+    <div id="peta-ulp-banner" style="display:none;background:linear-gradient(90deg,var(--pln-biru),var(--pln-biru2));color:#fff;border-radius:var(--radius-sm);padding:8px var(--sp-md);margin-bottom:var(--sp-sm);font-size:var(--fs-xs);font-weight:700;align-items:center;gap:8px;">
+      <span style="font-size:16px;">🏢</span>
+      <span id="peta-ulp-banner-text">Peta Gardu</span>
+    </div>
+    <div class="peta-stats" id="peta-stats">
+      <div class="peta-stat-card"><div class="peta-stat-num" id="peta-total">—</div><div class="peta-stat-label">Total Gardu</div></div>
+      <div class="peta-stat-card"><div class="peta-stat-num" id="peta-aktif" style="color:var(--pln-green);">—</div><div class="peta-stat-label">Aktif</div></div>
+      <div class="peta-stat-card"><div class="peta-stat-num" id="peta-kritis" style="color:var(--pln-red);">—</div><div class="peta-stat-label">Beban Lebih</div></div>
+    </div>
+    <div class="peta-legend">
+      <div class="peta-legend-item"><div class="peta-legend-dot" style="background:#059669;"></div>Aktif Normal</div>
+      <div class="peta-legend-item"><div class="peta-legend-dot" style="background:#D97706;"></div>Beban 60–80%</div>
+      <div class="peta-legend-item"><div class="peta-legend-dot" style="background:#DC2626;"></div>Beban &gt;80%</div>
+      <div class="peta-legend-item"><div class="peta-legend-dot" style="background:#8499BB;"></div>Non-Aktif</div>
+      <div class="peta-legend-item"><div class="peta-legend-dot" style="background:#1048A8;"></div>Aktif (no data)</div>
+    </div>
+    <div id="peta-map"></div>
+    <div id="peta-loading" class="loading" style="display:none;"><div class="spinner"></div>Memuat data peta...</div>
+  </div>
+</div>
+
 <!-- DETAIL VIEW -->
-<div id="detail-view" style="display:none;width:100%;max-width:600px;margin:0 auto;">
+<div id="detail-view" style="display:none;width:100%;">
   <div class="topbar"><button class="topbar-back" onclick="tutupDetail()">←</button><div class="topbar-info"><div class="topbar-sub">Detail Gardu</div><div class="topbar-title" id="detail-view-title">—</div></div></div>
   <div class="page-body-nonav" id="detail-content"></div>
 </div>
 
-<!-- BOTTOM NAV -->
+<!-- BOTTOM NAV / SIDEBAR -->
 <nav class="bottom-nav" id="bottom-nav">
+  <!-- Sidebar brand header (desktop only) -->
+  <div id="sidebar-nav-header" class="sidebar-brand">
+    <div class="sidebar-brand-logo"><img src="icon-192.png" alt="PLN" onerror="this.parentNode.innerHTML='<span style=\'font-size:14px;font-weight:900;color:#0A2D6B;\'>PLN</span>'"></div>
+    <div class="sidebar-brand-text">
+      <div class="sidebar-brand-title">PLN UP3</div>
+      <div class="sidebar-brand-sub">Jayapura</div>
+    </div>
+  </div>
   <button class="nav-btn active" onclick="bukaTab('tab-daftar',0)"><span class="nav-icon">🏠</span><span class="nav-label">Daftar</span></button>
-  <button class="nav-btn" onclick="bukaTab('tab-rekap',1)"><span class="nav-icon">📊</span><span class="nav-label">Rekap</span></button>
-  <button class="nav-btn" onclick="bukaTab('tab-sop',2)"><span class="nav-icon">📋</span><span class="nav-label">SOP</span></button>
+  <button class="nav-btn" onclick="bukaTab('tab-peta',1)"><span class="nav-icon">🗺️</span><span class="nav-label">Peta</span></button>
+  <button class="nav-btn" onclick="bukaTab('tab-rekap',2)"><span class="nav-icon">📊</span><span class="nav-label">Rekap</span></button>
+  <button class="nav-btn" onclick="bukaTab('tab-sop',3)"><span class="nav-icon">📋</span><span class="nav-label">SOP</span></button>
+  <!-- Sidebar user info (desktop only) -->
+  <div id="sidebar-user-footer" class="sidebar-user" style="display:none;"></div>
 </nav>
+
+<!-- MODAL LOGIN AKSI (untuk alur scan QR → aksi inspeksi/pemeliharaan) -->
+<div id="modal-login-aksi">
+  <div class="modal-login-aksi-card">
+    <div style="text-align:center;margin-bottom:var(--sp-md);">
+      <div style="font-size:36px;margin-bottom:4px;">🔑</div>
+      <div style="font-size:var(--fs-md);font-weight:800;color:var(--pln-biru);" id="mla-title">Login untuk Lanjut</div>
+      <div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:4px;" id="mla-sub">Masukkan akun PLN Anda</div>
+    </div>
+    <div class="login-input-group">
+      <label class="login-label">Username</label>
+      <input id="mla-username" class="login-input" type="text" placeholder="Username" autocorrect="off" autocapitalize="none" spellcheck="false">
+    </div>
+    <div class="login-input-group">
+      <label class="login-label">Password</label>
+      <div style="position:relative;">
+        <input id="mla-password" class="login-input" type="password" placeholder="Password" style="padding-right:44px;">
+        <button type="button" onclick="var i=document.getElementById('mla-password');i.type=i.type==='password'?'text':'password';" style="position:absolute;right:0;top:0;height:100%;width:44px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--pln-text3);display:flex;align-items:center;justify-content:center;">👁️</button>
+      </div>
+    </div>
+    <div id="mla-err" style="display:none;background:#FEE2E2;color:#991B1B;border:1px solid #FECACA;border-radius:var(--radius-xs);padding:10px 12px;font-size:var(--fs-xs);margin-bottom:var(--sp-sm);"></div>
+    <button class="login-btn" id="mla-btn" onclick="doLoginAksi()">Masuk & Lanjut →</button>
+    <button onclick="tutupModalLoginAksi()" style="width:100%;padding:10px;margin-top:8px;background:none;border:1.5px solid var(--pln-border);border-radius:var(--radius-sm);font-size:var(--fs-sm);color:var(--pln-text2);cursor:pointer;font-family:inherit;font-weight:600;">Batal</button>
+    <div style="margin-top:var(--sp-sm);font-size:var(--fs-xs);color:var(--pln-text3);text-align:center;">PT. PLN (Persero) UP3 Jayapura</div>
+  </div>
+</div>
 
 <!-- SCAN TOAST -->
 
@@ -1352,7 +1424,7 @@ function doLogout() {
   var listEl = document.getElementById('list-gardu');
   if (listEl) listEl.innerHTML = '';
   document.getElementById('detail-view').style.display = 'none';
-  document.getElementById('bottom-nav').style.display = 'flex';
+  document.getElementById('bottom-nav').style.display = '';
   document.getElementById('modal-admin-panel').style.display = 'none';
   var signoutBtn2 = document.getElementById('btn-signout');
   if (signoutBtn2) signoutBtn2.style.display = 'none';
@@ -1390,6 +1462,20 @@ function onLoginSuccess(user) {
   // Tampilkan/sembunyikan tombol Kelola User
   var btnUser = document.getElementById('btn-kelola-user');
   if (btnUser) btnUser.style.display = user.role === 'superadmin' ? '' : 'none';
+
+  // Update sidebar user footer (desktop)
+  var suf = document.getElementById('sidebar-user-footer');
+  if (suf) {
+    suf.style.display = '';
+    suf.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">' +
+      '<div style="width:32px;height:32px;background:var(--pln-biru-pale);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">👤</div>' +
+      '<div style="flex:1;min-width:0;">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--pln-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(user.nama || user.username) + '</div>' +
+      '<div style="font-size:10px;color:var(--pln-text3);">' + esc(user.role === 'superadmin' ? 'Super Admin' : user.role === 'admin' ? 'Admin ULP' : 'Petugas') + '</div>' +
+      '</div>' +
+      '<button onclick="doLogout()" title="Logout" style="background:none;border:none;cursor:pointer;color:var(--pln-text3);font-size:16px;padding:4px;">⏏</button>' +
+      '</div>';
+  }
 
   // Set state admin & ULP
   if (user.role !== 'superadmin' && user.ulp) {
@@ -1725,6 +1811,119 @@ var QR_NOGARDU   = '';
   }
 })();
 
+// ── State untuk login aksi (dari scan QR) ────────────────────────
+var _loginAksiCallback = null;
+var _currentGarduDataScan = null; // data gardu hasil scan, simpan untuk setelah login
+
+function bukaModalLoginAksi(judulAksi, cb) {
+  _loginAksiCallback = cb;
+  var titleEl = document.getElementById('mla-title');
+  var subEl   = document.getElementById('mla-sub');
+  if (titleEl) titleEl.textContent = judulAksi || 'Login untuk Lanjut';
+  if (subEl)   subEl.textContent   = 'Masukkan akun PLN Anda untuk melanjutkan';
+  document.getElementById('mla-username').value = '';
+  document.getElementById('mla-password').value = '';
+  var errEl = document.getElementById('mla-err');
+  if (errEl) errEl.style.display = 'none';
+  document.getElementById('modal-login-aksi').classList.add('show');
+  setTimeout(function(){ document.getElementById('mla-username').focus(); }, 100);
+}
+
+function tutupModalLoginAksi() {
+  document.getElementById('modal-login-aksi').classList.remove('show');
+  _loginAksiCallback = null;
+}
+
+function doLoginAksi() {
+  var username = (document.getElementById('mla-username').value || '').trim().toLowerCase();
+  var password = (document.getElementById('mla-password').value || '').trim();
+  var errEl    = document.getElementById('mla-err');
+  var btn      = document.getElementById('mla-btn');
+  errEl.style.display = 'none';
+  if (!username || !password) {
+    errEl.textContent = 'Username dan password tidak boleh kosong.';
+    errEl.style.display = 'block'; return;
+  }
+  if (btn) { btn.textContent = 'Memverifikasi...'; btn.disabled = true; }
+  apiGet({ action: 'loginUser', username: username, password: password }, function(res) {
+    if (btn) { btn.textContent = 'Masuk & Lanjut →'; btn.disabled = false; }
+    if (res.status === 'ok' && res.user) {
+      var u = res.user;
+      setSession({ username: u.username, role: u.role, ulp: u.ulp || '', nama: u.nama, token: res.token });
+      document.getElementById('mla-password').value = '';
+      tutupModalLoginAksi();
+      onLoginSuccess(u);
+      // Callback: lanjutkan ke aksi yang diminta (inspeksi / pemeliharaan)
+      if (typeof _loginAksiCallback === 'function') {
+        var cb = _loginAksiCallback;
+        _loginAksiCallback = null;
+        cb(u);
+      }
+    } else {
+      errEl.textContent = res.message || 'Username atau password salah.';
+      errEl.style.display = 'block';
+      document.getElementById('mla-password').value = '';
+    }
+  });
+}
+
+// Enter key di modal login aksi
+document.addEventListener('DOMContentLoaded', function() {
+  var mlaPass = document.getElementById('mla-password');
+  var mlaUser = document.getElementById('mla-username');
+  if (mlaPass) mlaPass.addEventListener('keydown', function(e){ if(e.key==='Enter') doLoginAksi(); });
+  if (mlaUser) mlaUser.addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('mla-password').focus(); });
+});
+
+// Tambahkan banner tombol aksi ke halaman detail (mode scan atau sudah login)
+function tambahBannerAksiGardu(noGardu) {
+  var content = document.getElementById('detail-content');
+  if (!content) return;
+  var s = getSession();
+
+  // Hapus banner lama jika ada
+  var oldBanner = document.getElementById('banner-aksi-gardu');
+  if (oldBanner) oldBanner.remove();
+
+  var banner = document.createElement('div');
+  banner.id = 'banner-aksi-gardu';
+
+  if (s) {
+    // Sudah login — tampilkan tombol aksi langsung
+    banner.className = 'scan-aksi-banner';
+    banner.innerHTML =
+      '<div class="scan-aksi-title">⚡ Tindakan pada Gardu ' + esc(noGardu) + '</div>' +
+      '<div class="scan-aksi-sub">Login sebagai <b>' + esc(s.nama || s.username) + '</b> · ' + esc(s.ulp || s.role) + '</div>' +
+      '<button class="scan-aksi-btn scan-aksi-btn-primary" onclick="bukaFormInspeksiGardu('' + esc(noGardu) + '')">📋 Input Inspeksi</button>' +
+      '<button class="scan-aksi-btn scan-aksi-btn-secondary" onclick="bukaFormPemeliharaanGardu('' + esc(noGardu) + '')">🔧 Input Pemeliharaan</button>';
+  } else {
+    // Belum login — tampilkan 1 tombol, setelah login callback
+    banner.className = 'scan-aksi-banner';
+    banner.innerHTML =
+      '<div class="scan-aksi-title">⚡ Lakukan Inspeksi / Pemeliharaan</div>' +
+      '<div class="scan-aksi-sub">📷 Scan QR · Gardu <b>' + esc(noGardu) + '</b></div>' +
+      '<button class="scan-aksi-btn scan-aksi-btn-primary" onclick="mintaLoginUntukAksi('' + esc(noGardu) + '')">🔑 Login & Mulai Aksi</button>';
+  }
+
+  // Insert SEBELUM konten detail (di atas)
+  content.insertBefore(banner, content.firstChild);
+}
+
+function mintaLoginUntukAksi(noGardu) {
+  bukaModalLoginAksi('Login untuk Aksi Gardu', function(user) {
+    // Setelah login berhasil → refresh tombol aksi
+    tambahBannerAksiGardu(noGardu);
+  });
+}
+
+// Placeholder: akan diisi saat fitur inspeksi/pemeliharaan dibangun
+function bukaFormInspeksiGardu(noGardu) {
+  alert('📋 Form Inspeksi untuk gardu ' + noGardu + '\nFitur ini akan segera dibangun!');
+}
+function bukaFormPemeliharaanGardu(noGardu) {
+  alert('🔧 Form Pemeliharaan untuk gardu ' + noGardu + '\nFitur ini akan segera dibangun!');
+}
+
 window.onload = function(){
   // ── MODE SCAN QR: bypass login, langsung detail ──────────────
   if (QR_SCAN_MODE && QR_NOGARDU) {
@@ -1732,17 +1931,19 @@ window.onload = function(){
     document.getElementById('bottom-nav').style.display   = 'none';
     TAB_IDS.forEach(function(tid){ document.getElementById(tid).classList.remove('active'); });
 
-    // Tampilkan banner "mode scan" di topbar detail
+    // Topbar: mode scan
     var topbarSub = document.querySelector('#detail-view .topbar-sub');
-    if (topbarSub) topbarSub.textContent = '📷 Mode Scan — Hanya Baca';
+    if (topbarSub) topbarSub.textContent = '📷 Mode Scan';
 
-    // Ubah tombol ← menjadi 🔑 untuk petugas yang mau login
+    // Tombol ← bisa kembali ke halaman utama (jika sudah login sebelumnya)
     var btnBack = document.querySelector('#detail-view .topbar-back');
     if (btnBack) {
-      btnBack.innerHTML = '🔑';
-      btnBack.title     = 'Login ke Aplikasi';
+      btnBack.innerHTML = '←';
+      btnBack.title     = 'Kembali';
       btnBack.onclick   = function(){
-        window.location.href = window.location.pathname;
+        var s = getSession();
+        if (s) { window.location.href = window.location.pathname; }
+        else   { window.history.back(); }
       };
     }
 
@@ -1761,17 +1962,10 @@ window.onload = function(){
           '<button onclick="window.location.reload()" class="btn btn-blue" style="width:100%;margin-top:12px;">↻ Refresh / Coba Lagi</button>';
         return;
       }
+      _currentGarduDataScan = res.data;
       renderDetailGardu(res.data, res.riwayat || []);
-
-      // Banner login di bawah konten
-      var content = document.getElementById('detail-content');
-      var banner = document.createElement('div');
-      banner.style.cssText = 'margin:var(--sp-md) 0;padding:var(--sp-md);background:var(--pln-biru-pale);border-radius:var(--radius-sm);border:1px solid var(--pln-border2);text-align:center;';
-      banner.innerHTML =
-        '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-bottom:var(--sp-sm);">📷 Anda mengakses via scan QR Code</div>' +
-        '<button onclick="window.location.href=window.location.pathname" class="btn btn-blue" style="font-size:var(--fs-sm);padding:10px 20px;">' +
-        '🔑 Login untuk Lihat Detail</button>';
-      content.appendChild(banner);
+      // Tambahkan banner aksi di atas konten
+      tambahBannerAksiGardu(QR_NOGARDU);
     });
 
     var elManual1 = document.getElementById('scanner-manual');
@@ -1859,18 +2053,23 @@ function apiGet(params, cb) {
   cb({status:'error', message:'Gagal terhubung ke server. Coba refresh halaman.'});
 }
 
-var TAB_IDS = ['tab-daftar','tab-rekap','tab-sop'];
+var TAB_IDS = ['tab-daftar','tab-peta','tab-rekap','tab-sop'];
 // O1: Pagination — client-side 50/halaman sudah aktif.
 //   Untuk server-side pagination: tambahkan param ?action=daftarGardu&page=N&limit=50&ulp=X di Apps Script.
 function bukaTab(id, idx){
   document.getElementById('detail-view').style.display = 'none';
-  document.getElementById('bottom-nav').style.display = 'flex';
+  // Desktop: sidebar stays visible; mobile: bottom-nav stays visible
+  document.getElementById('bottom-nav').style.display = '';
   TAB_IDS.forEach(function(tid){ document.getElementById(tid).classList.remove('active'); });
-  document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
+  // Nav buttons: skip sidebar brand header (first child on desktop)
+  var navBtns = document.querySelectorAll('.nav-btn');
+  navBtns.forEach(function(b){ b.classList.remove('active'); });
   document.getElementById(id).classList.add('active');
-  document.querySelectorAll('.nav-btn')[idx].classList.add('active');
+  if (navBtns[idx]) navBtns[idx].classList.add('active');
   currentTab = idx;
   if(id==='tab-rekap' && !rekapSudahMuat) muatRekap();
+  if(id==='tab-peta') { setTimeout(function(){ if(_petaMap) _petaMap.invalidateSize(); }, 300); }
+  if(id==='tab-peta') { _updatePetaULPBanner(); muatPetaGardu(false); }
 }
 
 // ── DAFTAR GARDU ────────────────────────────────────────────
@@ -2099,6 +2298,9 @@ function bukaDetailGardu(noGardu){
       return;
     }
     renderDetailGardu(res.data, res.riwayat||[]);
+    // Tambah banner aksi jika sudah login
+    var _s = getSession();
+    if (_s) tambahBannerAksiGardu(noGardu);
   });
 }
 
@@ -2690,7 +2892,7 @@ function bukaLinkSOP(key) {
 
 function tutupDetail(){
   document.getElementById('detail-view').style.display = 'none';
-  document.getElementById('bottom-nav').style.display = 'flex';
+  document.getElementById('bottom-nav').style.display = '';
   bukaTab(TAB_IDS[tabSebelumDetail], tabSebelumDetail);
 }
 
@@ -4733,6 +4935,168 @@ function tutupModalAdmin() {
   // legacy compat
   document.getElementById('modal-pin-gardu').style.display = 'none';
 }
+
+// ══ PETA GARDU — LEAFLET.JS ══════════════════════════════════════
+var _petaMap = null;
+var _petaMarkers = null;
+var _petaSudahMuat = false;
+var _petaLoading = false;
+
+// ── Update banner ULP di atas peta ──────────────────────────────
+function _updatePetaULPBanner() {
+  var s = getSession();
+  var banner = document.getElementById('peta-ulp-banner');
+  var bannerText = document.getElementById('peta-ulp-banner-text');
+  var topbarTitle = document.getElementById('peta-topbar-title');
+  var isNonSuperadmin = s && s.role !== 'superadmin' && s.ulp;
+  if (isNonSuperadmin) {
+    var ulpLabel = s.ulp.replace(/^ULP\s+/i, 'ULP ').trim();
+    if (banner)      { banner.style.display = 'flex'; }
+    if (bannerText)  { bannerText.textContent = 'Menampilkan gardu milik ' + ulpLabel + ' saja'; }
+    if (topbarTitle) { topbarTitle.textContent = 'Peta Gardu ' + ulpLabel; }
+  } else {
+    if (banner)      { banner.style.display = 'none'; }
+    if (topbarTitle) { topbarTitle.textContent = 'Peta Gardu Papua'; }
+  }
+}
+
+function muatPetaGardu(force) {
+  if (_petaLoading) return;
+  if (_petaSudahMuat && !force && _petaMap) return;
+  _petaLoading = true;
+  _updatePetaULPBanner(); // Tampilkan/sembunyikan banner ULP
+  var loadEl = document.getElementById('peta-loading');
+  if (loadEl) loadEl.style.display = 'block';
+  if (!_petaMap) { _initPetaMap(); }
+
+  var s = getSession();
+  var isNonSuperadmin = s && s.role !== 'superadmin' && s.ulp;
+
+  // Jika non-superadmin dan allGardu sudah ada: filter dulu berdasarkan ULP user
+  // agar tidak menampilkan gardu ULP lain yang mungkin tersimpan di cache allGardu.
+  if (allGardu && allGardu.length > 0 && !force) {
+    var dataUntukPeta = isNonSuperadmin
+      ? allGardu.filter(function(g) {
+          if (!g) return false;
+          var garduUlp = _normalizeUlpEnumClient(g['ULP'] || '');
+          var userUlp  = _normalizeUlpEnumClient(s.ulp);
+          return garduUlp === userUlp;
+        })
+      : allGardu;
+    _renderPetaMarkers(dataUntukPeta);
+    _petaLoading = false;
+    if (loadEl) loadEl.style.display = 'none';
+    return;
+  }
+
+  // Ambil dari server (allGardu belum ada atau force reload)
+  var params = { action: 'getDaftarGardu' };
+  if (isNonSuperadmin) params.ulp = s.ulp;
+  apiGet(params, function(res) {
+    _petaLoading = false;
+    if (loadEl) loadEl.style.display = 'none';
+    if (res.status !== 'ok' || !res.data) return;
+    _renderPetaMarkers(res.data);
+    _petaSudahMuat = true;
+  });
+}
+
+function _initPetaMap() {
+  var mapEl = document.getElementById('peta-map');
+  if (!mapEl || _petaMap) return;
+  _petaMap = L.map('peta-map', { center: [-3.5, 138.5], zoom: 7, zoomControl: true });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '\u00a9 <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(_petaMap);
+  _petaMarkers = L.layerGroup().addTo(_petaMap);
+}
+
+function _getMarkerColor(g) {
+  var statusOp = (g['STATUS_OPERASIONAL'] || '').toUpperCase();
+  if (statusOp !== 'AKTIF') return '#8499BB';
+  var beban = parseFloat(g['_lastBeban'] || '');
+  if (!isNaN(beban)) {
+    if (beban > 80) return '#DC2626';
+    if (beban > 60) return '#D97706';
+    return '#059669';
+  }
+  return '#1048A8';
+}
+
+function _createMarkerIcon(color) {
+  return L.divIcon({
+    className: '',
+    html: '<div style="width:14px;height:14px;background:' + color + ';border:2.5px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.35);"></div>',
+    iconSize: [14, 14], iconAnchor: [7, 7], popupAnchor: [0, -10]
+  });
+}
+
+function _renderPetaMarkers(data) {
+  if (!_petaMap) _initPetaMap();
+  if (!_petaMarkers) return;
+  _petaMarkers.clearLayers();
+  var total = 0, aktif = 0, bebanLebih = 0;
+  var bounds = [];
+  data.forEach(function(g) {
+    if (!g) return;
+    total++;
+    var isAktif = (g['STATUS_OPERASIONAL'] || '').toUpperCase() === 'AKTIF';
+    if (isAktif) aktif++;
+    var beban = parseFloat(g['_lastBeban'] || '');
+    if (!isNaN(beban) && beban > 80) bebanLebih++;
+    var lat = normalizeCoord(g['LATITUDE'] || g['Y'] || '', true);
+    var lon = normalizeCoord(g['LONGITUDE'] || g['X'] || '', false);
+    if (isNaN(lat) || isNaN(lon) || lat === 0 || lon === 0) return;
+    if (lat < -10 || lat > 2 || lon < 130 || lon > 142) return;
+    bounds.push([lat, lon]);
+    var color = _getMarkerColor(g);
+    var marker = L.marker([lat, lon], { icon: _createMarkerIcon(color) });
+    var kapasitas = g['KAPASITAS_KVA'] || g['DAYA_KVA'] || '\u2014';
+    var bebanTxt = (!isNaN(beban)) ? beban.toFixed(1) + '%' : 'Belum ada data';
+    var bebanColor = (!isNaN(beban)) ? (beban > 80 ? '#DC2626' : beban > 60 ? '#D97706' : '#059669') : '#8499BB';
+    var statusBadge = isAktif
+      ? '<span style="background:#ECFDF5;color:#059669;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">AKTIF</span>'
+      : '<span style="background:#FEF2F2;color:#DC2626;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">NON-AKTIF</span>';
+    var popupHtml =
+      '<div style="min-width:200px;font-family:Plus Jakarta Sans,sans-serif;">' +
+      '<div style="font-size:14px;font-weight:800;color:#1048A8;margin-bottom:4px;">' + esc(g['NO_GARDU'] || '\u2014') + ' ' + statusBadge + '</div>' +
+      '<div style="font-size:12px;color:#3D5580;margin-bottom:2px;">\ud83d\udccd ' + esc(g['ALAMAT'] || '\u2014') + '</div>' +
+      '<div style="font-size:12px;color:#3D5580;margin-bottom:2px;">\ud83c\udfe2 ' + esc(g['ULP'] || '\u2014') + ' \u00b7 ' + esc(g['PENYULANG'] || '\u2014') + '</div>' +
+      '<div style="font-size:12px;color:#3D5580;margin-bottom:2px;">\u26a1 ' + esc(String(kapasitas)) + ' kVA \u00b7 ' + esc(g['TIPE'] || '\u2014') + '</div>' +
+      '<div style="font-size:12px;color:#3D5580;margin-top:4px;">\ud83d\udcca Beban: <b style="color:' + bebanColor + ';">' + bebanTxt + '</b></div>' +
+      '<button style="display:block;width:100%;padding:8px;background:#1048A8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:8px;font-family:inherit;" onclick="bukaDetailGarduDariPeta(\'' + esc(g['NO_GARDU'] || '') + '\')">\ud83d\udcc2 Buka Detail Gardu \u2192</button>' +
+      '</div>';
+    marker.bindPopup(popupHtml, { maxWidth: 260 });
+    _petaMarkers.addLayer(marker);
+  });
+  var elTotal  = document.getElementById('peta-total');
+  var elAktif  = document.getElementById('peta-aktif');
+  var elKritis = document.getElementById('peta-kritis');
+  if (elTotal)  elTotal.textContent  = total;
+  if (elAktif)  elAktif.textContent  = aktif;
+  if (elKritis) elKritis.textContent = bebanLebih;
+  if (bounds.length > 1) {
+    try { _petaMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 }); } catch(e) {}
+  } else if (bounds.length === 1) {
+    _petaMap.setView(bounds[0], 14);
+  }
+  setTimeout(function() { if (_petaMap) _petaMap.invalidateSize(); }, 200);
+}
+
+function bukaDetailGarduDariPeta(noGardu) {
+  if (!noGardu) return;
+  if (_petaMap) _petaMap.closePopup();
+  tabSebelumDetail = 1;
+  bukaDetailGardu(noGardu);
+}
+
+window.addEventListener('resize', function() {
+  if (_petaMap && document.getElementById('tab-peta') && document.getElementById('tab-peta').classList.contains('active')) {
+    _petaMap.invalidateSize();
+  }
+});
+// ══ END PETA JS ═══════════════════════════════════════════════════
 
 window.addEventListener('appinstalled', function() {
   var banner = document.getElementById('pwa-install-banner');
