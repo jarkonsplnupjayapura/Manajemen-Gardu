@@ -712,7 +712,7 @@ body{
 /* ══ PETA GARDU ══════════════════════════════════════════════ */
 #peta-map{
   width:100%;
-  height:clamp(340px,65vw,520px);
+  height:clamp(400px,70vw,600px);
   border-radius:var(--radius);
   overflow:hidden;
   box-shadow:var(--shadow-md);
@@ -747,10 +747,10 @@ body{
   /* App layout: sidebar kiri + konten kanan */
   body{display:flex;min-height:100vh;}
 
-  /* Sidebar permanen */
+  /* Sidebar permanen — lebar diperluas agar label panjang muat */
   #bottom-nav{
     position:fixed;top:0;left:0;bottom:0;right:auto;
-    width:220px;flex-direction:column;
+    width:260px;flex-direction:column;
     border-top:none;border-right:1px solid var(--pln-border);
     padding:0;align-items:stretch;
     background:#fff;
@@ -759,7 +759,7 @@ body{
     z-index:200;
   }
 
-  /* Brand logo PLN di atas sidebar */
+  /* Brand: tampilkan nama user login, bukan "PLN UP3" */
   .sidebar-brand{
     display:flex!important;
     align-items:center;gap:10px;
@@ -775,13 +775,15 @@ body{
     overflow:hidden;padding:3px;flex-shrink:0;
   }
   .sidebar-brand-logo img{width:100%;height:100%;object-fit:contain;border-radius:4px;}
-  .sidebar-brand-title{font-size:13px;font-weight:800;color:#fff;letter-spacing:-.02em;}
+  /* title = nama user login (diisi JS); sub = sub-judul tetap */
+  .sidebar-brand-title{font-size:13px;font-weight:800;color:#fff;letter-spacing:-.02em;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;}
   .sidebar-brand-sub{font-size:10px;color:rgba(255,255,255,.55);font-weight:500;letter-spacing:.3px;}
 
   /* Nav buttons — vertikal */
   .nav-btn{
     flex:none;flex-direction:row;justify-content:flex-start;
-    width:100%;padding:13px 16px;gap:11px;
+    width:100%;padding:13px 18px;gap:12px;
     font-size:13px;border-radius:0;
     min-height:auto;
     border-left:3px solid transparent;
@@ -795,8 +797,8 @@ body{
   }
   .nav-btn::after{display:none;}
   .nav-btn.active .nav-icon{transform:none;}
-  .nav-icon{font-size:18px!important;}
-  .nav-label{font-size:13px;}
+  .nav-icon{font-size:18px!important;flex-shrink:0;}
+  .nav-label{font-size:13px;white-space:nowrap;}
 
   /* Info user di bawah sidebar */
   .sidebar-user{
@@ -812,19 +814,22 @@ body{
   .sidebar-user-role{font-size:10px;color:var(--pln-text3);font-weight:500;}
   .sidebar-user-ulp{font-size:10px;color:var(--pln-biru2);font-weight:600;}
 
-  /* Konten utama geser ke kanan */
+  /* Konten utama geser ke kanan sesuai lebar sidebar baru */
   #app-content{
-    margin-left:220px;
+    margin-left:260px;
     flex:1;min-width:0;
     display:flex;flex-direction:column;
-    max-width:calc(1100px - 220px);
+    width:calc(100% - 260px);
+    max-width:none;
   }
 
-  /* Pages: max-width diperlebar, tidak lagi mobile-centered 600px */
-  .page{max-width:100%;}
+  /* Pages: full-width, tidak lagi mobile-centered 600px */
+  .page{max-width:100%;width:100%;}
 
-  /* Peta: tinggi lebih besar di desktop */
-  #peta-map{height:clamp(460px,60vh,680px);}
+  /* Peta: full-height di desktop agar tidak kosong */
+  #peta-map{height:calc(100vh - 200px) !important;min-height:400px;}
+  /* Pastikan page peta tidak collapse saat tidak aktif */
+  #tab-peta{min-height:100vh;}
 
   /* Page body tidak perlu padding nav bawah */
   .page-body{padding-bottom:var(--sp-lg);}
@@ -832,8 +837,8 @@ body{
   /* Topbar tetap ada, tapi tidak perlu padding left-nav */
   .topbar{position:sticky;top:0;z-index:100;}
 
-  /* Detail view maks lebar */
-  #detail-view{max-width:100%;}
+  /* Detail view full width */
+  #detail-view{max-width:100%;width:100%;}
 }
 
 /* Sembunyikan sidebar brand & user di mobile */
@@ -1006,15 +1011,15 @@ body{
     <div class="sidebar-brand-logo">
       <img src="icon-192.png" alt="PLN" onerror="this.parentNode.innerHTML='<span style=\'font-size:13px;font-weight:900;color:#0A2D6B;\'>PLN</span>'">
     </div>
-    <div>
-      <div class="sidebar-brand-title">PLN UP3</div>
-      <div class="sidebar-brand-sub">Jayapura</div>
+    <div style="min-width:0;flex:1;">
+      <div class="sidebar-brand-title" id="sidebar-brand-username">—</div>
+      <div class="sidebar-brand-sub" id="sidebar-brand-sub">Manajemen Gardu</div>
     </div>
   </div>
   <button class="nav-btn active" onclick="bukaTab('tab-daftar',0)"><span class="nav-icon">🏠</span><span class="nav-label">Daftar</span></button>
   <button class="nav-btn" onclick="bukaTab('tab-peta',1)"><span class="nav-icon">🗺️</span><span class="nav-label">Peta</span></button>
-  <button class="nav-btn" onclick="bukaTab('tab-rekap',2)"><span class="nav-icon">📊</span><span class="nav-label">Rekap</span></button>
-  <button class="nav-btn" onclick="bukaTab('tab-sop',3)"><span class="nav-icon">📋</span><span class="nav-label">SOP</span></button>
+  <button class="nav-btn" onclick="bukaTab('tab-rekap',2)"><span class="nav-icon">📊</span><span class="nav-label">Rekap &amp; Statistik</span></button>
+  <button class="nav-btn" onclick="bukaTab('tab-sop',3)"><span class="nav-icon">📋</span><span class="nav-label">SOP &amp; Panduan</span></button>
   <!-- Info user — hanya tampil di desktop sidebar -->
   <div class="sidebar-user" id="sidebar-user-footer" style="display:none;"></div>
 </nav>
@@ -2058,8 +2063,14 @@ function bukaTab(id, idx){
   document.querySelectorAll('.nav-btn')[idx].classList.add('active');
   currentTab = idx;
   if(id==='tab-rekap' && !rekapSudahMuat) muatRekap();
-  if(id==='tab-peta') { setTimeout(function(){ if(_petaMap) _petaMap.invalidateSize(); }, 300); }
-  if(id==='tab-peta') { _updatePetaULPBanner(); muatPetaGardu(false); }
+  if(id==='tab-peta') {
+    _updatePetaULPBanner();
+    // Invalidate berkali-kali untuk memastikan peta render setelah tab visible
+    [100, 300, 600].forEach(function(d){
+      setTimeout(function(){ if(_petaMap) _petaMap.invalidateSize(); }, d);
+    });
+    muatPetaGardu(false);
+  }
 }
 
 // ── DAFTAR GARDU ────────────────────────────────────────────
@@ -4991,6 +5002,11 @@ function _updateSidebarUserFooter() {
       '<div class="sidebar-user-role">' + esc(roleLabel) + '</div>' +
       (ulpLabel ? '<div class="sidebar-user-ulp">ULP ' + esc(ulpLabel) + '</div>' : '');
     suf.style.display = '';
+    // Update brand di atas sidebar — tampilkan nama user login
+    var brandUsername = document.getElementById('sidebar-brand-username');
+    var brandSub = document.getElementById('sidebar-brand-sub');
+    if (brandUsername) brandUsername.textContent = s.nama || s.username || '—';
+    if (brandSub) brandSub.textContent = esc(roleLabel) + (ulpLabel ? ' · ULP ' + ulpLabel : '');
   } else {
     suf.style.display = 'none';
   }
@@ -5021,7 +5037,18 @@ function muatPetaGardu(force) {
   _updatePetaULPBanner();
   var loadEl = document.getElementById('peta-loading');
   if (loadEl) loadEl.style.display = 'block';
+
+  // Pastikan map container punya tinggi sebelum init
+  var mapEl = document.getElementById('peta-map');
+  if (mapEl && mapEl.offsetHeight === 0) {
+    // Tab mungkin baru aktif, tunggu sebentar lalu retry
+    setTimeout(function() { _petaLoading = false; muatPetaGardu(force); }, 100);
+    return;
+  }
+
   if (!_petaMap) { _initPetaMap(); }
+  // Pastikan ukuran map benar setelah init
+  if (_petaMap) { setTimeout(function(){ _petaMap.invalidateSize(); }, 100); }
 
   var s = getSession();
   var isNonSuperadmin = s && s.role !== 'superadmin' && s.ulp;
