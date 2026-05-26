@@ -729,6 +729,21 @@ body{
   position:relative;
   background:#e8edf2;
 }
+/* ── Leaflet cluster custom style ─────────────────────────── */
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div {
+  background: none !important;
+}
+.marker-cluster-small,
+.marker-cluster-medium,
+.marker-cluster-large {
+  background: none !important;
+}
+/* Smooth pan/zoom — GPU compositing */
+.leaflet-tile-container { will-change: transform; }
+.leaflet-marker-icon    { will-change: transform; }
+
 .peta-stats{
   display:grid;grid-template-columns:repeat(3,1fr);
   gap:var(--sp-sm);margin-bottom:var(--sp-sm);
@@ -877,6 +892,17 @@ if (typeof L === 'undefined') {
 if (typeof L === 'undefined') {
   document.write('<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>');
   document.write('<scr'+'ipt src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""><\/scr'+'ipt>');
+}
+</script>
+<!-- Leaflet.markercluster — anti-lag untuk banyak marker -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin=""/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin=""/>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
+<script>
+if (typeof L === 'undefined' || typeof L.markerClusterGroup === 'undefined') {
+  document.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" crossorigin=""/>');
+  document.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" crossorigin=""/>');
+  document.write('<scr'+'ipt src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js" crossorigin=""><\/scr'+'ipt>');
 }
 </script>
 </head>
@@ -5126,7 +5152,36 @@ function _initPetaMap(callback) {
     keepBuffer: 4
   }).addTo(_petaMap);
 
-  _petaMarkers = L.layerGroup().addTo(_petaMap);
+  // markerClusterGroup: anti-lag untuk 500+ marker
+  var _mcgOptions = {
+    chunkedLoading: true,          // render batch-batch, tidak freeze UI
+    chunkInterval: 100,            // jeda antar batch (ms)
+    chunkDelay: 50,
+    maxClusterRadius: 60,          // radius pixel sebelum cluster
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
+    iconCreateFunction: function(cluster) {
+      var count = cluster.getChildCount();
+      var size = count < 10 ? 36 : count < 50 ? 42 : 48;
+      var fs   = count < 10 ? 13 : count < 50 ? 12 : 11;
+      return L.divIcon({
+        html: '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;' +
+              'background:#1048A8;border:3px solid #fff;' +
+              'box-shadow:0 2px 8px rgba(16,72,168,.45);' +
+              'display:flex;align-items:center;justify-content:center;' +
+              'color:#fff;font-size:'+fs+'px;font-weight:700;font-family:inherit;">' +
+              count + '</div>',
+        className: '',
+        iconSize: [size, size],
+        iconAnchor: [size/2, size/2]
+      });
+    }
+  };
+  _petaMarkers = L.markerClusterGroup
+    ? L.markerClusterGroup(_mcgOptions)
+    : L.layerGroup(); // fallback jika plugin gagal load
+  _petaMap.addLayer(_petaMarkers);
 
   _petaMap.whenReady(function() {
     _petaMap.invalidateSize(true);
@@ -5226,21 +5281,45 @@ function _getMarkerColor(g) {
 }
 
 function _createMarkerIcon(colorObj) {
-  var bg = colorObj.bg || '#1048A8';
+  var bg     = colorObj.bg     || '#1048A8';
   var border = colorObj.border || '#0A2D6B';
-  var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">' +
-    '<path d="M14 0C6.27 0 0 6.27 0 14c0 9.75 14 22 14 22S28 23.75 28 14C28 6.27 21.73 0 14 0z" fill="' + bg + '" stroke="' + border + '" stroke-width="1.5"/>' +
-    '<rect x="7" y="6" width="14" height="10" rx="2" fill="white" opacity="0.95"/>' +
-    '<rect x="9" y="8" width="4" height="6" rx="1" fill="' + bg + '"/>' +
-    '<rect x="15" y="8" width="4" height="6" rx="1" fill="' + bg + '"/>' +
-    '<line x1="11" y1="11" x2="17" y2="11" stroke="' + border + '" stroke-width="1" opacity="0.5"/>' +
-    '<line x1="11" y1="16" x2="11" y2="20" stroke="white" stroke-width="1.5"/>' +
-    '<line x1="17" y1="16" x2="17" y2="20" stroke="white" stroke-width="1.5"/>' +
+  // Icon gardu listrik: bangunan + cerobong, mirip flat factory icon
+  // Ukuran 34x40px agar proporsional dan mudah di-tap di mobile
+  var svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="34" height="40" viewBox="0 0 34 40">' +
+    // Drop shadow via filter
+    '<defs><filter id="ds" x="-20%" y="-20%" width="140%" height="140%">' +
+    '<feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.28)"/>' +
+    '</filter></defs>' +
+    // Pin body (background circle + teardrop)
+    '<path d="M17 1C9.82 1 4 6.82 4 14c0 8.5 13 24.5 13 24.5S30 22.5 30 14C30 6.82 24.18 1 17 1z"' +
+    ' fill="' + bg + '" stroke="' + border + '" stroke-width="1.5" filter="url(#ds)"/>' +
+    // Bangunan utama (gedung gardu)
+    '<rect x="9" y="9" width="16" height="11" rx="1.5" fill="#fff" opacity="0.97"/>' +
+    // Atap segitiga
+    '<polygon points="8,9 17,4 26,9" fill="' + border + '" opacity="0.85"/>' +
+    // Cerobong kiri
+    '<rect x="10" y="5" width="3" height="5" rx="1" fill="#B0BEC5"/>' +
+    // Cerobong kanan
+    '<rect x="14" y="3.5" width="3" height="6.5" rx="1" fill="#B0BEC5"/>' +
+    // Garis merah di ujung cerobong (panas)
+    '<rect x="10" y="4.5" width="3" height="1.2" rx="0.6" fill="#EF4444"/>' +
+    '<rect x="14" y="3" width="3" height="1.2" rx="0.6" fill="#EF4444"/>' +
+    // Jendela kiri
+    '<rect x="10.5" y="11" width="4" height="4" rx="1" fill="' + bg + '" opacity="0.85"/>' +
+    // Jendela kanan
+    '<rect x="16.5" y="11" width="4" height="4" rx="1" fill="' + bg + '" opacity="0.85"/>' +
+    // Pintu tengah bawah
+    '<rect x="14" y="14" width="3" height="4" rx="0.8" fill="' + border + '" opacity="0.7"/>' +
+    // Garis listrik bawah (simbol)
+    '<line x1="11" y1="20.5" x2="23" y2="20.5" stroke="' + border + '" stroke-width="1" opacity="0.5"/>' +
     '</svg>';
   return L.divIcon({
     className: '',
     html: svg,
-    iconSize: [28, 36], iconAnchor: [14, 36], popupAnchor: [0, -38]
+    iconSize: [34, 40],
+    iconAnchor: [17, 39],
+    popupAnchor: [0, -42]
   });
 }
 
@@ -5249,6 +5328,7 @@ function _renderPetaMarkers(data) {
   _petaMarkers.clearLayers();
   var total = 0, aktif = 0, bebanLebih = 0;
   var bounds = [];
+  var markersToAdd = [];
   data.forEach(function(g) {
     if (!g) return;
     total++;
@@ -5279,8 +5359,12 @@ function _renderPetaMarkers(data) {
       '<button style="display:block;width:100%;padding:8px;background:#1048A8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:8px;font-family:inherit;" onclick="bukaDetailGarduDariPeta(\'' + esc(g['NO_GARDU'] || '') + '\')">📂 Buka Detail Gardu →</button>' +
       '</div>';
     marker.bindPopup(popupHtml, { maxWidth: 260 });
-    _petaMarkers.addLayer(marker);
+    markersToAdd.push(marker);
   });
+  // Tambahkan semua marker sekaligus ke cluster group — jauh lebih cepat dari satu per satu
+  if (markersToAdd.length > 0) {
+    _petaMarkers.addLayers(markersToAdd);
+  }
   var elTotal  = document.getElementById('peta-total');
   var elAktif  = document.getElementById('peta-aktif');
   var elKritis = document.getElementById('peta-kritis');
