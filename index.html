@@ -741,6 +741,106 @@ body{
 }
 .peta-legend-item{display:flex;align-items:center;gap:5px;font-size:var(--fs-xs);color:var(--pln-text2);font-weight:500;}
 .peta-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1.5px solid rgba(255,255,255,.6);box-shadow:0 1px 3px rgba(0,0,0,.25);}
+
+/* ══ DESKTOP SIDEBAR (≥768px) ════════════════════════════════ */
+@media(min-width:768px){
+  /* App layout: sidebar kiri + konten kanan */
+  body{display:flex;min-height:100vh;}
+
+  /* Sidebar permanen */
+  #bottom-nav{
+    position:fixed;top:0;left:0;bottom:0;right:auto;
+    width:220px;flex-direction:column;
+    border-top:none;border-right:1px solid var(--pln-border);
+    padding:0;align-items:stretch;
+    background:#fff;
+    box-shadow:2px 0 16px rgba(10,45,107,.08);
+    overflow-y:auto;overflow-x:hidden;
+    z-index:200;
+  }
+
+  /* Brand logo PLN di atas sidebar */
+  .sidebar-brand{
+    display:flex!important;
+    align-items:center;gap:10px;
+    padding:18px 16px 14px;
+    background:var(--pln-biru);
+    border-bottom:1px solid rgba(255,255,255,.1);
+    flex-shrink:0;
+  }
+  .sidebar-brand-logo{
+    width:36px;height:36px;border-radius:8px;
+    background:rgba(255,255,255,.15);
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;padding:3px;flex-shrink:0;
+  }
+  .sidebar-brand-logo img{width:100%;height:100%;object-fit:contain;border-radius:4px;}
+  .sidebar-brand-title{font-size:13px;font-weight:800;color:#fff;letter-spacing:-.02em;}
+  .sidebar-brand-sub{font-size:10px;color:rgba(255,255,255,.55);font-weight:500;letter-spacing:.3px;}
+
+  /* Nav buttons — vertikal */
+  .nav-btn{
+    flex:none;flex-direction:row;justify-content:flex-start;
+    width:100%;padding:13px 16px;gap:11px;
+    font-size:13px;border-radius:0;
+    min-height:auto;
+    border-left:3px solid transparent;
+    transition:background .15s, color .15s, border-color .15s;
+  }
+  .nav-btn:hover{background:var(--pln-biru-pale);color:var(--pln-biru2);}
+  .nav-btn.active{
+    background:var(--pln-biru-pale);color:var(--pln-biru2);
+    border-left-color:var(--pln-biru2);
+    font-weight:700;
+  }
+  .nav-btn::after{display:none;}
+  .nav-btn.active .nav-icon{transform:none;}
+  .nav-icon{font-size:18px!important;}
+  .nav-label{font-size:13px;}
+
+  /* Info user di bawah sidebar */
+  .sidebar-user{
+    display:flex!important;
+    flex-direction:column;gap:4px;
+    padding:12px 16px;
+    margin-top:auto;
+    border-top:1px solid var(--pln-border);
+    background:#fafbfc;
+    flex-shrink:0;
+  }
+  .sidebar-user-name{font-size:12px;font-weight:700;color:var(--pln-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sidebar-user-role{font-size:10px;color:var(--pln-text3);font-weight:500;}
+  .sidebar-user-ulp{font-size:10px;color:var(--pln-biru2);font-weight:600;}
+
+  /* Konten utama geser ke kanan */
+  #app-content{
+    margin-left:220px;
+    flex:1;min-width:0;
+    display:flex;flex-direction:column;
+    max-width:calc(1100px - 220px);
+  }
+
+  /* Pages: max-width diperlebar, tidak lagi mobile-centered 600px */
+  .page{max-width:100%;}
+
+  /* Peta: tinggi lebih besar di desktop */
+  #peta-map{height:clamp(460px,60vh,680px);}
+
+  /* Page body tidak perlu padding nav bawah */
+  .page-body{padding-bottom:var(--sp-lg);}
+
+  /* Topbar tetap ada, tapi tidak perlu padding left-nav */
+  .topbar{position:sticky;top:0;z-index:100;}
+
+  /* Detail view maks lebar */
+  #detail-view{max-width:100%;}
+}
+
+/* Sembunyikan sidebar brand & user di mobile */
+@media(max-width:767px){
+  .sidebar-brand{display:none!important;}
+  .sidebar-user{display:none!important;}
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
@@ -785,6 +885,8 @@ body{
 </div>
 
 <!-- ══════════════════════════════════════════════════════════ -->
+<!-- Wrapper konten utama (digeser ke kanan oleh sidebar di desktop) -->
+<div id="app-content">
 <div id="tab-daftar" class="page active">
   <div class="topbar">
     <div class="topbar-logo"><img src="icon-192.png" alt="PLN" onerror="this.parentNode.innerHTML='PLN'"></div>
@@ -895,13 +997,26 @@ body{
   <div class="topbar"><button class="topbar-back" onclick="tutupDetail()">←</button><div class="topbar-info"><div class="topbar-sub">Detail Gardu</div><div class="topbar-title" id="detail-view-title">—</div></div></div>
   <div class="page-body-nonav" id="detail-content"></div>
 </div>
+</div><!-- /app-content -->
 
-<!-- BOTTOM NAV -->
+<!-- BOTTOM NAV / SIDEBAR (mobile: bottom bar; desktop: sidebar kiri) -->
 <nav class="bottom-nav" id="bottom-nav">
+  <!-- Brand PLN — hanya tampil di desktop sidebar -->
+  <div class="sidebar-brand" style="display:none;">
+    <div class="sidebar-brand-logo">
+      <img src="icon-192.png" alt="PLN" onerror="this.parentNode.innerHTML='<span style=\'font-size:13px;font-weight:900;color:#0A2D6B;\'>PLN</span>'">
+    </div>
+    <div>
+      <div class="sidebar-brand-title">PLN UP3</div>
+      <div class="sidebar-brand-sub">Jayapura</div>
+    </div>
+  </div>
   <button class="nav-btn active" onclick="bukaTab('tab-daftar',0)"><span class="nav-icon">🏠</span><span class="nav-label">Daftar</span></button>
   <button class="nav-btn" onclick="bukaTab('tab-peta',1)"><span class="nav-icon">🗺️</span><span class="nav-label">Peta</span></button>
   <button class="nav-btn" onclick="bukaTab('tab-rekap',2)"><span class="nav-icon">📊</span><span class="nav-label">Rekap</span></button>
   <button class="nav-btn" onclick="bukaTab('tab-sop',3)"><span class="nav-icon">📋</span><span class="nav-label">SOP</span></button>
+  <!-- Info user — hanya tampil di desktop sidebar -->
+  <div class="sidebar-user" id="sidebar-user-footer" style="display:none;"></div>
 </nav>
 
 <!-- SCAN TOAST -->
@@ -1415,6 +1530,8 @@ function doLogout() {
   _adminUlpVerified = false;
   allGardu = []; filteredDaftar = []; garduIndex = {}; rekapSudahMuat = false;
   cacheClear(); // O2: clear index
+  var suf = document.getElementById('sidebar-user-footer');
+  if (suf) { suf.innerHTML=''; suf.style.display='none'; }
   // Bersihkan konten agar data sesi lama tidak terlihat di sesi baru
   var rekapEl = document.getElementById('rekap-content');
   if (rekapEl) rekapEl.innerHTML = '';
@@ -1480,6 +1597,7 @@ function onLoginSuccess(user) {
   // Muat data aplikasi — pass ULP eksplisit agar tidak ada race condition
   var ulpUntukFilter = (user.role !== 'superadmin' && user.ulp) ? user.ulp : '';
   muatDaftarGardu(true, ulpUntukFilter);
+  _updateSidebarUserFooter();
 
   // Reset rekap agar tidak tampil data ULP sebelumnya saat ganti login
   rekapSudahMuat = false;
@@ -4859,6 +4977,24 @@ var _petaMap = null;
 var _petaMarkers = null;
 var _petaSudahMuat = false;
 var _petaLoading = false;
+
+// ── Update info user di sidebar footer (desktop) ─────────────────
+function _updateSidebarUserFooter() {
+  var suf = document.getElementById('sidebar-user-footer');
+  if (!suf) return;
+  var s = getSession();
+  if (s && s.nama) {
+    var roleLabel = s.role === 'superadmin' ? 'Super Admin' : s.role === 'admin' ? 'Admin ULP' : 'Petugas';
+    var ulpLabel = s.ulp ? s.ulp.replace(/^ULP\s+/i,'') : '';
+    suf.innerHTML =
+      '<div class="sidebar-user-name">' + esc(s.nama || s.username) + '</div>' +
+      '<div class="sidebar-user-role">' + esc(roleLabel) + '</div>' +
+      (ulpLabel ? '<div class="sidebar-user-ulp">ULP ' + esc(ulpLabel) + '</div>' : '');
+    suf.style.display = '';
+  } else {
+    suf.style.display = 'none';
+  }
+}
 
 // ── Update banner ULP di atas peta ──────────────────────────────
 function _updatePetaULPBanner() {
