@@ -5047,11 +5047,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 // ══ PETA GARDU — LEAFLET.JS ══════════════════════════════════════
-// ══ PETA JS — robust implementation ═══════════════════════════════
-var _petaMap     = null;
-var _petaMarkers = null;
-var _petaSudahMuat = false;
-var _petaLoading   = false;
+// ══ PETA JS — dual-mode render (CircleMarker canvas / SVG icon) ══
+var _petaMap        = null;
+var _petaMarkers    = null;   // markerClusterGroup
+var _petaSudahMuat  = false;
+var _petaLoading    = false;
+var _petaGarduData  = [];     // cache data gardu untuk re-render saat zoom berubah
+var _petaZoomMode   = null;   // 'circle' | 'icon' — track mode aktif
+var _ZOOM_THRESHOLD = 12;     // batas switch mode
 
 // ── Update info user di sidebar footer (desktop) ─────────────────
 function _updateSidebarUserFooter() {
@@ -5138,12 +5141,11 @@ function _initPetaMap(callback) {
     return;
   }
 
-
   _petaMap = L.map('peta-map', {
     center: [-3.5, 138.5],
     zoom: 7,
     zoomControl: true,
-    preferCanvas: true
+    preferCanvas: true   // canvas renderer — jauh lebih cepat dari SVG DOM
   });
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -5152,36 +5154,50 @@ function _initPetaMap(callback) {
     keepBuffer: 4
   }).addTo(_petaMap);
 
-  // markerClusterGroup: anti-lag untuk 500+ marker
+  // ── markerClusterGroup: anti-lag untuk 500+ marker ──────────────
   var _mcgOptions = {
-    chunkedLoading: true,          // render batch-batch, tidak freeze UI
-    chunkInterval: 100,            // jeda antar batch (ms)
-    chunkDelay: 50,
-    maxClusterRadius: 60,          // radius pixel sebelum cluster
+    chunkedLoading: true,   // render batch-batch, tidak freeze UI
+    chunkInterval: 80,      // jeda antar batch (ms)
+    chunkDelay: 40,
+    maxClusterRadius: 60,   // radius pixel sebelum cluster
     spiderfyOnMaxZoom: true,
     showCoverageOnHover: false,
     zoomToBoundsOnClick: true,
+    // Cluster icon — warna berbeda per jumlah gardu
     iconCreateFunction: function(cluster) {
       var count = cluster.getChildCount();
-      var size = count < 10 ? 36 : count < 50 ? 42 : 48;
-      var fs   = count < 10 ? 13 : count < 50 ? 12 : 11;
+      var size  = count < 10 ? 36 : count < 50 ? 42 : 48;
+      var fs    = count < 10 ? 13 : count < 50 ? 12 : 11;
+      // Warna cluster: biru PLN
+      var bg    = '#1048A8';
       return L.divIcon({
         html: '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;' +
-              'background:#1048A8;border:3px solid #fff;' +
+              'background:'+bg+';border:3px solid #fff;' +
               'box-shadow:0 2px 8px rgba(16,72,168,.45);' +
               'display:flex;align-items:center;justify-content:center;' +
               'color:#fff;font-size:'+fs+'px;font-weight:700;font-family:inherit;">' +
               count + '</div>',
         className: '',
-        iconSize: [size, size],
+        iconSize:   [size, size],
         iconAnchor: [size/2, size/2]
       });
     }
   };
-  _petaMarkers = L.markerClusterGroup
+  _petaMarkers = (typeof L.markerClusterGroup === 'function')
     ? L.markerClusterGroup(_mcgOptions)
     : L.layerGroup(); // fallback jika plugin gagal load
   _petaMap.addLayer(_petaMarkers);
+
+  // ── Zoom event: switch mode Circle ↔ Icon tanpa reload data ─────
+  _petaMap.on('zoomend', function() {
+    if (!_petaGarduData.length) return;
+    var currentZoom = _petaMap.getZoom();
+    var newMode = currentZoom < _ZOOM_THRESHOLD ? 'circle' : 'icon';
+    if (newMode !== _petaZoomMode) {
+      _petaZoomMode = newMode;
+      _rebuildMarkers(_petaGarduData);
+    }
+  });
 
   _petaMap.whenReady(function() {
     _petaMap.invalidateSize(true);
@@ -5280,55 +5296,131 @@ function _getMarkerColor(g) {
   return { bg: '#1048A8', border: '#0A2D6B', label: 'Aktif' };
 }
 
+// ── Mode CIRCLE — canvas, sangat ringan, zoom < 12 ─────────────────
+function _createCircleMarker(lat, lon, colorObj, popupHtml) {
+  var bg     = colorObj.bg     || '#1048A8';
+  var border = colorObj.border || '#0A2D6B';
+  var marker = L.circleMarker([lat, lon], {
+    radius:      7,
+    fillColor:   bg,
+    fillOpacity: 0.92,
+    color:       border,
+    weight:      2,
+    opacity:     1
+  });
+  marker.bindPopup(popupHtml, { maxWidth: 260 });
+  return marker;
+}
+
+// ── Mode ICON — SVG gardu detail, zoom ≥ 12, TANPA drop shadow ────
 function _createMarkerIcon(colorObj) {
   var bg     = colorObj.bg     || '#1048A8';
   var border = colorObj.border || '#0A2D6B';
-  // Icon gardu listrik: bangunan + cerobong, mirip flat factory icon
-  // Ukuran 34x40px agar proporsional dan mudah di-tap di mobile
+  // Icon gardu listrik: bangunan + atap + jendela + pintu
+  // Ukuran 34x42px — TANPA filter drop shadow (dihapus untuk performa)
   var svg =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="34" height="40" viewBox="0 0 34 40">' +
-    // Drop shadow via filter
-    '<defs><filter id="ds" x="-20%" y="-20%" width="140%" height="140%">' +
-    '<feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.28)"/>' +
-    '</filter></defs>' +
-    // Pin body (background circle + teardrop)
-    '<path d="M17 1C9.82 1 4 6.82 4 14c0 8.5 13 24.5 13 24.5S30 22.5 30 14C30 6.82 24.18 1 17 1z"' +
-    ' fill="' + bg + '" stroke="' + border + '" stroke-width="1.5" filter="url(#ds)"/>' +
-    // Bangunan utama (gedung gardu)
+    '<svg xmlns="http://www.w3.org/2000/svg" width="34" height="42" viewBox="0 0 34 42">' +
+    // Pin body — teardrop shape, TANPA filter
+    '<path d="M17 1C9.82 1 4 6.82 4 14c0 8.5 13 25 13 25S30 22.5 30 14C30 6.82 24.18 1 17 1z"' +
+    ' fill="' + bg + '" stroke="' + border + '" stroke-width="1.5"/>' +
+    // Bangunan utama
     '<rect x="9" y="9" width="16" height="11" rx="1.5" fill="#fff" opacity="0.97"/>' +
     // Atap segitiga
     '<polygon points="8,9 17,4 26,9" fill="' + border + '" opacity="0.85"/>' +
     // Cerobong kiri
-    '<rect x="10" y="5" width="3" height="5" rx="1" fill="#B0BEC5"/>' +
+    '<rect x="10.5" y="5" width="2.5" height="4.5" rx="1" fill="#B0BEC5"/>' +
     // Cerobong kanan
-    '<rect x="14" y="3.5" width="3" height="6.5" rx="1" fill="#B0BEC5"/>' +
-    // Garis merah di ujung cerobong (panas)
-    '<rect x="10" y="4.5" width="3" height="1.2" rx="0.6" fill="#EF4444"/>' +
-    '<rect x="14" y="3" width="3" height="1.2" rx="0.6" fill="#EF4444"/>' +
+    '<rect x="14.5" y="3.5" width="2.5" height="6" rx="1" fill="#B0BEC5"/>' +
+    // Cap merah cerobong kiri
+    '<rect x="10.5" y="4.5" width="2.5" height="1" rx="0.5" fill="#EF4444"/>' +
+    // Cap merah cerobong kanan
+    '<rect x="14.5" y="3" width="2.5" height="1" rx="0.5" fill="#EF4444"/>' +
     // Jendela kiri
-    '<rect x="10.5" y="11" width="4" height="4" rx="1" fill="' + bg + '" opacity="0.85"/>' +
+    '<rect x="10.5" y="11" width="3.5" height="3.5" rx="0.8" fill="' + bg + '" opacity="0.85"/>' +
     // Jendela kanan
-    '<rect x="16.5" y="11" width="4" height="4" rx="1" fill="' + bg + '" opacity="0.85"/>' +
-    // Pintu tengah bawah
-    '<rect x="14" y="14" width="3" height="4" rx="0.8" fill="' + border + '" opacity="0.7"/>' +
-    // Garis listrik bawah (simbol)
-    '<line x1="11" y1="20.5" x2="23" y2="20.5" stroke="' + border + '" stroke-width="1" opacity="0.5"/>' +
+    '<rect x="17" y="11" width="3.5" height="3.5" rx="0.8" fill="' + bg + '" opacity="0.85"/>' +
+    // Pintu tengah
+    '<rect x="14" y="14" width="3" height="3.5" rx="0.8" fill="' + border + '" opacity="0.7"/>' +
+    // Garis listrik bawah (dekoratif)
+    '<line x1="11" y1="21" x2="23" y2="21" stroke="' + border + '" stroke-width="1" opacity="0.45"/>' +
     '</svg>';
   return L.divIcon({
-    className: '',
-    html: svg,
-    iconSize: [34, 40],
-    iconAnchor: [17, 39],
-    popupAnchor: [0, -42]
+    className:   '',
+    html:        svg,
+    iconSize:    [34, 42],
+    iconAnchor:  [17, 41],
+    popupAnchor: [0, -44]
   });
+}
+
+// ── Bangun popup HTML (reusable) ────────────────────────────────────
+function _buildPopupHtml(g) {
+  var isAktif    = (g['STATUS_OPERASIONAL'] || '').toUpperCase() === 'AKTIF';
+  var beban      = parseFloat(g['_lastBeban'] || '');
+  var kapasitas  = g['KAPASITAS_KVA'] || g['DAYA_KVA'] || '—';
+  var bebanTxt   = (!isNaN(beban)) ? beban.toFixed(1) + '%' : 'Belum ada data';
+  var bebanColor = (!isNaN(beban)) ? (beban > 80 ? '#DC2626' : beban > 60 ? '#D97706' : '#059669') : '#8499BB';
+  var isAktifBadge = isAktif
+    ? '<span style="background:#ECFDF5;color:#059669;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">AKTIF</span>'
+    : '<span style="background:#FEF2F2;color:#DC2626;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">NON-AKTIF</span>';
+  return (
+    '<div style="min-width:200px;font-family:Plus Jakarta Sans,sans-serif;">' +
+    '<div style="font-size:14px;font-weight:800;color:#1048A8;margin-bottom:4px;">' + esc(g['NO_GARDU'] || '—') + ' ' + isAktifBadge + '</div>' +
+    '<div style="font-size:12px;color:#3D5580;margin-bottom:2px;">📍 ' + esc(g['ALAMAT'] || '—') + '</div>' +
+    '<div style="font-size:12px;color:#3D5580;margin-bottom:2px;">🏢 ' + esc(g['ULP'] || '—') + ' · ' + esc(g['PENYULANG'] || '—') + '</div>' +
+    '<div style="font-size:12px;color:#3D5580;margin-bottom:2px;">⚡ ' + esc(String(kapasitas)) + ' kVA · ' + esc(g['TIPE'] || '—') + '</div>' +
+    '<div style="font-size:12px;color:#3D5580;margin-top:4px;">📊 Beban: <b style="color:' + bebanColor + ';">' + bebanTxt + '</b></div>' +
+    '<button style="display:block;width:100%;padding:8px;background:#1048A8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:8px;font-family:inherit;" onclick="bukaDetailGarduDariPeta(\'' + esc(g['NO_GARDU'] || '') + '\')">📂 Buka Detail Gardu →</button>' +
+    '</div>'
+  );
+}
+
+// ── Core: rebuild semua marker sesuai zoom mode ─────────────────────
+function _rebuildMarkers(data) {
+  if (!_petaMap || !_petaMarkers) return;
+  _petaMarkers.clearLayers();
+
+  var zoom     = _petaMap.getZoom();
+  var useIcons = zoom >= _ZOOM_THRESHOLD; // true = icon SVG, false = circle canvas
+  var markersToAdd = [];
+
+  data.forEach(function(g) {
+    if (!g) return;
+    var lat = normalizeCoord(g['LATITUDE'] || g['Y'] || '', true);
+    var lon = normalizeCoord(g['LONGITUDE'] || g['X'] || '', false);
+    if (isNaN(lat) || isNaN(lon) || lat === 0 || lon === 0) return;
+    if (lat < -10 || lat > 2 || lon < 130 || lon > 142) return;
+
+    var color     = _getMarkerColor(g);
+    var popupHtml = _buildPopupHtml(g);
+    var marker;
+    if (useIcons) {
+      marker = L.marker([lat, lon], { icon: _createMarkerIcon(color) });
+    } else {
+      marker = _createCircleMarker(lat, lon, color, popupHtml);
+    }
+    if (useIcons) marker.bindPopup(popupHtml, { maxWidth: 260 });
+    markersToAdd.push(marker);
+  });
+
+  if (markersToAdd.length > 0) {
+    _petaMarkers.addLayers(markersToAdd);
+  }
 }
 
 function _renderPetaMarkers(data) {
   if (!_petaMap || !_petaMarkers) return;
-  _petaMarkers.clearLayers();
+
+  // Cache data untuk re-render otomatis saat zoom berubah
+  _petaGarduData = data || [];
+
+  // Set mode awal berdasarkan zoom saat ini
+  var zoom    = _petaMap.getZoom();
+  _petaZoomMode = zoom < _ZOOM_THRESHOLD ? 'circle' : 'icon';
+
+  // Hitung statistik
   var total = 0, aktif = 0, bebanLebih = 0;
   var bounds = [];
-  var markersToAdd = [];
   data.forEach(function(g) {
     if (!g) return;
     total++;
@@ -5338,39 +5430,23 @@ function _renderPetaMarkers(data) {
     if (!isNaN(beban) && beban > 80) bebanLebih++;
     var lat = normalizeCoord(g['LATITUDE'] || g['Y'] || '', true);
     var lon = normalizeCoord(g['LONGITUDE'] || g['X'] || '', false);
-    if (isNaN(lat) || isNaN(lon) || lat === 0 || lon === 0) return;
-    if (lat < -10 || lat > 2 || lon < 130 || lon > 142) return;
-    bounds.push([lat, lon]);
-    var color = _getMarkerColor(g);
-    var marker = L.marker([lat, lon], { icon: _createMarkerIcon(color) });
-    var kapasitas = g['KAPASITAS_KVA'] || g['DAYA_KVA'] || '—';
-    var bebanTxt = (!isNaN(beban)) ? beban.toFixed(1) + '%' : 'Belum ada data';
-    var bebanColor = (!isNaN(beban)) ? (beban > 80 ? '#DC2626' : beban > 60 ? '#D97706' : '#059669') : '#8499BB';
-    var isAktifBadge = isAktif
-      ? '<span style="background:#ECFDF5;color:#059669;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">AKTIF</span>'
-      : '<span style="background:#FEF2F2;color:#DC2626;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">NON-AKTIF</span>';
-    var popupHtml =
-      '<div style="min-width:200px;font-family:Plus Jakarta Sans,sans-serif;">' +
-      '<div style="font-size:14px;font-weight:800;color:#1048A8;margin-bottom:4px;">' + esc(g['NO_GARDU'] || '—') + ' ' + isAktifBadge + '</div>' +
-      '<div style="font-size:12px;color:#3D5580;margin-bottom:2px;">📍 ' + esc(g['ALAMAT'] || '—') + '</div>' +
-      '<div style="font-size:12px;color:#3D5580;margin-bottom:2px;">🏢 ' + esc(g['ULP'] || '—') + ' · ' + esc(g['PENYULANG'] || '—') + '</div>' +
-      '<div style="font-size:12px;color:#3D5580;margin-bottom:2px;">⚡ ' + esc(String(kapasitas)) + ' kVA · ' + esc(g['TIPE'] || '—') + '</div>' +
-      '<div style="font-size:12px;color:#3D5580;margin-top:4px;">📊 Beban: <b style="color:' + bebanColor + ';">' + bebanTxt + '</b></div>' +
-      '<button style="display:block;width:100%;padding:8px;background:#1048A8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:8px;font-family:inherit;" onclick="bukaDetailGarduDariPeta(\'' + esc(g['NO_GARDU'] || '') + '\')">📂 Buka Detail Gardu →</button>' +
-      '</div>';
-    marker.bindPopup(popupHtml, { maxWidth: 260 });
-    markersToAdd.push(marker);
+    if (!isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0 &&
+        lat >= -10 && lat <= 2 && lon >= 130 && lon <= 142) {
+      bounds.push([lat, lon]);
+    }
   });
-  // Tambahkan semua marker sekaligus ke cluster group — jauh lebih cepat dari satu per satu
-  if (markersToAdd.length > 0) {
-    _petaMarkers.addLayers(markersToAdd);
-  }
+
   var elTotal  = document.getElementById('peta-total');
   var elAktif  = document.getElementById('peta-aktif');
   var elKritis = document.getElementById('peta-kritis');
   if (elTotal)  elTotal.textContent  = total;
   if (elAktif)  elAktif.textContent  = aktif;
   if (elKritis) elKritis.textContent = bebanLebih;
+
+  // Render marker sesuai mode awal
+  _rebuildMarkers(_petaGarduData);
+
+  // Fit bounds
   if (bounds.length > 1) {
     try { _petaMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 }); } catch(e) {}
   } else if (bounds.length === 1) {
