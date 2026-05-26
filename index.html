@@ -875,6 +875,74 @@ body{
   .sidebar-brand{display:none!important;}
   .sidebar-user{display:none!important;}
 }
+
+/* ══ PETA: FILTER ULP BAR ════════════════════════════════════ */
+#peta-ulp-filter-bar{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:var(--sp-sm);
+  padding:10px var(--sp-md);
+  background:var(--pln-card);
+  border-radius:var(--radius-sm);
+  border:1px solid var(--pln-border);
+  box-shadow:var(--shadow);
+  flex-wrap:wrap;
+}
+#peta-ulp-filter-bar label{
+  font-size:var(--fs-xs);font-weight:700;color:var(--pln-text2);
+  white-space:nowrap;text-transform:uppercase;letter-spacing:.4px;
+}
+#peta-ulp-filter-select{
+  flex:1;min-width:140px;max-width:260px;
+  background:#fff;border:1.5px solid var(--pln-border);
+  border-radius:var(--radius-xs);
+  padding:6px 28px 6px 10px;
+  color:var(--pln-text);font-size:var(--fs-xs);font-weight:600;
+  font-family:inherit;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238499BB' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+  -webkit-appearance:none;appearance:none;
+  transition:border-color .15s;
+}
+#peta-ulp-filter-select:focus{outline:none;border-color:var(--pln-biru-muda);}
+.peta-filter-count{
+  font-size:var(--fs-xs);color:var(--pln-text3);
+  white-space:nowrap;margin-left:auto;font-weight:500;
+}
+
+/* ══ DESKTOP: DETAIL GARDU 2-KOLOM ══════════════════════════ */
+@media(min-width:768px){
+  #detail-view{max-width:100%!important;}
+  #detail-view .page-body-nonav{
+    padding:var(--sp-md) var(--sp-md) var(--sp-lg);
+  }
+  /* Layout grid: 2 kolom */
+  #detail-desktop-grid{
+    display:grid;
+    grid-template-columns:380px 1fr;
+    gap:var(--sp-md);
+    align-items:start;
+  }
+  #detail-col-left{
+    display:flex;flex-direction:column;gap:var(--sp-sm);
+    position:sticky;top:calc(var(--topbar-h) + 12px);
+    max-height:calc(100vh - var(--topbar-h) - 32px);
+    overflow-y:auto;
+    padding-right:4px;
+  }
+  #detail-col-left::-webkit-scrollbar{width:4px;}
+  #detail-col-left::-webkit-scrollbar-thumb{background:var(--pln-border2);border-radius:2px;}
+  #detail-col-right{
+    display:flex;flex-direction:column;gap:var(--sp-sm);
+  }
+  /* Map lebih tinggi di desktop */
+  .gps-map-wrap iframe{
+    height:220px!important;
+  }
+  /* Tren chart lebih lebar */
+  .tren-chart-svg-wrap svg{
+    max-width:100%!important;
+  }
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
@@ -1024,6 +1092,21 @@ if (typeof L === 'undefined') {
     <div id="peta-ulp-banner" style="display:none;background:linear-gradient(90deg,var(--pln-biru),var(--pln-biru2));color:#fff;border-radius:var(--radius-sm);padding:8px var(--sp-md);margin-bottom:var(--sp-sm);font-size:var(--fs-xs);font-weight:700;align-items:center;gap:8px;">
       <span style="font-size:16px;">🏢</span>
       <span id="peta-ulp-banner-text">Peta Gardu</span>
+    </div>
+    <!-- Filter ULP — hanya tampil untuk superadmin -->
+    <div id="peta-ulp-filter-bar" style="display:none;">
+      <span style="font-size:16px;">🗂️</span>
+      <label for="peta-ulp-filter-select">Filter ULP:</label>
+      <select id="peta-ulp-filter-select" onchange="filterPetaByULP(this.value)">
+        <option value="">Semua ULP</option>
+        <option value="ULP ABEPURA">Abepura</option>
+        <option value="ULP JAYAPURA">Jayapura</option>
+        <option value="ULP SENTANI">Sentani</option>
+        <option value="ULP SARMI">Sarmi</option>
+        <option value="ULP ARSO">Arso</option>
+        <option value="ULP GENYEM">Genyem</option>
+      </select>
+      <span class="peta-filter-count" id="peta-filter-count"></span>
     </div>
     <div class="peta-stats" id="peta-stats">
       <div class="peta-stat-card"><div class="peta-stat-num" id="peta-total">—</div><div class="peta-stat-label">Total Gardu</div></div>
@@ -2691,7 +2774,33 @@ function renderDetailGardu(g, riwayat){
   html += '</div>';
 
   html += '<div style="height:var(--sp-lg);"></div>';
-  document.getElementById('detail-content').innerHTML = html;
+
+  // ── Desktop 2-kolom wrapper ──────────────────────────────────
+  // Di desktop (≥768px): kiri = info gardu + map + keterangan, kanan = riwayat inspeksi + tren
+  // Di mobile: tetap single column (urutan normal)
+  var isMobile = window.innerWidth < 768;
+  var finalHtml;
+  if (!isMobile) {
+    // Pisahkan konten menjadi 2 kolom
+    // Parsing sederhana: semua konten sebelum section "5 Inspeksi Terakhir" = kiri
+    //                    section inspeksi + tren = kanan
+    var splitMarker = '<div class="sec">5 Inspeksi Terakhir</div>';
+    var splitIdx = html.indexOf(splitMarker);
+    if (splitIdx >= 0) {
+      var leftContent = html.substring(0, splitIdx);
+      var rightContent = html.substring(splitIdx);
+      finalHtml = '<div id="detail-desktop-grid">' +
+        '<div id="detail-col-left">' + leftContent + '</div>' +
+        '<div id="detail-col-right">' + rightContent + '</div>' +
+        '</div>';
+    } else {
+      finalHtml = html;
+    }
+  } else {
+    finalHtml = html;
+  }
+
+  document.getElementById('detail-content').innerHTML = finalHtml;
   document.getElementById('detail-view-title').textContent = g['NO_GARDU'] || '—';
 
   // Reset filter tren beban ke default (5 data) saat buka gardu baru
@@ -5072,15 +5181,20 @@ function _updatePetaULPBanner() {
   var banner = document.getElementById('peta-ulp-banner');
   var bannerText = document.getElementById('peta-ulp-banner-text');
   var topbarTitle = document.getElementById('peta-topbar-title');
+  var filterBar = document.getElementById('peta-ulp-filter-bar');
   var isNonSuperadmin = s && s.role !== 'superadmin' && s.ulp;
   if (isNonSuperadmin) {
     var ulpLabel = s.ulp.replace(/^ULP\s+/i, 'ULP ').trim();
     if (banner)      { banner.style.display = 'flex'; }
     if (bannerText)  { bannerText.textContent = 'Menampilkan gardu milik ' + ulpLabel + ' saja'; }
     if (topbarTitle) { topbarTitle.textContent = 'Peta Gardu ' + ulpLabel; }
+    if (filterBar)   { filterBar.style.display = 'none'; }
   } else {
     if (banner)      { banner.style.display = 'none'; }
     if (topbarTitle) { topbarTitle.textContent = 'Peta Gardu Papua'; }
+    // Tampilkan filter bar hanya untuk superadmin
+    if (filterBar && s && s.role === 'superadmin') { filterBar.style.display = 'flex'; }
+    else if (filterBar) { filterBar.style.display = 'none'; }
   }
 }
 
@@ -5188,6 +5302,12 @@ function muatPetaGardu(force) {
         })
       : allGardu;
     _initPetaMap(function() {
+      _petaAllData = dataUntukPeta;
+      // Reset filter dropdown
+      var sel = document.getElementById('peta-ulp-filter-select');
+      if (sel) sel.value = '';
+      var countEl = document.getElementById('peta-filter-count');
+      if (countEl) countEl.textContent = dataUntukPeta.length + ' gardu';
       _renderPetaMarkers(dataUntukPeta);
       _petaSudahMuat = true;
     });
@@ -5226,6 +5346,12 @@ function muatPetaGardu(force) {
     if (!allGardu || allGardu.length === 0) allGardu = res.data;
     // Pastikan map siap sebelum render marker
     _initPetaMap(function() {
+      _petaAllData = res.data;
+      // Reset filter dropdown
+      var sel = document.getElementById('peta-ulp-filter-select');
+      if (sel) sel.value = '';
+      var countEl = document.getElementById('peta-filter-count');
+      if (countEl) countEl.textContent = res.data.length + ' gardu';
       _renderPetaMarkers(res.data);
       _petaSudahMuat = true;
     });
@@ -5335,6 +5461,25 @@ function _renderPetaMarkers(data) {
     _petaMap.setView(bounds[0], 14);
   }
   _forceInvalidateMap();
+}
+
+// ── FILTER PETA BERDASARKAN ULP (superadmin only) ────────────
+var _petaAllData = []; // simpan semua data peta sebelum filter
+
+function filterPetaByULP(ulpValue) {
+  var countEl = document.getElementById('peta-filter-count');
+  if (!_petaAllData.length) {
+    // Belum ada data — reset pilihan
+    if (countEl) countEl.textContent = '';
+    return;
+  }
+  var filtered = ulpValue
+    ? _petaAllData.filter(function(g) {
+        return _normalizeUlpEnumClient(g['ULP'] || '') === _normalizeUlpEnumClient(ulpValue);
+      })
+    : _petaAllData;
+  if (countEl) countEl.textContent = filtered.length + ' gardu';
+  _renderPetaMarkers(filtered);
 }
 
 function bukaDetailGarduDariPeta(noGardu) {
