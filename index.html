@@ -708,9 +708,44 @@ body{
 .btn-edit-user{background:#DBEAFE;color:#1E40AF;}
 .btn-del-user{background:#FEE2E2;color:#991B1B;}
 
+
+/* ══ PETA GARDU ══════════════════════════════════════════════ */
+#peta-map{
+  width:100%;
+  height:clamp(340px,65vw,520px);
+  border-radius:var(--radius);
+  overflow:hidden;
+  box-shadow:var(--shadow-md);
+  border:1px solid var(--pln-border);
+  margin-bottom:var(--sp-sm);
+  z-index:0;
+  position:relative;
+}
+.peta-stats{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:var(--sp-sm);margin-bottom:var(--sp-sm);
+}
+.peta-stat-card{
+  background:var(--pln-card);border-radius:var(--radius-sm);
+  padding:var(--sp-sm) var(--sp-xs);text-align:center;
+  box-shadow:var(--shadow);border:1px solid var(--pln-border);
+}
+.peta-stat-num{font-size:var(--fs-lg);font-weight:800;color:var(--pln-biru2);line-height:1.1;}
+.peta-stat-label{font-size:var(--fs-xs);color:var(--pln-text3);margin-top:2px;font-weight:500;}
+.peta-legend{
+  display:flex;flex-wrap:wrap;gap:8px;
+  margin-bottom:var(--sp-sm);
+  padding:var(--sp-sm) var(--sp-md);
+  background:var(--pln-card);border-radius:var(--radius-sm);
+  box-shadow:var(--shadow);border:1px solid var(--pln-border);
+}
+.peta-legend-item{display:flex;align-items:center;gap:5px;font-size:var(--fs-xs);color:var(--pln-text2);font-weight:500;}
+.peta-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1.5px solid rgba(255,255,255,.6);box-shadow:0 1px 3px rgba(0,0,0,.25);}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WLEg=" crossorigin=""></script>
 </head>
 <body>
 <!-- ══ LOGIN SCREEN ══════════════════════════════════════════ -->
@@ -822,6 +857,39 @@ body{
   </div>
 </div>
 
+
+<div id="tab-peta" class="page">
+  <div class="topbar">
+    <div class="topbar-logo"><img src="icon-192.png" alt="PLN" onerror="this.parentNode.innerHTML='PLN'"></div>
+    <div class="topbar-info">
+      <div class="topbar-sub">UP3 Jayapura</div>
+      <div class="topbar-title" id="peta-topbar-title">Peta Gardu Papua</div>
+    </div>
+    <button class="topbar-action" onclick="muatPetaGardu(true)" title="Refresh peta">↻ Refresh</button>
+  </div>
+  <div class="page-body">
+    <!-- Banner info ULP — tampil otomatis untuk user non-superadmin -->
+    <div id="peta-ulp-banner" style="display:none;background:linear-gradient(90deg,var(--pln-biru),var(--pln-biru2));color:#fff;border-radius:var(--radius-sm);padding:8px var(--sp-md);margin-bottom:var(--sp-sm);font-size:var(--fs-xs);font-weight:700;align-items:center;gap:8px;">
+      <span style="font-size:16px;">🏢</span>
+      <span id="peta-ulp-banner-text">Peta Gardu</span>
+    </div>
+    <div class="peta-stats" id="peta-stats">
+      <div class="peta-stat-card"><div class="peta-stat-num" id="peta-total">—</div><div class="peta-stat-label">Total Gardu</div></div>
+      <div class="peta-stat-card"><div class="peta-stat-num" id="peta-aktif" style="color:var(--pln-green);">—</div><div class="peta-stat-label">Aktif</div></div>
+      <div class="peta-stat-card"><div class="peta-stat-num" id="peta-kritis" style="color:var(--pln-red);">—</div><div class="peta-stat-label">Beban Lebih</div></div>
+    </div>
+    <div class="peta-legend">
+      <div class="peta-legend-item"><div class="peta-legend-dot" style="background:#059669;"></div>Aktif Normal</div>
+      <div class="peta-legend-item"><div class="peta-legend-dot" style="background:#D97706;"></div>Beban 60–80%</div>
+      <div class="peta-legend-item"><div class="peta-legend-dot" style="background:#DC2626;"></div>Beban &gt;80%</div>
+      <div class="peta-legend-item"><div class="peta-legend-dot" style="background:#8499BB;"></div>Non-Aktif</div>
+      <div class="peta-legend-item"><div class="peta-legend-dot" style="background:#1048A8;"></div>Aktif (no data)</div>
+    </div>
+    <div id="peta-map"></div>
+    <div id="peta-loading" class="loading" style="display:none;"><div class="spinner"></div>Memuat data peta...</div>
+  </div>
+</div>
+
 <!-- DETAIL VIEW -->
 <div id="detail-view" style="display:none;width:100%;max-width:600px;margin:0 auto;">
   <div class="topbar"><button class="topbar-back" onclick="tutupDetail()">←</button><div class="topbar-info"><div class="topbar-sub">Detail Gardu</div><div class="topbar-title" id="detail-view-title">—</div></div></div>
@@ -831,8 +899,9 @@ body{
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" id="bottom-nav">
   <button class="nav-btn active" onclick="bukaTab('tab-daftar',0)"><span class="nav-icon">🏠</span><span class="nav-label">Daftar</span></button>
-  <button class="nav-btn" onclick="bukaTab('tab-rekap',1)"><span class="nav-icon">📊</span><span class="nav-label">Rekap</span></button>
-  <button class="nav-btn" onclick="bukaTab('tab-sop',2)"><span class="nav-icon">📋</span><span class="nav-label">SOP</span></button>
+  <button class="nav-btn" onclick="bukaTab('tab-peta',1)"><span class="nav-icon">🗺️</span><span class="nav-label">Peta</span></button>
+  <button class="nav-btn" onclick="bukaTab('tab-rekap',2)"><span class="nav-icon">📊</span><span class="nav-label">Rekap</span></button>
+  <button class="nav-btn" onclick="bukaTab('tab-sop',3)"><span class="nav-icon">📋</span><span class="nav-label">SOP</span></button>
 </nav>
 
 <!-- SCAN TOAST -->
@@ -1859,7 +1928,7 @@ function apiGet(params, cb) {
   cb({status:'error', message:'Gagal terhubung ke server. Coba refresh halaman.'});
 }
 
-var TAB_IDS = ['tab-daftar','tab-rekap','tab-sop'];
+var TAB_IDS = ['tab-daftar','tab-peta','tab-rekap','tab-sop'];
 // O1: Pagination — client-side 50/halaman sudah aktif.
 //   Untuk server-side pagination: tambahkan param ?action=daftarGardu&page=N&limit=50&ulp=X di Apps Script.
 function bukaTab(id, idx){
@@ -1871,6 +1940,8 @@ function bukaTab(id, idx){
   document.querySelectorAll('.nav-btn')[idx].classList.add('active');
   currentTab = idx;
   if(id==='tab-rekap' && !rekapSudahMuat) muatRekap();
+  if(id==='tab-peta') { setTimeout(function(){ if(_petaMap) _petaMap.invalidateSize(); }, 300); }
+  if(id==='tab-peta') { _updatePetaULPBanner(); muatPetaGardu(false); }
 }
 
 // ── DAFTAR GARDU ────────────────────────────────────────────
@@ -4782,6 +4853,168 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
+
+// ══ PETA GARDU — LEAFLET.JS ══════════════════════════════════════
+var _petaMap = null;
+var _petaMarkers = null;
+var _petaSudahMuat = false;
+var _petaLoading = false;
+
+// ── Update banner ULP di atas peta ──────────────────────────────
+function _updatePetaULPBanner() {
+  var s = getSession();
+  var banner = document.getElementById('peta-ulp-banner');
+  var bannerText = document.getElementById('peta-ulp-banner-text');
+  var topbarTitle = document.getElementById('peta-topbar-title');
+  var isNonSuperadmin = s && s.role !== 'superadmin' && s.ulp;
+  if (isNonSuperadmin) {
+    var ulpLabel = s.ulp.replace(/^ULP\s+/i, 'ULP ').trim();
+    if (banner)      { banner.style.display = 'flex'; }
+    if (bannerText)  { bannerText.textContent = 'Menampilkan gardu milik ' + ulpLabel + ' saja'; }
+    if (topbarTitle) { topbarTitle.textContent = 'Peta Gardu ' + ulpLabel; }
+  } else {
+    if (banner)      { banner.style.display = 'none'; }
+    if (topbarTitle) { topbarTitle.textContent = 'Peta Gardu Papua'; }
+  }
+}
+
+function muatPetaGardu(force) {
+  if (_petaLoading) return;
+  if (_petaSudahMuat && !force && _petaMap) return;
+  _petaLoading = true;
+  _updatePetaULPBanner();
+  var loadEl = document.getElementById('peta-loading');
+  if (loadEl) loadEl.style.display = 'block';
+  if (!_petaMap) { _initPetaMap(); }
+
+  var s = getSession();
+  var isNonSuperadmin = s && s.role !== 'superadmin' && s.ulp;
+
+  // Jika non-superadmin & allGardu sudah ada: filter per ULP
+  if (allGardu && allGardu.length > 0 && !force) {
+    var dataUntukPeta = isNonSuperadmin
+      ? allGardu.filter(function(g) {
+          if (!g) return false;
+          var garduUlp = _normalizeUlpEnumClient(g['ULP'] || '');
+          var userUlp  = _normalizeUlpEnumClient(s.ulp);
+          return garduUlp === userUlp;
+        })
+      : allGardu;
+    _renderPetaMarkers(dataUntukPeta);
+    _petaLoading = false;
+    if (loadEl) loadEl.style.display = 'none';
+    return;
+  }
+
+  // Ambil dari server
+  var params = { action: 'getDaftarGardu' };
+  if (isNonSuperadmin) params.ulp = s.ulp;
+  apiGet(params, function(res) {
+    _petaLoading = false;
+    if (loadEl) loadEl.style.display = 'none';
+    if (res.status !== 'ok' || !res.data) return;
+    _renderPetaMarkers(res.data);
+    _petaSudahMuat = true;
+  });
+}
+
+function _initPetaMap() {
+  var mapEl = document.getElementById('peta-map');
+  if (!mapEl || _petaMap) return;
+  _petaMap = L.map('peta-map', { center: [-3.5, 138.5], zoom: 7, zoomControl: true });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '\u00a9 <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(_petaMap);
+  _petaMarkers = L.layerGroup().addTo(_petaMap);
+}
+
+function _getMarkerColor(g) {
+  var statusOp = (g['STATUS_OPERASIONAL'] || '').toUpperCase();
+  if (statusOp !== 'AKTIF') return '#8499BB';
+  var beban = parseFloat(g['_lastBeban'] || '');
+  if (!isNaN(beban)) {
+    if (beban > 80) return '#DC2626';
+    if (beban > 60) return '#D97706';
+    return '#059669';
+  }
+  return '#1048A8';
+}
+
+function _createMarkerIcon(color) {
+  return L.divIcon({
+    className: '',
+    html: '<div style="width:14px;height:14px;background:' + color + ';border:2.5px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.35);"></div>',
+    iconSize: [14, 14], iconAnchor: [7, 7], popupAnchor: [0, -10]
+  });
+}
+
+function _renderPetaMarkers(data) {
+  if (!_petaMap) _initPetaMap();
+  if (!_petaMarkers) return;
+  _petaMarkers.clearLayers();
+  var total = 0, aktif = 0, bebanLebih = 0;
+  var bounds = [];
+  data.forEach(function(g) {
+    if (!g) return;
+    total++;
+    var isAktif = (g['STATUS_OPERASIONAL'] || '').toUpperCase() === 'AKTIF';
+    if (isAktif) aktif++;
+    var beban = parseFloat(g['_lastBeban'] || '');
+    if (!isNaN(beban) && beban > 80) bebanLebih++;
+    var lat = normalizeCoord(g['LATITUDE'] || g['Y'] || '', true);
+    var lon = normalizeCoord(g['LONGITUDE'] || g['X'] || '', false);
+    if (isNaN(lat) || isNaN(lon) || lat === 0 || lon === 0) return;
+    if (lat < -10 || lat > 2 || lon < 130 || lon > 142) return;
+    bounds.push([lat, lon]);
+    var color = _getMarkerColor(g);
+    var marker = L.marker([lat, lon], { icon: _createMarkerIcon(color) });
+    var kapasitas = g['KAPASITAS_KVA'] || g['DAYA_KVA'] || '\u2014';
+    var bebanTxt = (!isNaN(beban)) ? beban.toFixed(1) + '%' : 'Belum ada data';
+    var bebanColor = (!isNaN(beban)) ? (beban > 80 ? '#DC2626' : beban > 60 ? '#D97706' : '#059669') : '#8499BB';
+    var isAktifBadge = isAktif
+      ? '<span style="background:#ECFDF5;color:#059669;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">AKTIF</span>'
+      : '<span style="background:#FEF2F2;color:#DC2626;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">NON-AKTIF</span>';
+    var popupHtml =
+      '<div style="min-width:200px;font-family:Plus Jakarta Sans,sans-serif;">' +
+      '<div style="font-size:14px;font-weight:800;color:#1048A8;margin-bottom:4px;">' + esc(g['NO_GARDU'] || '\u2014') + ' ' + isAktifBadge + '</div>' +
+      '<div style="font-size:12px;color:#3D5580;margin-bottom:2px;">\ud83d\udccd ' + esc(g['ALAMAT'] || '\u2014') + '</div>' +
+      '<div style="font-size:12px;color:#3D5580;margin-bottom:2px;">\ud83c\udfe2 ' + esc(g['ULP'] || '\u2014') + ' \u00b7 ' + esc(g['PENYULANG'] || '\u2014') + '</div>' +
+      '<div style="font-size:12px;color:#3D5580;margin-bottom:2px;">\u26a1 ' + esc(String(kapasitas)) + ' kVA \u00b7 ' + esc(g['TIPE'] || '\u2014') + '</div>' +
+      '<div style="font-size:12px;color:#3D5580;margin-top:4px;">\ud83d\udcca Beban: <b style="color:' + bebanColor + ';">' + bebanTxt + '</b></div>' +
+      '<button style="display:block;width:100%;padding:8px;background:#1048A8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:8px;font-family:inherit;" onclick="bukaDetailGarduDariPeta(\'' + esc(g['NO_GARDU'] || '') + '\')">\ud83d\udcc2 Buka Detail Gardu \u2192</button>' +
+      '</div>';
+    marker.bindPopup(popupHtml, { maxWidth: 260 });
+    _petaMarkers.addLayer(marker);
+  });
+  var elTotal  = document.getElementById('peta-total');
+  var elAktif  = document.getElementById('peta-aktif');
+  var elKritis = document.getElementById('peta-kritis');
+  if (elTotal)  elTotal.textContent  = total;
+  if (elAktif)  elAktif.textContent  = aktif;
+  if (elKritis) elKritis.textContent = bebanLebih;
+  if (bounds.length > 1) {
+    try { _petaMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 }); } catch(e) {}
+  } else if (bounds.length === 1) {
+    _petaMap.setView(bounds[0], 14);
+  }
+  setTimeout(function() { if (_petaMap) _petaMap.invalidateSize(); }, 200);
+}
+
+function bukaDetailGarduDariPeta(noGardu) {
+  if (!noGardu) return;
+  if (_petaMap) _petaMap.closePopup();
+  tabSebelumDetail = 1;
+  bukaDetailGardu(noGardu);
+}
+
+window.addEventListener('resize', function() {
+  var tabPeta = document.getElementById('tab-peta');
+  if (_petaMap && tabPeta && tabPeta.classList.contains('active')) {
+    _petaMap.invalidateSize();
+  }
+});
+// ══ END PETA JS ═══════════════════════════════════════════════════
 
 
 

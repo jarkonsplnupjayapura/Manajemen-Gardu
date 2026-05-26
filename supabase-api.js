@@ -60,7 +60,7 @@ async function rpcCall(funcName, params, signal) {
   }
   var data = await res.json();
   if (!data) return { status: 'error', message: 'Response kosong dari server.' };
-  // Supabase RPC kadang mengembalikan array [result] — unwrap jika perlu
+  // Supabase RPC kadang mengembalikan array [result] — unwrap otomatis
   if (Array.isArray(data)) {
     if (data.length === 0) return { status: 'error', message: 'Response kosong dari server.' };
     data = data[0];
@@ -167,8 +167,7 @@ async function _login(p, signal) {
   if (!data || data.status !== 'ok')
     return { status: 'error', message: data.message || 'Login gagal.' };
 
-  // fn_login bisa mengembalikan data flat (username, nama, role, ulp langsung)
-  // atau nested di dalam data.user — handle keduanya agar tidak crash
+  // fn_login bisa return flat (username,nama,role,ulp) atau nested di data.user
   var u = (data.user && typeof data.user === 'object') ? data.user : data;
   return {
     status: 'ok',
