@@ -2049,7 +2049,7 @@ window.onload = function(){
   // ── MODE SCAN QR: bypass login, langsung detail ──────────────
   if (QR_SCAN_MODE && QR_NOGARDU) {
     document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('bottom-nav').style.display   = 'none';
+    if(window.innerWidth < 768) document.getElementById('bottom-nav').style.display = 'none';
     TAB_IDS.forEach(function(tid){ document.getElementById(tid).classList.remove('active'); });
 
     // Tampilkan banner "mode scan" di topbar detail
@@ -2423,7 +2423,7 @@ function renderDaftarGardu(data){
 function bukaDetailGardu(noGardu){
   tabSebelumDetail = currentTab;
   TAB_IDS.forEach(function(tid){ document.getElementById(tid).classList.remove('active'); });
-  document.getElementById('bottom-nav').style.display = 'none';
+  if(window.innerWidth < 768) document.getElementById('bottom-nav').style.display = 'none';
   document.getElementById('detail-view').style.display = 'block';
   document.getElementById('detail-view-title').textContent = noGardu;
   document.getElementById('detail-content').innerHTML = '<div class="loading"><div class="spinner"></div>Memuat detail...</div>';
