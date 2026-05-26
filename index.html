@@ -763,10 +763,13 @@ body{
   .sidebar-brand{
     display:flex!important;
     align-items:center;gap:10px;
-    padding:18px 16px 14px;
+    padding:0 16px;
+    height:var(--topbar-h);
+    min-height:var(--topbar-h);
     background:var(--pln-biru);
     border-bottom:1px solid rgba(255,255,255,.1);
     flex-shrink:0;
+    box-sizing:border-box;
   }
   .sidebar-brand-logo{
     width:36px;height:36px;border-radius:8px;
@@ -827,9 +830,28 @@ body{
   .page{max-width:100%;width:100%;}
 
   /* Peta: full-height di desktop agar tidak kosong */
-  #peta-map{height:calc(100vh - 200px) !important;min-height:400px;}
+  #peta-map{
+    height:calc(100vh - var(--topbar-h) - 180px) !important;
+    min-height:400px;
+  }
   /* Pastikan page peta tidak collapse saat tidak aktif */
   #tab-peta{min-height:100vh;}
+  /* Trick: jaga agar #peta-map selalu punya ukuran meski tab hidden
+     Dengan override display:none -> visibility:hidden di desktop */
+  #tab-peta:not(.active){
+    display:block !important;
+    visibility:hidden;
+    position:absolute;
+    pointer-events:none;
+    top:0;left:0;width:100%;
+    z-index:-1;
+  }
+  #tab-peta.active{
+    visibility:visible;
+    position:relative;
+    z-index:auto;
+    pointer-events:auto;
+  }
 
   /* Page body tidak perlu padding nav bawah */
   .page-body{padding-bottom:var(--sp-lg);}
@@ -1603,6 +1625,9 @@ function onLoginSuccess(user) {
   var ulpUntukFilter = (user.role !== 'superadmin' && user.ulp) ? user.ulp : '';
   muatDaftarGardu(true, ulpUntukFilter);
   _updateSidebarUserFooter();
+
+  // Init peta awal agar Leaflet bisa mengukur container (container selalu di DOM di desktop)
+  setTimeout(function(){ _initPetaMap(); }, 400);
 
   // Reset rekap agar tidak tampil data ULP sebelumnya saat ganti login
   rekapSudahMuat = false;
@@ -5038,17 +5063,12 @@ function muatPetaGardu(force) {
   var loadEl = document.getElementById('peta-loading');
   if (loadEl) loadEl.style.display = 'block';
 
-  // Pastikan map container punya tinggi sebelum init
-  var mapEl = document.getElementById('peta-map');
-  if (mapEl && mapEl.offsetHeight === 0) {
-    // Tab mungkin baru aktif, tunggu sebentar lalu retry
-    setTimeout(function() { _petaLoading = false; muatPetaGardu(force); }, 100);
-    return;
-  }
-
   if (!_petaMap) { _initPetaMap(); }
-  // Pastikan ukuran map benar setelah init
-  if (_petaMap) { setTimeout(function(){ _petaMap.invalidateSize(); }, 100); }
+  // Invalidate size setelah init karena container mungkin baru visible
+  if (_petaMap) {
+    setTimeout(function(){ _petaMap.invalidateSize(); }, 50);
+    setTimeout(function(){ _petaMap.invalidateSize(); }, 300);
+  }
 
   var s = getSession();
   var isNonSuperadmin = s && s.role !== 'superadmin' && s.ulp;
@@ -5094,21 +5114,35 @@ function _initPetaMap() {
 
 function _getMarkerColor(g) {
   var statusOp = (g['STATUS_OPERASIONAL'] || '').toUpperCase();
-  if (statusOp !== 'AKTIF') return '#8499BB';
+  if (statusOp !== 'AKTIF') return { bg: '#8499BB', border: '#5F7099', label: 'Non-Aktif' };
   var beban = parseFloat(g['_lastBeban'] || '');
   if (!isNaN(beban)) {
-    if (beban > 80) return '#DC2626';
-    if (beban > 60) return '#D97706';
-    return '#059669';
+    if (beban > 80) return { bg: '#DC2626', border: '#991B1B', label: 'Beban Kritis' };
+    if (beban > 60) return { bg: '#D97706', border: '#92400E', label: 'Beban Tinggi' };
+    return { bg: '#059669', border: '#065F46', label: 'Normal' };
   }
-  return '#1048A8';
+  return { bg: '#1048A8', border: '#0A2D6B', label: 'Aktif' };
 }
 
-function _createMarkerIcon(color) {
+function _createMarkerIcon(colorObj) {
+  var bg = colorObj.bg || '#1048A8';
+  var border = colorObj.border || '#0A2D6B';
+  // SVG icon berbentuk gardu/transformer dengan pin drop
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">' +
+    // Pin shape
+    '<path d="M14 0C6.27 0 0 6.27 0 14c0 9.75 14 22 14 22S28 23.75 28 14C28 6.27 21.73 0 14 0z" fill="' + bg + '" stroke="' + border + '" stroke-width="1.5"/>' +
+    // Transformer icon inside pin
+    '<rect x="7" y="6" width="14" height="10" rx="2" fill="white" opacity="0.95"/>' +
+    '<rect x="9" y="8" width="4" height="6" rx="1" fill="' + bg + '"/>' +
+    '<rect x="15" y="8" width="4" height="6" rx="1" fill="' + bg + '"/>' +
+    '<line x1="11" y1="11" x2="17" y2="11" stroke="' + border + '" stroke-width="1" opacity="0.5"/>' +
+    '<line x1="11" y1="16" x2="11" y2="20" stroke="white" stroke-width="1.5"/>' +
+    '<line x1="17" y1="16" x2="17" y2="20" stroke="white" stroke-width="1.5"/>' +
+    '</svg>';
   return L.divIcon({
     className: '',
-    html: '<div style="width:14px;height:14px;background:' + color + ';border:2.5px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.35);"></div>',
-    iconSize: [14, 14], iconAnchor: [7, 7], popupAnchor: [0, -10]
+    html: svg,
+    iconSize: [28, 36], iconAnchor: [14, 36], popupAnchor: [0, -38]
   });
 }
 
