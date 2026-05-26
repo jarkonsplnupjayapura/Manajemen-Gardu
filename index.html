@@ -2157,8 +2157,12 @@ function muatDaftarGardu(force, ulpFilter){
     buildFilterULP(filtered);
     renderDaftarGardu(filtered);
     updateFreshnessBanner(res._generatedAt||'');
-    // Pre-render peta di background setelah data gardu tersedia
-    setTimeout(function(){ _petaSudahMuat=false; muatPetaGardu(false); }, 800);
+    // Tandai data peta perlu di-refresh, tapi JANGAN init Leaflet di background.
+    // _initPetaMap membutuhkan container visible (offsetHeight > 0).
+    // Saat tab Daftar aktif, #peta-map-wrap masih display:none → offsetHeight=0
+    // → loop retry tak terbatas → memory leak.
+    // Cukup reset flag; peta akan di-init saat user membuka tab Peta.
+    _petaSudahMuat = false;
   });
 }
 
@@ -5050,6 +5054,11 @@ function _updatePetaULPBanner() {
 }
 
 // ── Init Leaflet Map — HANYA dipanggil saat container sudah visible & punya ukuran ──
+// Counter retry untuk _initPetaMap — dibatasi agar tidak jadi infinite loop
+// ketika peta dipanggil di background saat tab Daftar aktif (wrap masih hidden).
+var _petaInitRetryCount = 0;
+var _petaInitMaxRetry   = 30; // maks 3 detik (30 × 100ms)
+
 function _initPetaMap(callback) {
   if (_petaMap) {
     // Map sudah ada, langsung invalidate dan panggil callback
@@ -5064,10 +5073,17 @@ function _initPetaMap(callback) {
   var wrap = document.getElementById('peta-map-wrap');
   var h = wrap ? wrap.offsetHeight : mapEl.offsetHeight;
   if (h < 10) {
-    // Container belum punya ukuran, tunggu sebentar lagi
+    // Container belum punya ukuran — bisa karena tab Peta belum aktif.
+    // Batasi retry agar tidak bocor memori saat dipanggil dari background.
+    if (_petaInitRetryCount >= _petaInitMaxRetry) {
+      _petaInitRetryCount = 0; // reset supaya bisa dicoba lagi nanti
+      return; // batalkan, akan di-init ulang saat tab Peta benar-benar dibuka
+    }
+    _petaInitRetryCount++;
     setTimeout(function(){ _initPetaMap(callback); }, 100);
     return;
   }
+  _petaInitRetryCount = 0; // berhasil visible, reset counter
 
   _petaMap = L.map('peta-map', {
     center: [-3.5, 138.5],
@@ -5232,7 +5248,7 @@ function _renderPetaMarkers(data) {
       '<div style="font-size:12px;color:#3D5580;margin-bottom:2px;">🏢 ' + esc(g['ULP'] || '—') + ' · ' + esc(g['PENYULANG'] || '—') + '</div>' +
       '<div style="font-size:12px;color:#3D5580;margin-bottom:2px;">⚡ ' + esc(String(kapasitas)) + ' kVA · ' + esc(g['TIPE'] || '—') + '</div>' +
       '<div style="font-size:12px;color:#3D5580;margin-top:4px;">📊 Beban: <b style="color:' + bebanColor + ';">' + bebanTxt + '</b></div>' +
-      '<button style="display:block;width:100%;padding:8px;background:#1048A8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:8px;font-family:inherit;" onclick="bukaDetailGarduDariPeta('' + esc(g['NO_GARDU'] || '') + '')">📂 Buka Detail Gardu →</button>' +
+      '<button style="display:block;width:100%;padding:8px;background:#1048A8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:8px;font-family:inherit;" onclick="bukaDetailGarduDariPeta(\'' + esc(g['NO_GARDU'] || '') + '\')">📂 Buka Detail Gardu →</button>' +
       '</div>';
     marker.bindPopup(popupHtml, { maxWidth: 260 });
     _petaMarkers.addLayer(marker);
