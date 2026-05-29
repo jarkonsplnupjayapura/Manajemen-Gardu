@@ -3084,7 +3084,7 @@ function renderDetailGardu(g, riwayat){
   if (_sInspBtn && _sInspBtn.token) {
     var noGarduEsc = esc(g['NO_GARDU']||'');
     html += '<div style="margin-bottom:var(--sp-sm);">' +
-      '<button onclick="bukaFormInspeksi(''+noGarduEsc+'')" style="' +
+      '<button onclick="bukaFormInspeksi(\''+noGarduEsc+'\')" style="' +
         'display:flex;align-items:center;justify-content:center;gap:10px;' +
         'width:100%;padding:clamp(13px,3.5vw,16px);' +
         'background:linear-gradient(135deg,#1A7A4A,#229A5F);color:#fff;' +
@@ -3119,6 +3119,10 @@ function renderDetailGardu(g, riwayat){
       var dayaKva = normVal(r['DAYA']); var dayaPakai = normVal(r['DAYA PAKAI']);
       var tidakSeimbang = normVal(r['TDKSEIMBANG']); var fasa = normVal(r['FASA']);
 
+      var _sRiwayat = getSession();
+      var _canDeleteInspeksi = _sRiwayat && (_sRiwayat.role === 'admin' || _sRiwayat.role === 'superadmin');
+      var _inspeksiId = r['_id'];
+
       html += '<div class="riwayat-card">';
       html += '<div class="riwayat-header">';
       html += '<div style="flex:1;min-width:0;">';
@@ -3132,7 +3136,15 @@ function renderDetailGardu(g, riwayat){
       html += '<div class="beban-bar"><div class="beban-bar-fill" style="width:'+bebanPct+'%;background:'+bebanColor+';"></div></div>';
       html += '</div>';
       html += '</div>';
-      html += '<span class="badge '+bc+'" style="flex-shrink:0;">'+prosenLabel+'</span>';
+      html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">';
+      html += '<span class="badge '+bc+'">'+prosenLabel+'</span>';
+      if (_canDeleteInspeksi && _inspeksiId) {
+        html += '<button onclick="event.stopPropagation();hapusInspeksiById('+_inspeksiId+',\''+esc(formatTgl(r['TGLUKUR']))+'\')" '+
+          'style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;'+
+          'font-size:clamp(9px,2.2vw,10.5px);font-weight:700;padding:3px 8px;cursor:pointer;white-space:nowrap;'+
+          'touch-action:manipulation;" title="Hapus data inspeksi ini">🗑️ Hapus</button>';
+      }
+      html += '</div>';
       html += '</div>';
 
 
@@ -4097,7 +4109,25 @@ function submitFormInspeksi() {
   });
 }
 
-// ── Export Modal & Format ────────────────────────────────────
+// ── Hapus Inspeksi by ID ──────────────────────────────────────
+function hapusInspeksiById(id, tglLabel) {
+  if (!confirm('Hapus data inspeksi tanggal ' + tglLabel + '?\n\nTindakan ini tidak dapat dibatalkan.')) return;
+  var s = getSession();
+  if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
+
+  apiGet({ action: 'hapusInspeksi', token: s.token, id: id }, function(res) {
+    if (res.status !== 'ok') {
+      alert('Gagal menghapus: ' + (res.message || 'Error tidak diketahui.'));
+      return;
+    }
+    // Ambil no_gardu dari topbar detail-view lalu reload
+    var titleEl = document.getElementById('detail-view-title');
+    var noGardu = titleEl ? titleEl.textContent.trim() : '';
+    if (noGardu) bukaDetailGardu(noGardu);
+  });
+}
+
+
 function bukaModalExport() {
   var sel = document.getElementById('export-ulp-filter');
   var ulpSet={};
@@ -6923,16 +6953,28 @@ function renderDaftarPemeliharaan(q) {
   }
 
   var html = '';
+  var _sPm = getSession();
+  var _canDeletePm = _sPm && (_sPm.role === 'admin' || _sPm.role === 'superadmin');
+
   data.forEach(function(d) {
     var statusCls = d.status === 'SELESAI' ? 'pm-status-selesai' : d.status === 'PROSES' ? 'pm-status-proses' : 'pm-status-tunda';
     var statusLabel = d.status === 'SELESAI' ? '✅ Selesai' : d.status === 'PROSES' ? '🔄 Proses' : '⏸️ Tunda';
+    var hapusBtn = (_canDeletePm && d.id)
+      ? '<button onclick="hapusPemeliharaanById('+d.id+',\''+esc(d.no_gardu||'')+'\')" '+
+          'style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;'+
+          'font-size:clamp(9px,2.2vw,10.5px);font-weight:700;padding:4px 10px;cursor:pointer;'+
+          'touch-action:manipulation;flex-shrink:0;" title="Hapus catatan ini">🗑️ Hapus</button>'
+      : '';
     html += '<div class="pm-list-card">' +
       '<div class="pm-list-header">' +
         '<div>' +
           '<div style="font-size:var(--fs-xs);font-weight:800;color:var(--pln-biru2);">' + esc(d.no_gardu||'—') + '</div>' +
           '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:2px;">📅 ' + esc(d.tanggal||'—') + '</div>' +
         '</div>' +
-        '<span class="pm-status-pill ' + statusCls + '">' + statusLabel + '</span>' +
+        '<div style="display:flex;align-items:center;gap:6px;">' +
+          '<span class="pm-status-pill ' + statusCls + '">' + statusLabel + '</span>' +
+          hapusBtn +
+        '</div>' +
       '</div>' +
       '<div class="pm-list-body">' +
         '<div class="grid2" style="margin:0;">' +
@@ -6955,6 +6997,23 @@ window.bukaTab = function(id, idx) {
   if (typeof _bukaTabOri === 'function') _bukaTabOri(id, idx);
   if (id === 'tab-pemeliharaan') muatDaftarPemeliharaan(false);
 };
+
+// ── Hapus Pemeliharaan by ID ─────────────────────────────────
+function hapusPemeliharaanById(id, noGardu) {
+  if (!confirm('Hapus catatan pemeliharaan gardu ' + noGardu + '?\n\nTindakan ini tidak dapat dibatalkan.')) return;
+  var s = getSession();
+  if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
+
+  apiGet({ action: 'hapusPemeliharaan', token: s.token, id: id }, function(res) {
+    if (res.status !== 'ok') {
+      alert('Gagal menghapus: ' + (res.message || 'Error tidak diketahui.'));
+      return;
+    }
+    // Reload daftar pemeliharaan
+    _pmSudahMuat = false;
+    muatDaftarPemeliharaan(true);
+  });
+}
 
 // ══ END PEMELIHARAAN JS ═══════════════════════════════════════════
 

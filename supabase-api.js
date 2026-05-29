@@ -960,6 +960,7 @@ function _mapGarduRow(g) {
 // ── HELPER: Map row inspeksi ─────────────────────────────────
 function _mapInspeksiRow(r) {
   var flat = {
+    '_id':          r.id         != null ? r.id : null,
     'TGLUKUR':      r.tgl_ukur   || '',
     'JAM UKUR':     r.jam_ukur   ? String(r.jam_ukur).slice(0, 5) : '',
     'PETUGAS':      r.petugas    || '',
