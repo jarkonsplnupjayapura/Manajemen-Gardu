@@ -1,5 +1,5 @@
 // ============================================================
-//  PLN UP3 JAYAPURA — Supabase API Layer  v7
+//  PLN UP3 JAYAPURA — Supabase API Layer  v8
 //  File: supabase-api.js
 //  Semua action memanggil RPC (fn_*) atau REST view
 // ============================================================
@@ -141,9 +141,10 @@ async function _dispatch(action, p, signal) {
     case 'aktifkanUser':     return _aktifkanUser(p, signal);
     case 'statistikUlp':     return _statistikUlp(p, signal);
     case 'maintenanceCleanup': return _maintenanceCleanup(p, signal);
-    case 'tambahPemeliharaan': return _tambahPemeliharaan(p, signal);
+    case 'tambahPemeliharaan':    return _tambahPemeliharaan(p, signal);
     case 'getDaftarPemeliharaan': return _getDaftarPemeliharaan(p, signal);
-    case 'hapusPemeliharaan': return _hapusPemeliharaan(p, signal);
+    case 'hapusPemeliharaan':     return _hapusPemeliharaan(p, signal);
+    case 'editPemeliharaan':      return _editPemeliharaan(p, signal);
     default: return { status: 'error', message: 'Action tidak dikenali: ' + action };
   }
 }
@@ -566,15 +567,19 @@ async function _logoutUser(p, signal) {
 // ── RIWAYAT INSPEKSI via RPC ─────────────────────────────────
 async function _getRiwayat(p, signal) {
   var data = await rpcCall('fn_get_riwayat_inspeksi', {
-    p_no_gardu: (p.noGardu || '').trim().toUpperCase(),
-    p_limit:    5
+    p_no_gardu:  p.noGardu  ? (p.noGardu || '').trim().toUpperCase() : null,
+    p_ulp:       p.ulp      ? _normalizeUlpEnum(p.ulp)               : null,
+    p_tgl_awal:  p.tglAwal  || null,
+    p_tgl_akhir: p.tglAkhir || null,
+    p_limit:     p.limit    ? parseInt(p.limit)                       : 5,
+    p_offset:    p.offset   ? parseInt(p.offset)                      : 0
   }, signal);
 
   if (!data || data.status !== 'ok')
     return { status: 'error', message: 'Gagal memuat riwayat inspeksi.' };
 
   var rows = (data.data || []).map(function(r) { return _mapInspeksiRow(r); });
-  return { status: 'ok', data: rows };
+  return { status: 'ok', data: rows, total: data.total || 0 };
 }
 
 // ── REKAP GARDU SEDERHANA via REST ───────────────────────────
@@ -782,10 +787,12 @@ async function _hapusInspeksi(p, signal) {
 // ── GET DAFTAR INSPEKSI per gardu / per ULP via RPC ─────────
 async function _getInspeksi(p, signal) {
   var data = await rpcCall('fn_get_riwayat_inspeksi', {
-    p_no_gardu: p.noGardu ? (p.noGardu || '').trim().toUpperCase() : null,
-    p_ulp:      p.ulp     ? _normalizeUlpEnum(p.ulp)               : null,
-    p_limit:    p.limit   ? parseInt(p.limit)                       : 50,
-    p_offset:   p.offset  ? parseInt(p.offset)                      : 0
+    p_no_gardu:  p.noGardu  ? (p.noGardu || '').trim().toUpperCase() : null,
+    p_ulp:       p.ulp      ? _normalizeUlpEnum(p.ulp)               : null,
+    p_tgl_awal:  p.tglAwal  || null,
+    p_tgl_akhir: p.tglAkhir || null,
+    p_limit:     p.limit    ? parseInt(p.limit)                       : 50,
+    p_offset:    p.offset   ? parseInt(p.offset)                      : 0
   }, signal);
 
   if (!data || data.status !== 'ok')
@@ -793,8 +800,8 @@ async function _getInspeksi(p, signal) {
 
   return {
     status: 'ok',
-    data:  (data.data  || []).map(_mapInspeksiRow),
-    total:  data.total || 0
+    data:   (data.data || []).map(_mapInspeksiRow),
+    total:   data.total || 0
   };
 }
 
@@ -1055,11 +1062,14 @@ async function _tambahPemeliharaan(p, signal) {
 // ── GET DAFTAR PEMELIHARAAN via RPC ──────────────────────────
 async function _getDaftarPemeliharaan(p, signal) {
   var data = await rpcCall('fn_get_pemeliharaan', {
-    p_token:    p.token,
-    p_no_gardu: p.noGardu ? (p.noGardu || '').trim().toUpperCase() : null,
-    p_ulp:      p.ulp ? _normalizeUlpEnum(p.ulp) : null,
-    p_limit:    p.limit  ? parseInt(p.limit)  : 50,
-    p_offset:   p.offset ? parseInt(p.offset) : 0
+    p_token:     p.token,
+    p_no_gardu:  p.noGardu  ? (p.noGardu || '').trim().toUpperCase() : null,
+    p_ulp:       p.ulp      ? _normalizeUlpEnum(p.ulp)               : null,
+    p_status:    p.status   || null,
+    p_tgl_awal:  p.tglAwal  || null,
+    p_tgl_akhir: p.tglAkhir || null,
+    p_limit:     p.limit    ? parseInt(p.limit)                       : 50,
+    p_offset:    p.offset   ? parseInt(p.offset)                      : 0
   }, signal);
 
   if (!data || data.status !== 'ok')
@@ -1081,6 +1091,33 @@ async function _hapusPemeliharaan(p, signal) {
   return { status: 'ok', message: data.message };
 }
 
+// ── EDIT PEMELIHARAAN via RPC ─────────────────────────────────
+async function _editPemeliharaan(p, signal) {
+  var data = await rpcCall('fn_edit_pemeliharaan', {
+    p_token:          p.token,
+    p_id:             parseInt(p.id),
+    p_tanggal:        p.tanggal       || null,
+    p_petugas:        p.petugas       || null,
+    p_kategori:       p.kategori      || null,
+    p_jenis:          p.jenis         || null,
+    p_kondisi_awal:   p.kondisiAwal   || null,
+    p_kondisi_akhir:  p.kondisiAkhir  || null,
+    p_temuan:         p.temuan        || null,
+    p_tindakan:       p.tindakan      || null,
+    p_bahan_pakai:    p.bahanPakai    ? JSON.stringify(p.bahanPakai) : null,
+    p_rekomendasi:    p.rekomendasi   || null,
+    p_status:         p.status        || null,
+    p_jam_mulai:      p.jamMulai      || null,
+    p_jam_selesai:    p.jamSelesai    || null,
+    p_catatan:        p.catatan       || null
+  }, signal);
+
+  if (!data || data.status !== 'ok')
+    return { status: 'error', message: (data && data.message) || 'Gagal mengedit data pemeliharaan.' };
+
+  return { status: 'ok', message: data.message };
+}
+
 // ── Override apiGet global ────────────────────────────────────
 window.apiGet = function(params, cb) {
   var action = params.action || '';
@@ -1090,4 +1127,4 @@ window.apiGet = function(params, cb) {
 };
 
 window._sbApiReady = true;
-console.log('[Supabase API v7] Layer aktif. URL:', SUPABASE_URL);
+console.log('[Supabase API v8] Layer aktif. URL:', SUPABASE_URL);

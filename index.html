@@ -53,11 +53,15 @@
   --sp-md: clamp(12px,3vw,16px);
   --sp-lg: clamp(16px,4vw,22px);
   --topbar-h: clamp(56px,13vw,66px);
-  --nav-h:    clamp(60px,14vw,70px);
+  --nav-h:    clamp(56px,13vw,64px);
 }
 
 /* ══ BASE ═══════════════════════════════════════════════════ */
-html{height:100%;height:-webkit-fill-available;}
+html{
+  height:100%;
+  height:-webkit-fill-available;
+  scroll-behavior:auto; /* gunakan auto bukan smooth agar scrollTo(0,0) instan */
+}
 body{
   min-height:100vh;
   min-height:-webkit-fill-available;
@@ -68,6 +72,7 @@ body{
   overflow-x:hidden;
   -webkit-font-smoothing:antialiased;
   letter-spacing:-.01em;
+  overscroll-behavior-y:none; /* cegah bounce iOS mengganggu scroll position */
 }
 
 /* ══ TOPBAR ══════════════════════════════════════════════════ */
@@ -133,31 +138,35 @@ body{
 }
 .nav-btn{
   flex:1;display:flex;flex-direction:column;align-items:center;
-  padding:10px 4px;
-  padding-bottom:max(10px,env(safe-area-inset-bottom));
+  padding:8px 2px;
+  padding-bottom:max(8px,env(safe-area-inset-bottom));
   background:none;border:none;
   color:var(--pln-text3);
-  font-size:var(--fs-xs);gap:3px;
+  font-size:9px;gap:2px;
   cursor:pointer;transition:color .15s;
   font-family:inherit;
   min-height:var(--nav-h);
   touch-action:manipulation;position:relative;
+  overflow:hidden;
 }
 .nav-btn.active{color:var(--pln-biru2);}
 .nav-btn.active .nav-icon{transform:scale(1.1);}
 .nav-btn::after{
-  content:'';position:absolute;top:0;left:25%;right:25%;
+  content:'';position:absolute;top:0;left:15%;right:15%;
   height:2.5px;border-radius:0 0 3px 3px;
   background:var(--pln-biru2);
   transform:scaleX(0);transition:transform .2s cubic-bezier(.34,1.56,.64,1);
 }
 .nav-btn.active::after{transform:scaleX(1);}
-.nav-icon{font-size:clamp(19px,5vw,22px);line-height:1;transition:transform .2s;}
-.nav-label{font-weight:600;letter-spacing:-.01em;}
+.nav-icon{font-size:clamp(17px,4.5vw,20px);line-height:1;transition:transform .2s;}
+.nav-label{font-weight:600;letter-spacing:-.01em;font-size:clamp(8px,2.2vw,10px);text-align:center;line-height:1.2;word-break:break-word;max-width:100%;}
 
 /* ══ PAGES ═══════════════════════════════════════════════════ */
 .page{display:none;width:100%;max-width:600px;margin:0 auto;}
-.page.active{display:block;animation:pageFadeIn .18s ease;}
+.page.active{
+  display:block;
+  animation:pageFadeIn .18s ease;
+}
 @keyframes pageFadeIn{from{opacity:.7;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
 .page-body{
   padding:var(--sp-md);
@@ -911,6 +920,17 @@ body{
 @media(max-width:767px){
   .sidebar-brand{display:none!important;}
   .sidebar-user{display:none!important;}
+  /* Detail view di mobile: fixed full-screen agar scroll terisolasi */
+  #detail-view{
+    position:fixed;
+    inset:0;
+    z-index:150;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    background:var(--pln-bg);
+    max-width:100%;
+    margin:0;
+  }
 }
 
 /* ══ PETA: FILTER ULP BAR ════════════════════════════════════ */
@@ -1198,6 +1218,59 @@ if (typeof L === 'undefined') {
 
     <div id="peta-map-wrap"><div id="peta-map"></div></div>
     <div id="peta-loading" class="loading" style="display:none;"><div class="spinner"></div>Memuat data peta...</div>
+  </div>
+</div>
+
+<!-- ══ TAB PENGUKURAN GARDU ═══════════════════════════════════ -->
+<div id="tab-pengukuran" class="page">
+  <div class="topbar">
+    <div class="topbar-logo"><img src="icon-192.png" alt="PLN" onerror="this.parentNode.innerHTML='PLN'"></div>
+    <div class="topbar-info"><div class="topbar-sub">UP3 Jayapura</div><div class="topbar-title">Riwayat Pengukuran Gardu</div></div>
+  </div>
+  <div class="page-body">
+    <!-- Filter Form -->
+    <div class="card" style="margin-bottom:var(--sp-sm);">
+      <div class="sec" style="margin-top:0;">🔍 Filter Laporan</div>
+      <div class="form-group">
+        <label class="form-label">No. Gardu (opsional)</label>
+        <input type="text" class="form-input" id="ukur-filter-nogardu" placeholder="Cari No. Gardu..." autocapitalize="characters" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div class="grid2">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Tanggal Mulai</label>
+          <input type="date" class="form-input" id="ukur-filter-tgl-awal">
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Tanggal Akhir</label>
+          <input type="date" class="form-input" id="ukur-filter-tgl-akhir">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:var(--sp-sm);margin-bottom:0;">
+        <label class="form-label">Status Beban</label>
+        <select class="form-select" id="ukur-filter-status">
+          <option value="">Semua</option>
+          <option value="normal">Normal (&lt;60%)</option>
+          <option value="perlu">Perlu Perhatian (60–80%)</option>
+          <option value="kritis">Kritis (&gt;80%)</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:var(--sp-sm);margin-top:var(--sp-sm);">
+        <button class="btn btn-outline" style="flex:1;margin:0;" onclick="resetFilterPengukuran()">↺ Reset</button>
+        <button class="btn btn-blue" style="flex:2;margin:0;" onclick="muatDataPengukuran(true)">🔍 Tampilkan</button>
+      </div>
+    </div>
+
+    <!-- Rekap Singkat -->
+    <div id="ukur-rekap-bar" style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-xs);margin-bottom:var(--sp-sm);">
+      <div class="card" style="padding:10px;text-align:center;margin:0;"><div style="font-size:var(--fs-lg);font-weight:800;color:var(--pln-biru2);" id="ukur-count-total">—</div><div class="lbl">Total Data</div></div>
+      <div class="card" style="padding:10px;text-align:center;margin:0;"><div style="font-size:var(--fs-lg);font-weight:800;color:var(--pln-green);" id="ukur-count-normal">—</div><div class="lbl">Normal</div></div>
+      <div class="card" style="padding:10px;text-align:center;margin:0;"><div style="font-size:var(--fs-lg);font-weight:800;color:var(--pln-red);" id="ukur-count-kritis">—</div><div class="lbl">Kritis</div></div>
+    </div>
+
+    <!-- List Data -->
+    <div id="ukur-list-wrap">
+      <div class="alert alert-info"><span class="alert-icon">📏</span><span class="alert-text">Atur filter di atas lalu tekan <b>Tampilkan</b> untuk melihat riwayat pengukuran gardu.</span></div>
+    </div>
   </div>
 </div>
 
@@ -1718,11 +1791,12 @@ if (typeof L === 'undefined') {
       <div class="sidebar-brand-sub" id="sidebar-brand-sub">Manajemen Gardu</div>
     </div>
   </div>
-  <button class="nav-btn active" onclick="bukaTab('tab-daftar',0)"><span class="nav-icon">🏠</span><span class="nav-label">Daftar</span></button>
+  <button class="nav-btn" onclick="bukaTab('tab-daftar',0)"><span class="nav-icon">🏠</span><span class="nav-label">Daftar</span></button>
   <button class="nav-btn" onclick="bukaTab('tab-peta',1)"><span class="nav-icon">🗺️</span><span class="nav-label">Peta</span></button>
   <button class="nav-btn" onclick="bukaTab('tab-rekap',2)"><span class="nav-icon">📊</span><span class="nav-label">Rekap &amp; Statistik</span></button>
-  <button class="nav-btn" onclick="bukaTab('tab-pemeliharaan',3)"><span class="nav-icon">🔧</span><span class="nav-label">Pemeliharaan</span></button>
-  <button class="nav-btn" onclick="bukaTab('tab-sop',4)"><span class="nav-icon">📋</span><span class="nav-label">SOP &amp; Panduan</span></button>
+  <button class="nav-btn" onclick="bukaTab('tab-pengukuran',3)"><span class="nav-icon">📏</span><span class="nav-label">Pengukuran</span></button>
+  <button class="nav-btn" onclick="bukaTab('tab-pemeliharaan',4)"><span class="nav-icon">🔧</span><span class="nav-label">Pemeliharaan</span></button>
+  <button class="nav-btn" onclick="bukaTab('tab-sop',5)"><span class="nav-icon">📋</span><span class="nav-label">SOP &amp; Panduan</span></button>
   <!-- Info user — hanya tampil di desktop sidebar -->
   <div class="sidebar-user" id="sidebar-user-footer" style="display:none;"></div>
 </nav>
@@ -2756,7 +2830,7 @@ function apiGet(params, cb) {
   cb({status:'error', message:'Gagal terhubung ke server. Coba refresh halaman.'});
 }
 
-var TAB_IDS = ['tab-daftar','tab-peta','tab-rekap','tab-pemeliharaan','tab-sop'];
+var TAB_IDS = ['tab-daftar','tab-peta','tab-rekap','tab-pengukuran','tab-pemeliharaan','tab-sop'];
 // O1: Pagination — client-side 50/halaman sudah aktif.
 //   Untuk server-side pagination: tambahkan param ?action=daftarGardu&page=N&limit=50&ulp=X di Apps Script.
 function bukaTab(id, idx){
@@ -2767,7 +2841,16 @@ function bukaTab(id, idx){
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.nav-btn')[idx].classList.add('active');
   currentTab = idx;
+  // ── Scroll reset ke atas setiap pindah tab ──
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  // Scroll page-body juga ke atas
+  var pb = document.querySelector('#' + id + ' .page-body');
+  if (pb) pb.scrollTop = 0;
   if(id==='tab-rekap' && !rekapSudahMuat) muatRekap();
+  if(id==='tab-pemeliharaan') muatDaftarPemeliharaan(false);
+  if(id==='tab-pengukuran') { /* data dimuat on-demand saat user tekan Tampilkan */ }
   if(id==='tab-peta') {
     // Gunakan requestAnimationFrame ganda agar browser selesai paint tab dulu
     // baru Leaflet mengukur container — ini cara paling andal
@@ -3002,6 +3085,12 @@ function bukaDetailGardu(noGardu){
   document.getElementById('detail-view').style.display = 'block';
   document.getElementById('detail-view-title').textContent = noGardu;
   document.getElementById('detail-content').innerHTML = '<div class="loading"><div class="spinner"></div>Memuat detail...</div>';
+  // Scroll ke atas saat buka detail
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  var dv = document.getElementById('detail-view');
+  if (dv) dv.scrollTop = 0;
   apiGet({action:'getDetailLengkap', noGardu:noGardu}, function(res){
     if(res.status!=='ok' || !res.data){
       document.getElementById('detail-content').innerHTML =
@@ -3092,7 +3181,24 @@ function renderDetailGardu(g, riwayat){
         'font-size:var(--fs-sm);font-weight:700;cursor:pointer;' +
         'font-family:inherit;letter-spacing:.2px;touch-action:manipulation;' +
         'box-shadow:0 2px 8px rgba(26,122,74,.3);">' +
-        '📋 Catat Inspeksi Baru' +
+        '📏 Input Pengukuran Gardu' +
+      '</button>' +
+    '</div>';
+  }
+
+  // ── Tombol Input Pemeliharaan ──
+  if (_sInspBtn && _sInspBtn.token) {
+    var _noGarduPm = esc(g['NO_GARDU']||'');
+    html += '<div style="margin-bottom:var(--sp-sm);">' +
+      '<button onclick="bukaFormPemeliharaanDariDetail(\''+_noGarduPm+'\')" style="' +
+        'display:flex;align-items:center;justify-content:center;gap:10px;' +
+        'width:100%;padding:clamp(13px,3.5vw,16px);' +
+        'background:linear-gradient(135deg,#1048A8,#2E7CF6);color:#fff;' +
+        'border:none;border-radius:var(--radius-sm);' +
+        'font-size:var(--fs-sm);font-weight:700;cursor:pointer;' +
+        'font-family:inherit;letter-spacing:.2px;touch-action:manipulation;' +
+        'box-shadow:0 2px 8px rgba(16,72,168,.3);">' +
+        '🔧 Input Pemeliharaan' +
       '</button>' +
     '</div>';
   }
@@ -3360,9 +3466,7 @@ function renderDetailGardu(g, riwayat){
       html += '</div>'; // riwayat-card
     });
 
-    html += '<div style="margin-top:var(--sp-sm);">';
-    html += '<button onclick="window.open(SPREADSHEET_URL,\'_blank\',\'noopener\')" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:clamp(10px,3vw,13px);background:var(--pln-bg);border:1.5px solid var(--pln-border);border-radius:var(--radius-sm);font-size:var(--fs-xs);color:var(--pln-biru2);font-weight:700;cursor:pointer;">📊 Lihat di Spreadsheet →</button>';
-    html += '</div>';
+    
   }
 
   // ── Tren Beban Section (will be populated asynchronously) ──
@@ -3657,8 +3761,13 @@ function bukaLinkSOP(key) {
 }
 
 function tutupDetail(){
-  document.getElementById('detail-view').style.display = 'none';
+  var dv = document.getElementById('detail-view');
+  if (dv) dv.scrollTop = 0;
+  dv.style.display = 'none';
   document.getElementById('bottom-nav').style.display = 'flex';
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
   bukaTab(TAB_IDS[tabSebelumDetail], tabSebelumDetail);
 }
 
@@ -6991,12 +7100,8 @@ function renderDaftarPemeliharaan(q) {
   wrap.innerHTML = html;
 }
 
-// Muat daftar pemeliharaan ketika tab dibuka
-var _bukaTabOri = window.bukaTab;
-window.bukaTab = function(id, idx) {
-  if (typeof _bukaTabOri === 'function') _bukaTabOri(id, idx);
-  if (id === 'tab-pemeliharaan') muatDaftarPemeliharaan(false);
-};
+// ── Override bukaTab agar muatDataPengukuran dipanggil saat tab aktif ──
+// (Pengukuran dimuat on-demand)
 
 // ── Hapus Pemeliharaan by ID ─────────────────────────────────
 function hapusPemeliharaanById(id, noGardu) {
@@ -7013,6 +7118,154 @@ function hapusPemeliharaanById(id, noGardu) {
     _pmSudahMuat = false;
     muatDaftarPemeliharaan(true);
   });
+}
+
+// ══ PENGUKURAN GARDU JS ══════════════════════════════════════
+
+var _ukurAllData = [];
+var _ukurSudahMuat = false;
+
+function muatDataPengukuran(force) {
+  if (_ukurSudahMuat && !force) return;
+  _ukurSudahMuat = true;
+
+  var s = getSession();
+  if (!s) return;
+
+  var wrap = document.getElementById('ukur-list-wrap');
+  if (wrap) wrap.innerHTML = '<div class="loading"><div class="spinner"></div>Memuat data pengukuran...</div>';
+
+  var noGardu = (document.getElementById('ukur-filter-nogardu') || {}).value || '';
+  var tglAwal = (document.getElementById('ukur-filter-tgl-awal') || {}).value || '';
+  var tglAkhir = (document.getElementById('ukur-filter-tgl-akhir') || {}).value || '';
+  var statusBeban = (document.getElementById('ukur-filter-status') || {}).value || '';
+
+  var params = {
+    action: 'getRiwayat',
+    token: s.token,
+    noGardu: noGardu || undefined,
+    tglAwal: tglAwal || undefined,
+    tglAkhir: tglAkhir || undefined,
+    limit: 200
+  };
+
+  apiGet(params, function(res) {
+    if (res.status !== 'ok') {
+      if (wrap) wrap.innerHTML = '<div class="alert alert-err"><span class="alert-icon">❌</span><span class="alert-text">Gagal memuat: ' + esc(res.message || 'Error') + '<br><button class="btn btn-outline" style="margin-top:8px;" onclick="muatDataPengukuran(true)">↻ Coba Lagi</button></span></div>';
+      return;
+    }
+    _ukurAllData = res.data || [];
+    renderDataPengukuran(statusBeban);
+  });
+}
+
+function resetFilterPengukuran() {
+  var fields = ['ukur-filter-nogardu', 'ukur-filter-tgl-awal', 'ukur-filter-tgl-akhir'];
+  fields.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  var sel = document.getElementById('ukur-filter-status');
+  if (sel) sel.selectedIndex = 0;
+  _ukurSudahMuat = false;
+  var wrap = document.getElementById('ukur-list-wrap');
+  if (wrap) wrap.innerHTML = '<div class="alert alert-info"><span class="alert-icon">📏</span><span class="alert-text">Atur filter di atas lalu tekan <b>Tampilkan</b> untuk melihat riwayat pengukuran gardu.</span></div>';
+  var elT = document.getElementById('ukur-count-total');
+  var elN = document.getElementById('ukur-count-normal');
+  var elK = document.getElementById('ukur-count-kritis');
+  if (elT) elT.textContent = '—';
+  if (elN) elN.textContent = '—';
+  if (elK) elK.textContent = '—';
+}
+
+function renderDataPengukuran(statusFilter) {
+  var wrap = document.getElementById('ukur-list-wrap');
+  if (!wrap) return;
+
+  var data = _ukurAllData.filter(function(r) {
+    var prosen = r['PROSEN'] !== '' && r['PROSEN'] !== null && r['PROSEN'] !== undefined ? parseFloat(r['PROSEN']) : null;
+    if (statusFilter === 'normal') return prosen !== null && prosen < 60;
+    if (statusFilter === 'perlu') return prosen !== null && prosen >= 60 && prosen <= 80;
+    if (statusFilter === 'kritis') return prosen !== null && prosen > 80;
+    return true;
+  });
+
+  // Update rekap
+  var total = _ukurAllData.length;
+  var normal = _ukurAllData.filter(function(r) { var p = parseFloat(r['PROSEN']); return !isNaN(p) && p < 60; }).length;
+  var kritis = _ukurAllData.filter(function(r) { var p = parseFloat(r['PROSEN']); return !isNaN(p) && p > 80; }).length;
+  var elT = document.getElementById('ukur-count-total');
+  var elN = document.getElementById('ukur-count-normal');
+  var elK = document.getElementById('ukur-count-kritis');
+  if (elT) elT.textContent = total;
+  if (elN) elN.textContent = normal;
+  if (elK) elK.textContent = kritis;
+
+  if (!data.length) {
+    wrap.innerHTML = '<div class="alert alert-info"><span class="alert-icon">📋</span><span class="alert-text">Tidak ada data pengukuran yang sesuai filter.</span></div>';
+    return;
+  }
+
+  var html = '<div class="sec">' + data.length + ' Data Ditemukan</div>';
+  data.forEach(function(r) {
+    var prosen = r['PROSEN'] !== '' && r['PROSEN'] !== null ? parseFloat(r['PROSEN']) : null;
+    var bc = prosen === null ? 'badge-nonaktif' : prosen > 80 ? 'badge-kritis' : prosen > 60 ? 'badge-perlu' : 'badge-normal';
+    var prosenLabel = prosen !== null ? prosen.toFixed(1) + '%' : '—';
+    var bebanColor = prosen === null ? '#94A3B8' : prosen > 80 ? 'var(--pln-red)' : prosen > 60 ? 'var(--pln-orange)' : 'var(--pln-green)';
+    var bebanPct = prosen !== null ? Math.min(100, prosen) : 0;
+    var noGardu = r['NO_GARDU'] || r['NOGARDU'] || '—';
+
+    html += '<div class="pm-list-card" onclick="bukaDetailGarduDariPengukuran(\'' + esc(noGardu) + '\')">';
+    html += '<div class="pm-list-header">';
+    html += '<div>';
+    html += '<div style="font-size:var(--fs-xs);font-weight:800;color:var(--pln-biru2);">' + esc(noGardu) + '</div>';
+    html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:2px;">📅 ' + esc(formatTgl(r['TGLUKUR']) || r['TGLUKUR'] || '—') + (r['JAM UKUR'] ? ' &nbsp;·&nbsp; 🕐 ' + esc(r['JAM UKUR']) : '') + '</div>';
+    html += '</div>';
+    html += '<span class="badge ' + bc + '">' + prosenLabel + '</span>';
+    html += '</div>';
+    html += '<div class="pm-list-body">';
+    html += '<div style="margin-bottom:6px;">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">';
+    html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);font-weight:600;">BEBAN TRAFO</span>';
+    html += '<span style="font-size:var(--fs-xs);font-weight:800;color:' + bebanColor + ';">' + prosenLabel + '</span>';
+    html += '</div>';
+    html += '<div class="beban-bar"><div class="beban-bar-fill" style="width:' + bebanPct + '%;background:' + bebanColor + ';"></div></div>';
+    html += '</div>';
+    html += '<div class="grid2" style="margin:0;">';
+    html += '<div><div class="lbl">Daya Pakai</div><div class="val-sm">' + esc(r['DAYA PAKAI'] || '—') + ' kVA</div></div>';
+    html += '<div><div class="lbl">Tdk Seimbang</div><div class="val-sm">' + esc(r['TDKSEIMBANG'] || r['TDK SEIMBANG'] || '—') + '%</div></div>';
+    html += '<div><div class="lbl">Petugas</div><div class="val-sm">' + esc(r['PETUGAS'] || '—') + '</div></div>';
+    html += '<div><div class="lbl">Fasa</div><div class="val-sm">' + esc(r['FASA'] || '—') + '</div></div>';
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+  });
+
+  wrap.innerHTML = html;
+}
+
+function bukaDetailGarduDariPengukuran(noGardu) {
+  if (!noGardu || noGardu === '—') return;
+  // Cari gardu di allGardu, jika ada buka detail
+  var g = garduIndex[noGardu.trim().toUpperCase()];
+  if (g) {
+    bukaDetailGardu(g);
+    bukaTab('tab-daftar', 0);
+  }
+}
+
+// ══ END PENGUKURAN JS ════════════════════════════════════════
+
+// ── Buka Form Pemeliharaan dari Detail Gardu ─────────────────
+function bukaFormPemeliharaanDariDetail(noGardu) {
+  bukaFormPemeliharaan();
+  // Pre-fill no gardu setelah form terbuka
+  setTimeout(function() {
+    var el = document.getElementById('pm-nogardu');
+    if (el && noGardu) {
+      el.value = noGardu.toUpperCase();
+    }
+  }, 100);
 }
 
 // ══ END PEMELIHARAAN JS ═══════════════════════════════════════════
