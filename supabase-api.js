@@ -134,11 +134,16 @@ async function _dispatch(action, p, signal) {
     case 'toggleStatus':     return _toggleStatus(p, signal);
     case 'tambahInspeksi':   return _tambahInspeksi(p, signal);
     case 'hapusInspeksi':    return _hapusInspeksi(p, signal);
+    case 'getInspeksi':      return _getInspeksi(p, signal);
+    case 'editInspeksi':     return _editInspeksi(p, signal);
     case 'resetPassword':    return _resetPasswordByAdmin(p, signal);
     case 'resetPin':         return _resetPinByAdmin(p, signal);
     case 'aktifkanUser':     return _aktifkanUser(p, signal);
     case 'statistikUlp':     return _statistikUlp(p, signal);
     case 'maintenanceCleanup': return _maintenanceCleanup(p, signal);
+    case 'tambahPemeliharaan': return _tambahPemeliharaan(p, signal);
+    case 'getDaftarPemeliharaan': return _getDaftarPemeliharaan(p, signal);
+    case 'hapusPemeliharaan': return _hapusPemeliharaan(p, signal);
     default: return { status: 'error', message: 'Action tidak dikenali: ' + action };
   }
 }
@@ -687,37 +692,72 @@ async function _toggleStatus(p, signal) {
 
 // ── TAMBAH INSPEKSI via RPC ──────────────────────────────────
 async function _tambahInspeksi(p, signal) {
+  // Normalisasi jurusan: pastikan semua field numerik diparse dan field 'titik' ikut terkirim
+  var jurusanPayload = null;
+  if (p.jurusan) {
+    try {
+      var jurusanArr = typeof p.jurusan === 'string' ? JSON.parse(p.jurusan) : p.jurusan;
+      jurusanPayload = JSON.stringify(jurusanArr.map(function(j) {
+        return {
+          nama:    j.nama    || null,
+          titik:   j.titik   || null,
+          r_total: j.r_total != null ? parseFloat(j.r_total) : null,
+          s_total: j.s_total != null ? parseFloat(j.s_total) : null,
+          t_total: j.t_total != null ? parseFloat(j.t_total) : null,
+          n_total: j.n_total != null ? parseFloat(j.n_total) : null,
+          v_r_n:   j.v_r_n   != null ? parseFloat(j.v_r_n)   : null,
+          v_s_n:   j.v_s_n   != null ? parseFloat(j.v_s_n)   : null,
+          v_t_n:   j.v_t_n   != null ? parseFloat(j.v_t_n)   : null,
+          v_r_s:   j.v_r_s   != null ? parseFloat(j.v_r_s)   : null,
+          v_s_t:   j.v_s_t   != null ? parseFloat(j.v_s_t)   : null,
+          v_r_t:   j.v_r_t   != null ? parseFloat(j.v_r_t)   : null,
+          thd_r:   j.thd_r   != null ? parseFloat(j.thd_r)   : null,
+          thd_s:   j.thd_s   != null ? parseFloat(j.thd_s)   : null,
+          thd_t:   j.thd_t   != null ? parseFloat(j.thd_t)   : null,
+          ipeak_r: j.ipeak_r != null ? parseFloat(j.ipeak_r) : null,
+          ipeak_s: j.ipeak_s != null ? parseFloat(j.ipeak_s) : null,
+          ipeak_t: j.ipeak_t != null ? parseFloat(j.ipeak_t) : null,
+          tpf_r:   j.tpf_r   != null ? parseFloat(j.tpf_r)   : null,
+          tpf_s:   j.tpf_s   != null ? parseFloat(j.tpf_s)   : null,
+          tpf_t:   j.tpf_t   != null ? parseFloat(j.tpf_t)   : null
+        };
+      }));
+    } catch (e) {
+      jurusanPayload = typeof p.jurusan === 'string' ? p.jurusan : null;
+    }
+  }
+
   var data = await rpcCall('fn_tambah_inspeksi', {
     p_token:         p.token,
     p_no_gardu:      (p.noGardu || '').trim().toUpperCase(),
-    p_tgl_ukur:      p.tglUkur      || null,
-    p_jam_ukur:      p.jamUkur      || null,
-    p_petugas:       p.petugas      || null,
-    p_daya:          p.daya         ? parseFloat(p.daya)         : null,
-    p_fasa:          p.fasa         || null,
-    p_daya_pakai:    p.dayaPakai    ? parseFloat(p.dayaPakai)    : null,
-    p_prosen:        p.prosen       ? parseFloat(p.prosen)       : null,
-    p_tdk_seimbang:  p.tdkSeimbang  ? parseFloat(p.tdkSeimbang)  : null,
-    p_r_total:       p.rTotal       ? parseFloat(p.rTotal)       : null,
-    p_s_total:       p.sTotal       ? parseFloat(p.sTotal)       : null,
-    p_t_total:       p.tTotal       ? parseFloat(p.tTotal)       : null,
-    p_n_total:       p.nTotal       ? parseFloat(p.nTotal)       : null,
-    p_v_r_n:         p.vRN          ? parseFloat(p.vRN)          : null,
-    p_v_s_n:         p.vSN          ? parseFloat(p.vSN)          : null,
-    p_v_t_n:         p.vTN          ? parseFloat(p.vTN)          : null,
-    p_v_r_s:         p.vRS          ? parseFloat(p.vRS)          : null,
-    p_v_s_t:         p.vST          ? parseFloat(p.vST)          : null,
-    p_v_r_t:         p.vRT          ? parseFloat(p.vRT)          : null,
-    p_thd_r:         p.thdR         ? parseFloat(p.thdR)         : null,
-    p_thd_s:         p.thdS         ? parseFloat(p.thdS)         : null,
-    p_thd_t:         p.thdT         ? parseFloat(p.thdT)         : null,
-    p_ipeak_r:       p.ipeakR       ? parseFloat(p.ipeakR)       : null,
-    p_ipeak_s:       p.ipeakS       ? parseFloat(p.ipeakS)       : null,
-    p_ipeak_t:       p.ipeakT       ? parseFloat(p.ipeakT)       : null,
-    p_tpf_r:         p.tpfR         ? parseFloat(p.tpfR)         : null,
-    p_tpf_s:         p.tpfS         ? parseFloat(p.tpfS)         : null,
-    p_tpf_t:         p.tpfT         ? parseFloat(p.tpfT)         : null,
-    p_jurusan:       p.jurusan      || null
+    p_tgl_ukur:      p.tglUkur                               || null,
+    p_jam_ukur:      p.jamUkur                               || null,
+    p_petugas:       p.petugas                               || null,
+    p_daya:          p.daya        ? parseFloat(p.daya)      : null,
+    p_fasa:          p.fasa        ? parseInt(p.fasa)        : null,
+    p_daya_pakai:    p.dayaPakai   ? parseFloat(p.dayaPakai) : null,
+    p_prosen:        p.prosen      ? parseFloat(p.prosen)    : null,
+    p_tdk_seimbang:  p.tdkSeimbang ? parseFloat(p.tdkSeimbang) : null,
+    p_r_total:       p.rTotal      ? parseFloat(p.rTotal)    : null,
+    p_s_total:       p.sTotal      ? parseFloat(p.sTotal)    : null,
+    p_t_total:       p.tTotal      ? parseFloat(p.tTotal)    : null,
+    p_n_total:       p.nTotal      ? parseFloat(p.nTotal)    : null,
+    p_v_r_n:         p.vRN         ? parseFloat(p.vRN)       : null,
+    p_v_s_n:         p.vSN         ? parseFloat(p.vSN)       : null,
+    p_v_t_n:         p.vTN         ? parseFloat(p.vTN)       : null,
+    p_v_r_s:         p.vRS         ? parseFloat(p.vRS)       : null,
+    p_v_s_t:         p.vST         ? parseFloat(p.vST)       : null,
+    p_v_r_t:         p.vRT         ? parseFloat(p.vRT)       : null,
+    p_thd_r:         p.thdR        ? parseFloat(p.thdR)      : null,
+    p_thd_s:         p.thdS        ? parseFloat(p.thdS)      : null,
+    p_thd_t:         p.thdT        ? parseFloat(p.thdT)      : null,
+    p_ipeak_r:       p.ipeakR      ? parseFloat(p.ipeakR)    : null,
+    p_ipeak_s:       p.ipeakS      ? parseFloat(p.ipeakS)    : null,
+    p_ipeak_t:       p.ipeakT      ? parseFloat(p.ipeakT)    : null,
+    p_tpf_r:         p.tpfR        ? parseFloat(p.tpfR)      : null,
+    p_tpf_s:         p.tpfS        ? parseFloat(p.tpfS)      : null,
+    p_tpf_t:         p.tpfT        ? parseFloat(p.tpfT)      : null,
+    p_jurusan:       jurusanPayload
   }, signal);
 
   if (!data || data.status !== 'ok')
@@ -735,6 +775,100 @@ async function _hapusInspeksi(p, signal) {
 
   if (!data || data.status !== 'ok')
     return { status: 'error', message: (data && data.message) || 'Gagal menghapus inspeksi.' };
+
+  return { status: 'ok', message: data.message };
+}
+
+// ── GET DAFTAR INSPEKSI per gardu / per ULP via RPC ─────────
+async function _getInspeksi(p, signal) {
+  var data = await rpcCall('fn_get_riwayat_inspeksi', {
+    p_no_gardu: p.noGardu ? (p.noGardu || '').trim().toUpperCase() : null,
+    p_ulp:      p.ulp     ? _normalizeUlpEnum(p.ulp)               : null,
+    p_limit:    p.limit   ? parseInt(p.limit)                       : 50,
+    p_offset:   p.offset  ? parseInt(p.offset)                      : 0
+  }, signal);
+
+  if (!data || data.status !== 'ok')
+    return { status: 'error', message: (data && data.message) || 'Gagal memuat data inspeksi.' };
+
+  return {
+    status: 'ok',
+    data:  (data.data  || []).map(_mapInspeksiRow),
+    total:  data.total || 0
+  };
+}
+
+// ── EDIT INSPEKSI via RPC ─────────────────────────────────────
+async function _editInspeksi(p, signal) {
+  var jurusanPayload = null;
+  if (p.jurusan) {
+    try {
+      var arr = typeof p.jurusan === 'string' ? JSON.parse(p.jurusan) : p.jurusan;
+      jurusanPayload = JSON.stringify(arr.map(function(j) {
+        return {
+          nama:    j.nama    || null,
+          titik:   j.titik   || null,
+          r_total: j.r_total != null ? parseFloat(j.r_total) : null,
+          s_total: j.s_total != null ? parseFloat(j.s_total) : null,
+          t_total: j.t_total != null ? parseFloat(j.t_total) : null,
+          n_total: j.n_total != null ? parseFloat(j.n_total) : null,
+          v_r_n:   j.v_r_n   != null ? parseFloat(j.v_r_n)   : null,
+          v_s_n:   j.v_s_n   != null ? parseFloat(j.v_s_n)   : null,
+          v_t_n:   j.v_t_n   != null ? parseFloat(j.v_t_n)   : null,
+          v_r_s:   j.v_r_s   != null ? parseFloat(j.v_r_s)   : null,
+          v_s_t:   j.v_s_t   != null ? parseFloat(j.v_s_t)   : null,
+          v_r_t:   j.v_r_t   != null ? parseFloat(j.v_r_t)   : null,
+          thd_r:   j.thd_r   != null ? parseFloat(j.thd_r)   : null,
+          thd_s:   j.thd_s   != null ? parseFloat(j.thd_s)   : null,
+          thd_t:   j.thd_t   != null ? parseFloat(j.thd_t)   : null,
+          ipeak_r: j.ipeak_r != null ? parseFloat(j.ipeak_r) : null,
+          ipeak_s: j.ipeak_s != null ? parseFloat(j.ipeak_s) : null,
+          ipeak_t: j.ipeak_t != null ? parseFloat(j.ipeak_t) : null,
+          tpf_r:   j.tpf_r   != null ? parseFloat(j.tpf_r)   : null,
+          tpf_s:   j.tpf_s   != null ? parseFloat(j.tpf_s)   : null,
+          tpf_t:   j.tpf_t   != null ? parseFloat(j.tpf_t)   : null
+        };
+      }));
+    } catch (e) {
+      jurusanPayload = typeof p.jurusan === 'string' ? p.jurusan : null;
+    }
+  }
+
+  var data = await rpcCall('fn_edit_inspeksi', {
+    p_token:         p.token,
+    p_id:            parseInt(p.id),
+    p_tgl_ukur:      p.tglUkur                               || null,
+    p_jam_ukur:      p.jamUkur                               || null,
+    p_petugas:       p.petugas                               || null,
+    p_daya:          p.daya        ? parseFloat(p.daya)      : null,
+    p_fasa:          p.fasa        ? parseInt(p.fasa)        : null,
+    p_daya_pakai:    p.dayaPakai   ? parseFloat(p.dayaPakai) : null,
+    p_prosen:        p.prosen      ? parseFloat(p.prosen)    : null,
+    p_tdk_seimbang:  p.tdkSeimbang ? parseFloat(p.tdkSeimbang) : null,
+    p_r_total:       p.rTotal      ? parseFloat(p.rTotal)    : null,
+    p_s_total:       p.sTotal      ? parseFloat(p.sTotal)    : null,
+    p_t_total:       p.tTotal      ? parseFloat(p.tTotal)    : null,
+    p_n_total:       p.nTotal      ? parseFloat(p.nTotal)    : null,
+    p_v_r_n:         p.vRN         ? parseFloat(p.vRN)       : null,
+    p_v_s_n:         p.vSN         ? parseFloat(p.vSN)       : null,
+    p_v_t_n:         p.vTN         ? parseFloat(p.vTN)       : null,
+    p_v_r_s:         p.vRS         ? parseFloat(p.vRS)       : null,
+    p_v_s_t:         p.vST         ? parseFloat(p.vST)       : null,
+    p_v_r_t:         p.vRT         ? parseFloat(p.vRT)       : null,
+    p_thd_r:         p.thdR        ? parseFloat(p.thdR)      : null,
+    p_thd_s:         p.thdS        ? parseFloat(p.thdS)      : null,
+    p_thd_t:         p.thdT        ? parseFloat(p.thdT)      : null,
+    p_ipeak_r:       p.ipeakR      ? parseFloat(p.ipeakR)    : null,
+    p_ipeak_s:       p.ipeakS      ? parseFloat(p.ipeakS)    : null,
+    p_ipeak_t:       p.ipeakT      ? parseFloat(p.ipeakT)    : null,
+    p_tpf_r:         p.tpfR        ? parseFloat(p.tpfR)      : null,
+    p_tpf_s:         p.tpfS        ? parseFloat(p.tpfS)      : null,
+    p_tpf_t:         p.tpfT        ? parseFloat(p.tpfT)      : null,
+    p_jurusan:       jurusanPayload
+  }, signal);
+
+  if (!data || data.status !== 'ok')
+    return { status: 'error', message: (data && data.message) || 'Gagal mengedit inspeksi.' };
 
   return { status: 'ok', message: data.message };
 }
@@ -888,6 +1022,62 @@ function _mapInspeksiRow(r) {
   });
 
   return flat;
+}
+
+// ── TAMBAH PEMELIHARAAN via RPC ───────────────────────────────
+async function _tambahPemeliharaan(p, signal) {
+  var data = await rpcCall('fn_tambah_pemeliharaan', {
+    p_token:          p.token,
+    p_no_gardu:       (p.noGardu || '').trim().toUpperCase(),
+    p_tanggal:        p.tanggal        || null,
+    p_petugas:        p.petugas        || null,
+    p_kategori:       p.kategori       || null,
+    p_jenis:          p.jenis          || null,
+    p_kondisi_awal:   p.kondisiAwal    || null,
+    p_kondisi_akhir:  p.kondisiAkhir   || null,
+    p_temuan:         p.temuan         || null,
+    p_tindakan:       p.tindakan       || null,
+    p_bahan_pakai:    p.bahanPakai     ? JSON.stringify(p.bahanPakai) : null,
+    p_rekomendasi:    p.rekomendasi    || null,
+    p_status:         p.status         || 'SELESAI',
+    p_jam_mulai:      p.jamMulai       || null,
+    p_jam_selesai:    p.jamSelesai     || null,
+    p_catatan:        p.catatan        || null
+  }, signal);
+
+  if (!data || data.status !== 'ok')
+    return { status: 'error', message: (data && data.message) || 'Gagal menyimpan data pemeliharaan.' };
+
+  return { status: 'ok', message: data.message, id: data.id };
+}
+
+// ── GET DAFTAR PEMELIHARAAN via RPC ──────────────────────────
+async function _getDaftarPemeliharaan(p, signal) {
+  var data = await rpcCall('fn_get_pemeliharaan', {
+    p_token:    p.token,
+    p_no_gardu: p.noGardu ? (p.noGardu || '').trim().toUpperCase() : null,
+    p_ulp:      p.ulp ? _normalizeUlpEnum(p.ulp) : null,
+    p_limit:    p.limit  ? parseInt(p.limit)  : 50,
+    p_offset:   p.offset ? parseInt(p.offset) : 0
+  }, signal);
+
+  if (!data || data.status !== 'ok')
+    return { status: 'error', message: (data && data.message) || 'Gagal memuat data pemeliharaan.' };
+
+  return { status: 'ok', data: data.data || [], total: data.total || 0 };
+}
+
+// ── HAPUS PEMELIHARAAN via RPC ────────────────────────────────
+async function _hapusPemeliharaan(p, signal) {
+  var data = await rpcCall('fn_hapus_pemeliharaan', {
+    p_token: p.token,
+    p_id:    parseInt(p.id)
+  }, signal);
+
+  if (!data || data.status !== 'ok')
+    return { status: 'error', message: (data && data.message) || 'Gagal menghapus data pemeliharaan.' };
+
+  return { status: 'ok', message: data.message };
 }
 
 // ── Override apiGet global ────────────────────────────────────

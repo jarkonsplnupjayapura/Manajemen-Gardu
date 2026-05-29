@@ -608,6 +608,42 @@ body{
   line-height:1.6;
 }
 
+/* ══ FORM INSPEKSI — Slide animation & jurusan card ══════════ */
+#form-inspeksi-view{
+  animation:fiSlideIn .22s cubic-bezier(.22,1,.36,1);
+}
+@keyframes fiSlideIn{
+  from{transform:translateX(100%);opacity:.8;}
+  to{transform:translateX(0);opacity:1;}
+}
+.fi-jurusan-card{
+  background:var(--pln-card);border:1.5px solid var(--pln-border);
+  border-radius:var(--radius);margin-bottom:var(--sp-sm);
+  box-shadow:var(--shadow);overflow:hidden;
+}
+.fi-jurusan-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:var(--sp-sm) var(--sp-md);
+  background:linear-gradient(90deg,var(--pln-biru),var(--pln-biru2));
+  color:#fff;cursor:pointer;user-select:none;-webkit-user-select:none;
+}
+.fi-jurusan-header-title{font-size:var(--fs-sm);font-weight:700;}
+.fi-jurusan-body{padding:var(--sp-sm) var(--sp-md);display:block;}
+.fi-jurusan-body.collapsed{display:none;}
+.fi-section-label{
+  font-size:var(--fs-xs);font-weight:700;color:var(--pln-text3);
+  text-transform:uppercase;letter-spacing:.5px;
+  margin:var(--sp-sm) 0 var(--sp-xs);
+}
+.fi-warn-kritis{background:#FEE2E2;color:#991B1B;border-radius:var(--radius-xs);padding:8px 10px;font-size:var(--fs-xs);font-weight:700;border:1.5px solid #FECACA;}
+.fi-warn-perlu{background:#FEF3C7;color:#92400E;border-radius:var(--radius-xs);padding:8px 10px;font-size:var(--fs-xs);font-weight:700;border:1.5px solid #FDE68A;}
+.fi-warn-ok{background:#D1FAE5;color:#064E3B;border-radius:var(--radius-xs);padding:8px 10px;font-size:var(--fs-xs);font-weight:700;border:1.5px solid #A7F3D0;}
+#form-inspeksi-view .spinner{
+  width:14px;height:14px;border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;
+  animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;
+}
+
 /* ══ LOGIN SCREEN ════════════════════════════════════════════ */
 #login-screen{
   position:fixed;inset:0;z-index:99999;
@@ -863,6 +899,7 @@ body{
   /* Page body tidak perlu padding nav bawah */
   .page-body{padding-bottom:var(--sp-lg);}
 
+
   /* Topbar tetap ada, tapi tidak perlu padding left-nav */
   .topbar{position:sticky;top:0;z-index:100;}
 
@@ -943,6 +980,40 @@ body{
     max-width:100%!important;
   }
 }
+
+/* ══ FORM PEMELIHARAAN — Step Wizard ════════════════════════ */
+#form-pemeliharaan-view{animation:fiSlideIn .22s cubic-bezier(.22,1,.36,1);}
+.pm-progress{display:flex;align-items:center;padding:10px var(--sp-md);background:#fff;border-bottom:1px solid var(--pln-border);gap:0;overflow:hidden;}
+.pm-step{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;gap:3px;}
+.pm-step::after{content:'';position:absolute;top:14px;left:50%;width:100%;height:2px;background:var(--pln-border);z-index:0;}
+.pm-step:last-child::after{display:none;}
+.pm-step-circle{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;border:2px solid var(--pln-border);background:#fff;color:var(--pln-text3);position:relative;z-index:1;transition:all .2s;flex-shrink:0;}
+.pm-step.done .pm-step-circle{background:var(--pln-green);border-color:var(--pln-green);color:#fff;}
+.pm-step.done::after{background:var(--pln-green);}
+.pm-step.active .pm-step-circle{background:var(--pln-biru2);border-color:var(--pln-biru2);color:#fff;box-shadow:0 0 0 3px rgba(16,72,168,.18);}
+.pm-step-label{font-size:clamp(8px,2vw,10px);color:var(--pln-text3);font-weight:600;text-align:center;line-height:1.2;white-space:nowrap;}
+.pm-step.active .pm-step-label{color:var(--pln-biru2);}
+.pm-step.done .pm-step-label{color:var(--pln-green);}
+.pm-panel{display:none;}
+.pm-panel.active{display:block;animation:pageFadeIn .15s ease;}
+.pm-bahan-row{display:flex;align-items:center;gap:var(--sp-xs);margin-bottom:var(--sp-xs);background:var(--pln-bg);border-radius:var(--radius-xs);padding:var(--sp-xs) var(--sp-sm);border:1px solid var(--pln-border);}
+.pm-bahan-row .form-input{flex:1;min-width:0;min-height:38px;padding:8px 10px;}
+.pm-bahan-remove{background:var(--pln-red-pale);border:none;color:var(--pln-red);border-radius:var(--radius-xs);width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:16px;touch-action:manipulation;}
+.pm-pill-group{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;}
+.pm-pill{border:1.5px solid var(--pln-border);background:#fff;color:var(--pln-text2);border-radius:20px;padding:7px 14px;font-size:var(--fs-xs);font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;touch-action:manipulation;}
+.pm-pill:active{transform:scale(.95);}
+.pm-pill.selected-ok{background:var(--pln-green-pale);border-color:var(--pln-green);color:var(--pln-green);}
+.pm-pill.selected-warn{background:var(--pln-orange-pale);border-color:var(--pln-orange);color:var(--pln-orange);}
+.pm-pill.selected-bad{background:var(--pln-red-pale);border-color:var(--pln-red);color:var(--pln-red);}
+.pm-pill.selected-blue{background:var(--pln-biru-pale);border-color:var(--pln-biru2);color:var(--pln-biru2);}
+.pm-list-card{background:var(--pln-card);border-radius:var(--radius);margin-bottom:var(--sp-xs);box-shadow:var(--shadow);border:1px solid var(--pln-border);overflow:hidden;cursor:pointer;transition:box-shadow .15s,border-color .15s;touch-action:manipulation;}
+.pm-list-card:active{box-shadow:none;border-color:var(--pln-biru-muda);}
+.pm-list-header{padding:var(--sp-sm) var(--sp-md);display:flex;align-items:flex-start;justify-content:space-between;gap:var(--sp-sm);border-bottom:1px solid var(--pln-border);background:linear-gradient(90deg,var(--pln-biru-pale),#fff);}
+.pm-list-body{padding:var(--sp-sm) var(--sp-md);}
+.pm-status-pill{font-size:var(--fs-xs);font-weight:700;padding:2px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.pm-status-selesai{background:#D1FAE5;color:#065F46;}
+.pm-status-proses{background:#FEF3C7;color:#92400E;}
+.pm-status-tunda{background:#FEE2E2;color:#991B1B;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
@@ -1125,12 +1196,515 @@ if (typeof L === 'undefined') {
   </div>
 </div>
 
+    <div id="peta-map-wrap"><div id="peta-map"></div></div>
+    <div id="peta-loading" class="loading" style="display:none;"><div class="spinner"></div>Memuat data peta...</div>
+  </div>
+</div>
+
+<!-- ══ TAB PEMELIHARAAN ══════════════════════════════════════ -->
+<div id="tab-pemeliharaan" class="page">
+  <div class="topbar">
+    <div class="topbar-logo"><img src="icon-192.png" alt="PLN" onerror="this.parentNode.innerHTML='PLN'"></div>
+    <div class="topbar-info"><div class="topbar-sub">UP3 Jayapura</div><div class="topbar-title">Pemeliharaan Gardu</div></div>
+    <button class="topbar-action" onclick="bukaFormPemeliharaan()">+ Input</button>
+  </div>
+  <div class="page-body">
+    <!-- Filter & Search -->
+    <div class="search-wrap" style="margin-bottom:var(--sp-sm);">
+      <span class="search-icon">🔍</span>
+      <input id="pm-search" class="form-input" placeholder="Cari No. Gardu, petugas, jenis..." oninput="filterDaftarPemeliharaan(this.value)">
+    </div>
+    <div class="tag-row" id="pm-filter-row">
+      <span class="tag active" onclick="setPmFilter('')">Semua</span>
+      <span class="tag" onclick="setPmFilter('SELESAI')">✅ Selesai</span>
+      <span class="tag" onclick="setPmFilter('PROSES')">🔄 Proses</span>
+      <span class="tag" onclick="setPmFilter('TUNDA')">⏸️ Tunda</span>
+    </div>
+    <!-- Rekap singkat -->
+    <div id="pm-rekap-bar" style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-xs);margin-bottom:var(--sp-sm);">
+      <div class="card" style="padding:10px;text-align:center;margin:0;"><div style="font-size:var(--fs-lg);font-weight:800;color:var(--pln-biru2);" id="pm-count-total">—</div><div class="lbl">Total</div></div>
+      <div class="card" style="padding:10px;text-align:center;margin:0;"><div style="font-size:var(--fs-lg);font-weight:800;color:var(--pln-green);" id="pm-count-selesai">—</div><div class="lbl">Selesai</div></div>
+      <div class="card" style="padding:10px;text-align:center;margin:0;"><div style="font-size:var(--fs-lg);font-weight:800;color:var(--pln-orange);" id="pm-count-proses">—</div><div class="lbl">Proses</div></div>
+    </div>
+    <div id="pm-list-wrap"><div class="loading"><div class="spinner"></div>Memuat data pemeliharaan...</div></div>
+  </div>
+</div>
+
+<!-- ══ FORM PEMELIHARAAN — Wizard Step-by-Step ═══════════════ -->
+<div id="form-pemeliharaan-view" style="display:none;position:fixed;inset:0;z-index:200;background:var(--pln-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;">
+  <div style="max-width:600px;margin:0 auto;">
+    <!-- Topbar -->
+    <div class="topbar" style="position:sticky;top:0;z-index:10;">
+      <button class="topbar-back" onclick="tutupFormPemeliharaan()">←</button>
+      <div class="topbar-info">
+        <div class="topbar-sub">Form Pemeliharaan</div>
+        <div class="topbar-title" id="pm-topbar-title">—</div>
+      </div>
+      <div id="pm-saving-indicator" style="display:none;color:rgba(255,255,255,.7);font-size:var(--fs-xs);font-weight:600;flex-shrink:0;">
+        <div class="spinner" style="width:14px;height:14px;border-width:2px;border-top-color:#fff;display:inline-block;vertical-align:middle;margin-right:4px;"></div>Menyimpan...
+      </div>
+    </div>
+
+    <!-- Step Progress -->
+    <div class="pm-progress" id="pm-progress">
+      <div class="pm-step active" id="pm-s1"><div class="pm-step-circle">1</div><div class="pm-step-label">Identitas</div></div>
+      <div class="pm-step" id="pm-s2"><div class="pm-step-circle">2</div><div class="pm-step-label">Kategori</div></div>
+      <div class="pm-step" id="pm-s3"><div class="pm-step-circle">3</div><div class="pm-step-label">Kondisi</div></div>
+      <div class="pm-step" id="pm-s4"><div class="pm-step-circle">4</div><div class="pm-step-label">Tindakan</div></div>
+      <div class="pm-step" id="pm-s5"><div class="pm-step-circle">5</div><div class="pm-step-label">Review</div></div>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:var(--sp-md);padding-bottom:120px;">
+
+      <!-- ─ PANEL 1: Identitas & Waktu ──────────────────────── -->
+      <div class="pm-panel active" id="pm-panel-1">
+        <div class="sec">🏗️ Informasi Gardu</div>
+        <div class="card">
+          <div class="form-group">
+            <label class="form-label">No. Gardu <span class="req">*</span></label>
+            <input type="text" class="form-input" id="pm-nogardu" placeholder="Contoh: GD001" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()">
+            <div id="pm-gardu-info" style="margin-top:6px;font-size:var(--fs-xs);color:var(--pln-text2);display:none;"></div>
+          </div>
+          <div class="grid2">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Tanggal <span class="req">*</span></label>
+              <input type="date" class="form-input" id="pm-tanggal">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Jam Mulai</label>
+              <input type="time" class="form-input" id="pm-jam-mulai">
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:var(--sp-sm);margin-bottom:0;">
+            <label class="form-label">Jam Selesai</label>
+            <input type="time" class="form-input" id="pm-jam-selesai">
+          </div>
+        </div>
+        <div class="sec">👷 Petugas Pelaksana</div>
+        <div class="card">
+          <div class="form-group">
+            <label class="form-label">Nama Petugas <span class="req">*</span></label>
+            <input type="text" class="form-input" id="pm-petugas" placeholder="Nama petugas yang melaksanakan" autocomplete="name">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Anggota Tim (opsional)</label>
+            <input type="text" class="form-input" id="pm-anggota" placeholder="Pisahkan nama dengan koma">
+          </div>
+        </div>
+      </div>
+
+      <!-- ─ PANEL 2: Kategori & Jenis ───────────────────────── -->
+      <div class="pm-panel" id="pm-panel-2">
+        <div class="sec">📂 Kategori Pemeliharaan</div>
+        <div class="card">
+          <div class="form-group">
+            <label class="form-label">Kategori <span class="req">*</span></label>
+            <select class="form-select" id="pm-kategori" onchange="pmUpdateJenis()">
+              <option value="">— Pilih Kategori —</option>
+              <option value="PREVENTIF">Preventif (Rutin Terjadwal)</option>
+              <option value="KOREKTIF">Korektif (Perbaikan Kerusakan)</option>
+              <option value="INSPEKSI">Inspeksi Visual</option>
+              <option value="OVERHAUL">Overhaul Besar</option>
+              <option value="PENGGANTIAN">Penggantian Komponen</option>
+              <option value="DARURAT">Pemeliharaan Darurat</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Jenis Pekerjaan <span class="req">*</span></label>
+            <select class="form-select" id="pm-jenis">
+              <option value="">— Pilih Kategori Terlebih Dahulu —</option>
+            </select>
+          </div>
+        </div>
+        <div class="sec">📊 Status Pelaksanaan</div>
+        <div class="card">
+          <label class="form-label">Status</label>
+          <div class="pm-pill-group" id="pm-status-group">
+            <button type="button" class="pm-pill selected-ok" data-val="SELESAI" onclick="pmSelectPill('pm-status-group',this,'ok')">✅ Selesai</button>
+            <button type="button" class="pm-pill" data-val="PROSES" onclick="pmSelectPill('pm-status-group',this,'warn')">🔄 Masih Proses</button>
+            <button type="button" class="pm-pill" data-val="TUNDA" onclick="pmSelectPill('pm-status-group',this,'bad')">⏸️ Ditunda</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─ PANEL 3: Kondisi ────────────────────────────────── -->
+      <div class="pm-panel" id="pm-panel-3">
+        <div class="sec">🔍 Kondisi Gardu</div>
+        <div class="card">
+          <div class="form-group">
+            <label class="form-label">Kondisi Awal (Sebelum Pemeliharaan)</label>
+            <div class="pm-pill-group" id="pm-kondisi-awal-group">
+              <button type="button" class="pm-pill" data-val="BAIK" onclick="pmSelectPill('pm-kondisi-awal-group',this,'ok')">✅ Baik</button>
+              <button type="button" class="pm-pill" data-val="PERLU PERHATIAN" onclick="pmSelectPill('pm-kondisi-awal-group',this,'warn')">⚠️ Perlu Perhatian</button>
+              <button type="button" class="pm-pill" data-val="RUSAK" onclick="pmSelectPill('pm-kondisi-awal-group',this,'bad')">❌ Rusak</button>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Kondisi Akhir (Setelah Pemeliharaan)</label>
+            <div class="pm-pill-group" id="pm-kondisi-akhir-group">
+              <button type="button" class="pm-pill" data-val="BAIK" onclick="pmSelectPill('pm-kondisi-akhir-group',this,'ok')">✅ Baik</button>
+              <button type="button" class="pm-pill" data-val="PERLU PERHATIAN" onclick="pmSelectPill('pm-kondisi-akhir-group',this,'warn')">⚠️ Perlu Perhatian</button>
+              <button type="button" class="pm-pill" data-val="RUSAK" onclick="pmSelectPill('pm-kondisi-akhir-group',this,'bad')">❌ Rusak</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec">📝 Temuan di Lapangan</div>
+        <div class="card">
+          <div class="form-group">
+            <label class="form-label">Temuan / Keluhan</label>
+            <textarea class="form-textarea" id="pm-temuan" placeholder="Jelaskan temuan atau keluhan yang ditemukan di lapangan..." rows="3"></textarea>
+          </div>
+          <!-- Checklist cepat temuan -->
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Checklist Cepat (pilih yang ditemukan)</label>
+            <div class="pm-pill-group" id="pm-checklist-group">
+              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Minyak trafo bocor')">🛢️ Minyak bocor</button>
+              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Karat/korosi')">🔩 Karat/korosi</button>
+              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Isolasi rusak')">⚡ Isolasi rusak</button>
+              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Terminal longgar')">🔌 Terminal longgar</button>
+              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Bushing retak')">💥 Bushing retak</button>
+              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Kabel terkelupas')">🔋 Kabel terkelupas</button>
+              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Kelembapan tinggi')">💧 Kelembapan tinggi</button>
+              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Suhu abnormal')">🌡️ Suhu abnormal</button>
+              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Vandalism/pencurian')">⚠️ Vandalism</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─ PANEL 4: Tindakan & Bahan ───────────────────────── -->
+      <div class="pm-panel" id="pm-panel-4">
+        <div class="sec">🛠️ Tindakan Perbaikan</div>
+        <div class="card">
+          <div class="form-group">
+            <label class="form-label">Tindakan yang Dilakukan <span class="req">*</span></label>
+            <textarea class="form-textarea" id="pm-tindakan" placeholder="Jelaskan tindakan perbaikan yang dilakukan..." rows="3"></textarea>
+          </div>
+          <!-- Tindakan cepat -->
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Tindakan Cepat (klik untuk menambah)</label>
+            <div class="pm-pill-group">
+              <button type="button" class="pm-pill" onclick="pmAppendTindakan('Pembersihan panel')">🧹 Pembersihan panel</button>
+              <button type="button" class="pm-pill" onclick="pmAppendTindakan('Pengencangan terminal')">🔧 Pengencangan terminal</button>
+              <button type="button" class="pm-pill" onclick="pmAppendTindakan('Penggantian sekring')">🔌 Ganti sekring</button>
+              <button type="button" class="pm-pill" onclick="pmAppendTindakan('Pengecekan minyak trafo')">🛢️ Cek minyak trafo</button>
+              <button type="button" class="pm-pill" onclick="pmAppendTindakan('Pengukuran tahanan isolasi')">📏 Ukur tahanan isolasi</button>
+              <button type="button" class="pm-pill" onclick="pmAppendTindakan('Pengecatan ulang')">🎨 Pengecatan ulang</button>
+              <button type="button" class="pm-pill" onclick="pmAppendTindakan('Perbaikan sistem grounding')">⚡ Perbaikan grounding</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec">📦 Bahan & Material yang Dipakai</div>
+        <div class="card">
+          <div id="pm-bahan-list"></div>
+          <button type="button" class="btn btn-outline" style="margin-top:var(--sp-xs);" onclick="pmTambahBahan()">+ Tambah Bahan/Material</button>
+        </div>
+
+        <div class="sec">📋 Rekomendasi & Catatan</div>
+        <div class="card">
+          <div class="form-group">
+            <label class="form-label">Rekomendasi Tindak Lanjut</label>
+            <textarea class="form-textarea" id="pm-rekomendasi" placeholder="Apa yang perlu dilakukan ke depan..." rows="2"></textarea>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Catatan Tambahan</label>
+            <textarea class="form-textarea" id="pm-catatan" placeholder="Catatan teknis lainnya..." rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─ PANEL 5: Review & Submit ────────────────────────── -->
+      <div class="pm-panel" id="pm-panel-5">
+        <div class="sec">✅ Review Sebelum Menyimpan</div>
+        <div class="card" id="pm-review-card">
+          <!-- diisi JS -->
+        </div>
+        <div id="pm-submit-msg" style="display:none;margin-bottom:var(--sp-sm);padding:var(--sp-sm) var(--sp-md);border-radius:var(--radius-sm);font-size:var(--fs-sm);font-weight:600;border:1px solid;"></div>
+      </div>
+
+    </div><!-- /padding body -->
+
+    <!-- Sticky footer navigasi -->
+    <div class="form-footer-sticky" id="pm-footer">
+      <div class="btn-row">
+        <button type="button" class="btn btn-outline" id="pm-btn-back-step" onclick="pmGoStep(-1)" style="display:none;">← Kembali</button>
+        <button type="button" class="btn btn-blue" id="pm-btn-next-step" onclick="pmGoStep(1)">Lanjut →</button>
+      </div>
+      <div style="text-align:center;font-size:var(--fs-xs);color:var(--pln-text3);margin-top:6px;" id="pm-step-hint">Langkah 1 dari 5</div>
+    </div>
+  </div>
+</div>
+
 <!-- DETAIL VIEW -->
 <div id="detail-view" style="display:none;width:100%;max-width:600px;margin:0 auto;">
   <div class="topbar"><button class="topbar-back" onclick="tutupDetail()">←</button><div class="topbar-info"><div class="topbar-sub">Detail Gardu</div><div class="topbar-title" id="detail-view-title">—</div></div></div>
   <div class="page-body-nonav" id="detail-content"></div>
 </div>
 </div><!-- /app-content -->
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- FORM INSPEKSI — Slide-in page, dipanggil dari detail gardu -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="form-inspeksi-view" style="display:none;position:fixed;inset:0;z-index:200;background:var(--pln-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;">
+  <div style="max-width:600px;margin:0 auto;">
+    <!-- Topbar form inspeksi -->
+    <div class="topbar" style="position:sticky;top:0;z-index:10;">
+      <button class="topbar-back" id="fi-btn-back" onclick="tutupFormInspeksi()">←</button>
+      <div class="topbar-info">
+        <div class="topbar-sub">Form Inspeksi</div>
+        <div class="topbar-title" id="fi-topbar-title">—</div>
+      </div>
+      <div id="fi-saving-indicator" style="display:none;color:rgba(255,255,255,.7);font-size:var(--fs-xs);font-weight:600;flex-shrink:0;">
+        <div class="spinner" style="width:14px;height:14px;border-width:2px;border-top-color:#fff;display:inline-block;vertical-align:middle;margin-right:4px;"></div>Menyimpan...
+      </div>
+    </div>
+
+    <!-- Konten form -->
+    <div class="page-body-nonav" style="padding-bottom:120px;" id="fi-body">
+
+      <!-- 1. Info Gardu (readonly, auto-fill) -->
+      <div class="sec">📋 Informasi Gardu</div>
+      <div class="card">
+        <div class="grid2">
+          <div><div class="lbl">No. Gardu</div><div class="val" id="fi-disp-nogardu">—</div></div>
+          <div><div class="lbl">Kapasitas</div><div class="val" id="fi-disp-kva">—</div></div>
+          <div><div class="lbl">ULP</div><div class="val" id="fi-disp-ulp">—</div></div>
+          <div><div class="lbl">Penyulang</div><div class="val" id="fi-disp-penyulang">—</div></div>
+        </div>
+        <div style="margin-top:var(--sp-sm);border-top:1px solid var(--pln-border);padding-top:var(--sp-sm);">
+          <div class="lbl">Alamat</div>
+          <div class="val-sm" id="fi-disp-alamat">—</div>
+        </div>
+      </div>
+
+      <!-- 2. Waktu & Petugas -->
+      <div class="sec">🕐 Waktu & Petugas</div>
+      <div class="card">
+        <div class="grid2">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Tanggal <span class="req">*</span></label>
+            <input type="date" class="form-input" id="fi-tgl" required>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Jam Ukur <span class="req">*</span></label>
+            <input type="time" class="form-input" id="fi-jam" required>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:var(--sp-sm);margin-bottom:0;">
+          <label class="form-label">Nama Petugas <span class="req">*</span></label>
+          <input type="text" class="form-input" id="fi-petugas" placeholder="Nama petugas yang mengukur" autocomplete="name">
+        </div>
+      </div>
+
+      <!-- 3. Data Trafo (Primer / MV-Side) -->
+      <div class="sec">⚡ Pengukuran Trafo (Sisi Sekunder)</div>
+      <div class="card">
+        <!-- Daya & Fasa -->
+        <div class="grid2">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Daya Trafo (kVA)</label>
+            <input type="number" class="form-input" id="fi-daya" placeholder="Otomatis dari gardu" inputmode="decimal" min="0" step="any" readonly style="background:var(--pln-bg);color:var(--pln-text3);">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Fasa</label>
+            <select class="form-select" id="fi-fasa">
+              <option value="3">3 Fasa</option>
+              <option value="1">1 Fasa</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Arus Total Fasa R S T N -->
+        <div style="margin-top:var(--sp-sm);">
+          <div class="form-label" style="margin-bottom:var(--sp-xs);">⚡ Arus Total (A)</div>
+          <div class="grid2">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="color:var(--pln-red);">Fasa R (A)</label>
+              <input type="number" class="form-input fi-arus" id="fi-r-total" data-fasa="R" placeholder="0.00" inputmode="decimal" min="0" step="any">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="color:#059669;">Fasa S (A)</label>
+              <input type="number" class="form-input fi-arus" id="fi-s-total" data-fasa="S" placeholder="0.00" inputmode="decimal" min="0" step="any">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="color:#2563EB;">Fasa T (A)</label>
+              <input type="number" class="form-input fi-arus" id="fi-t-total" data-fasa="T" placeholder="0.00" inputmode="decimal" min="0" step="any">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="color:#7C3AED;">Netral N (A)</label>
+              <input type="number" class="form-input fi-arus" id="fi-n-total" data-fasa="N" placeholder="0.00" inputmode="decimal" min="0" step="any">
+            </div>
+          </div>
+        </div>
+
+        <!-- Tegangan R-N, S-N, T-N, R-S, S-T, R-T -->
+        <div style="margin-top:var(--sp-sm);">
+          <div class="form-label" style="margin-bottom:var(--sp-xs);">🔋 Tegangan (V)</div>
+          <div class="grid2">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="color:var(--pln-red);">R – N (V)</label>
+              <input type="number" class="form-input fi-teg" id="fi-v-rn" placeholder="220" inputmode="decimal" min="0" step="any">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="color:#059669;">S – N (V)</label>
+              <input type="number" class="form-input fi-teg" id="fi-v-sn" placeholder="220" inputmode="decimal" min="0" step="any">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="color:#2563EB;">T – N (V)</label>
+              <input type="number" class="form-input fi-teg" id="fi-v-tn" placeholder="220" inputmode="decimal" min="0" step="any">
+            </div>
+          </div>
+          <div class="grid2" style="margin-top:var(--sp-xs);">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">R – S (V)</label>
+              <input type="number" class="form-input" id="fi-v-rs" placeholder="380" inputmode="decimal" min="0" step="any">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">S – T (V)</label>
+              <input type="number" class="form-input" id="fi-v-st" placeholder="380" inputmode="decimal" min="0" step="any">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">R – T (V)</label>
+              <input type="number" class="form-input" id="fi-v-rt" placeholder="380" inputmode="decimal" min="0" step="any">
+            </div>
+          </div>
+        </div>
+
+        <!-- THD, I-Peak, TPF -->
+        <div style="margin-top:var(--sp-sm);">
+          <div class="form-label" style="margin-bottom:var(--sp-xs);">〰️ THD (%)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-xs);">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="color:var(--pln-red);">THD-R</label>
+              <input type="number" class="form-input" id="fi-thd-r" placeholder="0.0" inputmode="decimal" min="0" step="any">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="color:#059669;">THD-S</label>
+              <input type="number" class="form-input" id="fi-thd-s" placeholder="0.0" inputmode="decimal" min="0" step="any">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="color:#2563EB;">THD-T</label>
+              <input type="number" class="form-input" id="fi-thd-t" placeholder="0.0" inputmode="decimal" min="0" step="any">
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:var(--sp-sm);">
+          <div class="form-label" style="margin-bottom:var(--sp-xs);">⚡ I-Peak (A)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-xs);">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="color:var(--pln-red);">IPeak-R</label>
+              <input type="number" class="form-input" id="fi-ipeak-r" placeholder="0.0" inputmode="decimal" min="0" step="any">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="color:#059669;">IPeak-S</label>
+              <input type="number" class="form-input" id="fi-ipeak-s" placeholder="0.0" inputmode="decimal" min="0" step="any">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="color:#2563EB;">IPeak-T</label>
+              <input type="number" class="form-input" id="fi-ipeak-t" placeholder="0.0" inputmode="decimal" min="0" step="any">
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:var(--sp-sm);">
+          <div class="form-label" style="margin-bottom:var(--sp-xs);">🔋 TPF (Power Factor)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-xs);">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="color:var(--pln-red);">TPF-R</label>
+              <input type="number" class="form-input" id="fi-tpf-r" placeholder="0.0" inputmode="decimal" min="0" max="1.2" step="any">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="color:#059669;">TPF-S</label>
+              <input type="number" class="form-input" id="fi-tpf-s" placeholder="0.0" inputmode="decimal" min="0" max="1.2" step="any">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" style="color:#2563EB;">TPF-T</label>
+              <input type="number" class="form-input" id="fi-tpf-t" placeholder="0.0" inputmode="decimal" min="0" max="1.2" step="any">
+            </div>
+          </div>
+        </div>
+
+        <!-- Auto-computed: Daya Pakai, Prosen, Tdk Seimbang -->
+        <div style="margin-top:var(--sp-md);border-top:1.5px dashed var(--pln-border);padding-top:var(--sp-sm);">
+          <div style="font-size:var(--fs-xs);color:var(--pln-text3);font-weight:700;margin-bottom:var(--sp-sm);text-transform:uppercase;letter-spacing:.5px;">⚙️ Kalkulasi Otomatis</div>
+          <div class="grid2">
+            <div>
+              <div class="lbl">Daya Pakai (kW)</div>
+              <div class="val" id="fi-calc-dayapakai" style="color:var(--pln-biru2);font-size:var(--fs-md);">—</div>
+            </div>
+            <div>
+              <div class="lbl">Pembebanan (%)</div>
+              <div class="val" id="fi-calc-prosen" style="font-size:var(--fs-md);">—</div>
+            </div>
+          </div>
+          <div style="margin-top:var(--sp-sm);">
+            <div class="lbl">Ketidakseimbangan Fasa (%)</div>
+            <div class="val" id="fi-calc-seimbang" style="font-size:var(--fs-sm);">—</div>
+          </div>
+          <div id="fi-calc-warn" style="display:none;margin-top:var(--sp-xs);padding:8px 10px;border-radius:var(--radius-xs);font-size:var(--fs-xs);font-weight:600;"></div>
+        </div>
+
+        <!-- Override manual (jika petugas mau isi manual) -->
+        <div style="margin-top:var(--sp-sm);">
+          <button type="button" id="fi-toggle-manual" onclick="fiToggleManualCalc()" style="width:100%;background:var(--pln-bg);border:1.5px dashed var(--pln-border);border-radius:var(--radius-xs);padding:8px;font-size:var(--fs-xs);color:var(--pln-text3);cursor:pointer;font-weight:600;font-family:inherit;">
+            ✏️ Isi Manual (Daya Pakai / Prosen / Ketidakseimbangan)
+          </button>
+          <div id="fi-manual-fields" style="display:none;margin-top:var(--sp-sm);">
+            <div class="grid2">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">Daya Pakai (kW)</label>
+                <input type="number" class="form-input" id="fi-daya-pakai" placeholder="Hitung otomatis" inputmode="decimal" min="0" step="any">
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">Pembebanan (%)</label>
+                <input type="number" class="form-input" id="fi-prosen" placeholder="Hitung otomatis" inputmode="decimal" min="0" max="200" step="any">
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">Tdk Seimbang (%)</label>
+                <input type="number" class="form-input" id="fi-tdk-seimbang" placeholder="Hitung otomatis" inputmode="decimal" min="0" step="any">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Jurusan (dynamic, 1–6) -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:var(--sp-md) 0 var(--sp-sm);">
+        <div class="sec" style="margin:0;">🔌 Data Jurusan</div>
+        <div style="display:flex;gap:var(--sp-xs);">
+          <button type="button" onclick="fiRemoveJurusan()" id="fi-btn-remove-jur" style="background:var(--pln-red-pale);border:1.5px solid var(--pln-red);color:var(--pln-red);border-radius:var(--radius-xs);padding:5px 10px;font-size:var(--fs-xs);font-weight:700;cursor:pointer;display:none;font-family:inherit;">– Hapus</button>
+          <button type="button" onclick="fiAddJurusan()" id="fi-btn-add-jur" style="background:var(--pln-biru-pale);border:1.5px solid var(--pln-biru-muda);color:var(--pln-biru2);border-radius:var(--radius-xs);padding:5px 10px;font-size:var(--fs-xs);font-weight:700;cursor:pointer;font-family:inherit;">+ Tambah Jurusan</button>
+        </div>
+      </div>
+      <div id="fi-jurusan-list">
+        <!-- Jurusan cards will be dynamically inserted here -->
+      </div>
+      <div id="fi-jurusan-empty" style="text-align:center;padding:var(--sp-md);background:var(--pln-bg);border-radius:var(--radius);border:1.5px dashed var(--pln-border);color:var(--pln-text3);font-size:var(--fs-sm);">
+        Tidak ada jurusan. Klik <b>+ Tambah Jurusan</b> untuk menambah data pengukuran jurusan.
+      </div>
+
+      <!-- 5. Pesan error / sukses -->
+      <div id="fi-alert" style="display:none;margin-top:var(--sp-sm);"></div>
+
+    </div><!-- /fi-body -->
+
+    <!-- Sticky submit footer -->
+    <div class="form-footer-sticky" style="max-width:600px;margin:0 auto;">
+      <div id="fi-preview-bar" style="display:none;background:var(--pln-biru-pale);border-radius:var(--radius-xs);padding:8px 12px;margin-bottom:var(--sp-sm);font-size:var(--fs-xs);display:none;">
+        <span id="fi-preview-text" style="color:var(--pln-biru2);font-weight:600;"></span>
+      </div>
+      <div style="display:flex;gap:var(--sp-sm);">
+        <button type="button" class="btn btn-outline" style="flex:1;margin:0;" onclick="tutupFormInspeksi()">✕ Batal</button>
+        <button type="button" class="btn btn-green" style="flex:2;margin:0;" id="fi-btn-simpan" onclick="submitFormInspeksi()">
+          💾 Simpan Inspeksi
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /form-inspeksi-view -->
 
 <!-- BOTTOM NAV / SIDEBAR (mobile: bottom bar; desktop: sidebar kiri) -->
 <nav class="bottom-nav" id="bottom-nav">
@@ -1147,7 +1721,8 @@ if (typeof L === 'undefined') {
   <button class="nav-btn active" onclick="bukaTab('tab-daftar',0)"><span class="nav-icon">🏠</span><span class="nav-label">Daftar</span></button>
   <button class="nav-btn" onclick="bukaTab('tab-peta',1)"><span class="nav-icon">🗺️</span><span class="nav-label">Peta</span></button>
   <button class="nav-btn" onclick="bukaTab('tab-rekap',2)"><span class="nav-icon">📊</span><span class="nav-label">Rekap &amp; Statistik</span></button>
-  <button class="nav-btn" onclick="bukaTab('tab-sop',3)"><span class="nav-icon">📋</span><span class="nav-label">SOP &amp; Panduan</span></button>
+  <button class="nav-btn" onclick="bukaTab('tab-pemeliharaan',3)"><span class="nav-icon">🔧</span><span class="nav-label">Pemeliharaan</span></button>
+  <button class="nav-btn" onclick="bukaTab('tab-sop',4)"><span class="nav-icon">📋</span><span class="nav-label">SOP &amp; Panduan</span></button>
   <!-- Info user — hanya tampil di desktop sidebar -->
   <div class="sidebar-user" id="sidebar-user-footer" style="display:none;"></div>
 </nav>
@@ -2181,7 +2756,7 @@ function apiGet(params, cb) {
   cb({status:'error', message:'Gagal terhubung ke server. Coba refresh halaman.'});
 }
 
-var TAB_IDS = ['tab-daftar','tab-peta','tab-rekap','tab-sop'];
+var TAB_IDS = ['tab-daftar','tab-peta','tab-rekap','tab-pemeliharaan','tab-sop'];
 // O1: Pagination — client-side 50/halaman sudah aktif.
 //   Untuk server-side pagination: tambahkan param ?action=daftarGardu&page=N&limit=50&ulp=X di Apps Script.
 function bukaTab(id, idx){
@@ -2502,6 +3077,24 @@ function renderDetailGardu(g, riwayat){
     html += '</div>';
     html += '<div class="gps-map-coords">🌐 '+lat.toFixed(6)+', '+lon.toFixed(6)+'</div>';
     html += '</div>';
+  }
+
+  // ── Tombol Catat Inspeksi (semua role yang login) ──
+  var _sInspBtn = getSession();
+  if (_sInspBtn && _sInspBtn.token) {
+    var noGarduEsc = esc(g['NO_GARDU']||'');
+    html += '<div style="margin-bottom:var(--sp-sm);">' +
+      '<button onclick="bukaFormInspeksi(''+noGarduEsc+'')" style="' +
+        'display:flex;align-items:center;justify-content:center;gap:10px;' +
+        'width:100%;padding:clamp(13px,3.5vw,16px);' +
+        'background:linear-gradient(135deg,#1A7A4A,#229A5F);color:#fff;' +
+        'border:none;border-radius:var(--radius-sm);' +
+        'font-size:var(--fs-sm);font-weight:700;cursor:pointer;' +
+        'font-family:inherit;letter-spacing:.2px;touch-action:manipulation;' +
+        'box-shadow:0 2px 8px rgba(26,122,74,.3);">' +
+        '📋 Catat Inspeksi Baru' +
+      '</button>' +
+    '</div>';
   }
 
   // ── Riwayat Inspeksi ──
@@ -3055,6 +3648,453 @@ function tutupDetail(){
   document.getElementById('detail-view').style.display = 'none';
   document.getElementById('bottom-nav').style.display = 'flex';
   bukaTab(TAB_IDS[tabSebelumDetail], tabSebelumDetail);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  FORM INSPEKSI — Lengkap dengan kalkulasi otomatis
+// ══════════════════════════════════════════════════════════════
+
+// Gardu aktif di form inspeksi
+var _fiGardu = null;        // object gardu yg sedang diinspeksi
+var _fiJurusanCount = 0;   // jumlah jurusan aktif (max 6)
+var _fiManualCalc = false;  // apakah kalkulasi manual diaktifkan
+
+// ── Buka form inspeksi dari detail gardu ─────────────────────
+function bukaFormInspeksi(noGardu) {
+  var s = getSession();
+  if (!s || !s.token) {
+    alert('Anda harus login untuk melakukan input inspeksi.');
+    return;
+  }
+  // Cari gardu di cache lokal
+  var g = garduIndex[noGardu] || garduIndex[(noGardu||'').toUpperCase()];
+  if (!g) {
+    alert('Data gardu tidak ditemukan. Coba refresh halaman.');
+    return;
+  }
+  _fiGardu = g;
+  _fiJurusanCount = 0;
+  _fiManualCalc = false;
+
+  // Isi info gardu (readonly display)
+  document.getElementById('fi-topbar-title').textContent = noGardu;
+  document.getElementById('fi-disp-nogardu').textContent = g['NO_GARDU'] || '—';
+  document.getElementById('fi-disp-kva').textContent = (g['KAPASITAS_KVA']||g['DAYA_KVA']||'—') + ' kVA';
+  document.getElementById('fi-disp-ulp').textContent = (g['ULP']||'—').replace(/^ULP\s*/i,'');
+  document.getElementById('fi-disp-penyulang').textContent = g['PENYULANG'] || '—';
+  document.getElementById('fi-disp-alamat').textContent = g['ALAMAT'] || '—';
+
+  // Set Daya Trafo (auto dari gardu)
+  var kva = parseFloat(g['KAPASITAS_KVA'] || g['DAYA_KVA'] || 0);
+  var dayaInput = document.getElementById('fi-daya');
+  dayaInput.value = kva > 0 ? kva : '';
+
+  // Default: hari ini + jam sekarang
+  var now = new Date();
+  document.getElementById('fi-tgl').value = now.toISOString().slice(0,10);
+  document.getElementById('fi-jam').value =
+    String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+
+  // Pre-fill nama petugas dari session
+  document.getElementById('fi-petugas').value = s.nama || s.username || '';
+
+  // Reset fasa ke 3
+  document.getElementById('fi-fasa').value = '3';
+
+  // Clear semua field pengukuran
+  ['fi-r-total','fi-s-total','fi-t-total','fi-n-total',
+   'fi-v-rn','fi-v-sn','fi-v-tn','fi-v-rs','fi-v-st','fi-v-rt',
+   'fi-thd-r','fi-thd-s','fi-thd-t',
+   'fi-ipeak-r','fi-ipeak-s','fi-ipeak-t',
+   'fi-tpf-r','fi-tpf-s','fi-tpf-t',
+   'fi-daya-pakai','fi-prosen','fi-tdk-seimbang'
+  ].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
+  // Reset kalkulasi display
+  document.getElementById('fi-calc-dayapakai').textContent = '—';
+  document.getElementById('fi-calc-prosen').textContent = '—';
+  document.getElementById('fi-calc-seimbang').textContent = '—';
+  var warnEl = document.getElementById('fi-calc-warn');
+  warnEl.style.display = 'none'; warnEl.textContent = '';
+
+  // Reset jurusan
+  document.getElementById('fi-jurusan-list').innerHTML = '';
+  document.getElementById('fi-jurusan-empty').style.display = 'block';
+  document.getElementById('fi-btn-remove-jur').style.display = 'none';
+  document.getElementById('fi-btn-add-jur').style.display = 'inline-block';
+
+  // Hide manual fields
+  document.getElementById('fi-manual-fields').style.display = 'none';
+  document.getElementById('fi-toggle-manual').textContent = '✏️ Isi Manual (Daya Pakai / Prosen / Ketidakseimbangan)';
+
+  // Hide alert
+  var alertEl = document.getElementById('fi-alert');
+  alertEl.style.display = 'none'; alertEl.innerHTML = '';
+
+  // Pasang event listener real-time kalkulasi
+  fiBindListeners();
+
+  // Tampilkan form (sembunyikan detail-view jangan ditutup agar bisa kembali)
+  document.getElementById('form-inspeksi-view').style.display = 'block';
+  // Scroll ke atas
+  document.getElementById('form-inspeksi-view').scrollTo(0,0);
+}
+
+// ── Tutup form inspeksi ───────────────────────────────────────
+function tutupFormInspeksi() {
+  document.getElementById('form-inspeksi-view').style.display = 'none';
+  _fiGardu = null;
+}
+
+// ── Toggle manual kalkulasi ───────────────────────────────────
+function fiToggleManualCalc() {
+  _fiManualCalc = !_fiManualCalc;
+  var mf = document.getElementById('fi-manual-fields');
+  var btn = document.getElementById('fi-toggle-manual');
+  mf.style.display = _fiManualCalc ? 'block' : 'none';
+  btn.textContent = _fiManualCalc
+    ? '🔢 Gunakan Kalkulasi Otomatis'
+    : '✏️ Isi Manual (Daya Pakai / Prosen / Ketidakseimbangan)';
+  if (!_fiManualCalc) fiUpdateCalc();
+}
+
+// ── Bind real-time listeners ──────────────────────────────────
+function fiBindListeners() {
+  var ids = ['fi-r-total','fi-s-total','fi-t-total','fi-n-total','fi-daya','fi-fasa'];
+  ids.forEach(function(id){
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.removeEventListener('input', fiUpdateCalc);
+    el.addEventListener('input', fiUpdateCalc);
+  });
+}
+
+// ── Kalkulasi otomatis (daya pakai, prosen, seimbang) ─────────
+function fiUpdateCalc() {
+  if (_fiManualCalc) return;
+
+  var rA = parseFloat(document.getElementById('fi-r-total').value)||0;
+  var sA = parseFloat(document.getElementById('fi-s-total').value)||0;
+  var tA = parseFloat(document.getElementById('fi-t-total').value)||0;
+  var kva = parseFloat(document.getElementById('fi-daya').value)||0;
+
+  // Daya pakai (kW) = I_avg * V_rated * sqrt(3) / 1000 (asumsi Vfasa=220V, PF=1 — aproksimasi field)
+  // Rumus PLN: Daya Pakai (kVA) = (R+S+T)/3 * 220 * 3 / 1000 = (R+S+T) * 0.66 / 1000 ... 
+  // Lebih presisi: daya 3-fasa = V_LL * I_avg * sqrt(3) = 380 * avg(R,S,T) * 1.732 / 1000
+  var avgArus = (rA + sA + tA) / 3;
+  var dayaPakai = avgArus > 0 ? parseFloat((380 * avgArus * 1.732 / 1000).toFixed(2)) : null;
+
+  // Prosen pembebanan = daya_pakai / kva * 100
+  var prosen = (dayaPakai !== null && kva > 0) ? parseFloat((dayaPakai / kva * 100).toFixed(2)) : null;
+
+  // Ketidakseimbangan fasa (%) = maxDev / avg * 100
+  var seimbang = null;
+  var seimbangLabel = '';
+  if (rA > 0 && sA > 0 && tA > 0) {
+    var avg3 = (rA + sA + tA) / 3;
+    var maxDev = Math.max(Math.abs(rA-avg3), Math.abs(sA-avg3), Math.abs(tA-avg3));
+    seimbang = parseFloat((maxDev / avg3 * 100).toFixed(2));
+    seimbangLabel = seimbang.toFixed(2) + '%';
+  }
+
+  // Update display
+  var dpEl = document.getElementById('fi-calc-dayapakai');
+  var prEl = document.getElementById('fi-calc-prosen');
+  var sbEl = document.getElementById('fi-calc-seimbang');
+  var warnEl = document.getElementById('fi-calc-warn');
+
+  dpEl.textContent = dayaPakai !== null ? dayaPakai + ' kW' : '—';
+
+  if (prosen !== null) {
+    var prosenColor = prosen > 80 ? 'var(--pln-red)' : prosen > 60 ? 'var(--pln-orange)' : 'var(--pln-green)';
+    prEl.innerHTML = '<span style="color:'+prosenColor+';font-weight:800;">'+prosen.toFixed(1)+'%</span>';
+  } else {
+    prEl.textContent = '—';
+  }
+
+  if (seimbang !== null) {
+    var sbColor = seimbang > 10 ? 'var(--pln-red)' : seimbang > 5 ? 'var(--pln-orange)' : 'var(--pln-green)';
+    sbEl.innerHTML = '<span style="color:'+sbColor+';font-weight:700;">'+seimbang.toFixed(2)+'%</span>';
+
+    // Warning banner
+    warnEl.style.display = 'block';
+    if (seimbang > 10) {
+      warnEl.className = 'fi-warn-kritis';
+      warnEl.innerHTML = '🔴 Ketidakseimbangan KRITIS ('+seimbang.toFixed(1)+'%) &gt;10% — Melebihi batas IEC 50160. Segera lakukan pemerataan beban!';
+    } else if (seimbang > 5) {
+      warnEl.className = 'fi-warn-perlu';
+      warnEl.innerHTML = '🟡 Ketidakseimbangan PERINGATAN ('+seimbang.toFixed(1)+'%) — Zona waspada 5–10%. Rencanakan pemerataan beban.';
+    } else {
+      warnEl.className = 'fi-warn-ok';
+      warnEl.innerHTML = '🟢 Fasa Seimbang ('+seimbang.toFixed(1)+'%) — Dalam batas normal IEC 50160 &lt;5%.';
+    }
+  } else {
+    sbEl.textContent = '—';
+    warnEl.style.display = 'none';
+  }
+}
+
+// ── Jurusan: tambah ───────────────────────────────────────────
+function fiAddJurusan() {
+  if (_fiJurusanCount >= 6) {
+    alert('Maksimal 6 jurusan per inspeksi.');
+    return;
+  }
+  _fiJurusanCount++;
+  var n = _fiJurusanCount;
+  var warna = ['#C0392B','#27AE60','#2980B9','#8E44AD','#D35400','#16A085'];
+  var w = warna[(n-1) % warna.length];
+
+  var card = document.createElement('div');
+  card.className = 'fi-jurusan-card';
+  card.id = 'fi-jur-card-'+n;
+  card.innerHTML =
+    '<div class="fi-jurusan-header" onclick="fiToggleJurusan('+n+')">' +
+      '<div class="fi-jurusan-header-title">🔌 Jurusan '+n+'</div>' +
+      '<span id="fi-jur-toggle-'+n+'" style="font-size:12px;">▼</span>' +
+    '</div>' +
+    '<div class="fi-jurusan-body" id="fi-jur-body-'+n+'">' +
+      '<div class="form-group" style="margin-bottom:var(--sp-sm);">' +
+        '<label class="form-label">Nama / Arah Jurusan</label>' +
+        '<input type="text" class="form-input" id="fi-jur'+n+'-nama" placeholder="Contoh: Arah Pasar, JL. Merdeka, dll." autocomplete="off">' +
+      '</div>' +
+      '<div class="form-group" style="margin-bottom:var(--sp-sm);">' +
+        '<label class="form-label">Titik Ukur</label>' +
+        '<input type="text" class="form-input" id="fi-jur'+n+'-titik" placeholder="Titik pengukuran, opsional">' +
+      '</div>' +
+      '<div class="fi-section-label" style="color:'+w+'">⚡ Arus (A)</div>' +
+      '<div class="grid2">' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">R</label><input type="number" class="form-input" id="fi-jur'+n+'-r" placeholder="0" inputmode="decimal" min="0" step="any"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">S</label><input type="number" class="form-input" id="fi-jur'+n+'-s" placeholder="0" inputmode="decimal" min="0" step="any"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">T</label><input type="number" class="form-input" id="fi-jur'+n+'-t" placeholder="0" inputmode="decimal" min="0" step="any"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#8E44AD;">N</label><input type="number" class="form-input" id="fi-jur'+n+'-n" placeholder="0" inputmode="decimal" min="0" step="any"></div>' +
+      '</div>' +
+      '<div class="fi-section-label" style="margin-top:var(--sp-sm);">🔋 Tegangan (V)</div>' +
+      '<div class="grid2">' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">R–N</label><input type="number" class="form-input" id="fi-jur'+n+'-rn" placeholder="220" inputmode="decimal" min="0" step="any"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">S–N</label><input type="number" class="form-input" id="fi-jur'+n+'-sn" placeholder="220" inputmode="decimal" min="0" step="any"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">T–N</label><input type="number" class="form-input" id="fi-jur'+n+'-tn" placeholder="220" inputmode="decimal" min="0" step="any"></div>' +
+      '</div>' +
+      '<div class="fi-section-label" style="margin-top:var(--sp-sm);">〰️ THD (%)</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-xs);">' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">THD-R</label><input type="number" class="form-input" id="fi-jur'+n+'-thdr" placeholder="0" inputmode="decimal" min="0" step="any"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">THD-S</label><input type="number" class="form-input" id="fi-jur'+n+'-thds" placeholder="0" inputmode="decimal" min="0" step="any"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">THD-T</label><input type="number" class="form-input" id="fi-jur'+n+'-thdt" placeholder="0" inputmode="decimal" min="0" step="any"></div>' +
+      '</div>' +
+      '<div class="fi-section-label" style="margin-top:var(--sp-sm);">⚡ I-Peak (A)</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-xs);">' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">IPeak-R</label><input type="number" class="form-input" id="fi-jur'+n+'-ipeakr" placeholder="0" inputmode="decimal" min="0" step="any"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">IPeak-S</label><input type="number" class="form-input" id="fi-jur'+n+'-ipeaks" placeholder="0" inputmode="decimal" min="0" step="any"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">IPeak-T</label><input type="number" class="form-input" id="fi-jur'+n+'-ipeakt" placeholder="0" inputmode="decimal" min="0" step="any"></div>' +
+      '</div>' +
+      '<div class="fi-section-label" style="margin-top:var(--sp-sm);">🔋 TPF</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-xs);">' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">TPF-R</label><input type="number" class="form-input" id="fi-jur'+n+'-tpfr" placeholder="0.0" inputmode="decimal" min="0" max="1.2" step="any"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">TPF-S</label><input type="number" class="form-input" id="fi-jur'+n+'-tpfs" placeholder="0.0" inputmode="decimal" min="0" max="1.2" step="any"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">TPF-T</label><input type="number" class="form-input" id="fi-jur'+n+'-tpft" placeholder="0.0" inputmode="decimal" min="0" max="1.2" step="any"></div>' +
+      '</div>' +
+    '</div>'; // /fi-jurusan-body
+
+  document.getElementById('fi-jurusan-list').appendChild(card);
+  document.getElementById('fi-jurusan-empty').style.display = 'none';
+  document.getElementById('fi-btn-remove-jur').style.display = 'inline-block';
+  if (_fiJurusanCount >= 6) {
+    document.getElementById('fi-btn-add-jur').style.display = 'none';
+  }
+}
+
+// ── Jurusan: hapus card terakhir ──────────────────────────────
+function fiRemoveJurusan() {
+  if (_fiJurusanCount <= 0) return;
+  var card = document.getElementById('fi-jur-card-'+_fiJurusanCount);
+  if (card) card.parentNode.removeChild(card);
+  _fiJurusanCount--;
+  if (_fiJurusanCount === 0) {
+    document.getElementById('fi-jurusan-empty').style.display = 'block';
+    document.getElementById('fi-btn-remove-jur').style.display = 'none';
+  }
+  document.getElementById('fi-btn-add-jur').style.display = 'inline-block';
+}
+
+// ── Jurusan: collapse/expand ──────────────────────────────────
+function fiToggleJurusan(n) {
+  var body = document.getElementById('fi-jur-body-'+n);
+  var icon = document.getElementById('fi-jur-toggle-'+n);
+  if (!body) return;
+  var collapsed = body.classList.toggle('collapsed');
+  if (icon) icon.textContent = collapsed ? '▶' : '▼';
+}
+
+// ── Ambil nilai jurusan ke array ──────────────────────────────
+function fiGetJurusanData() {
+  var result = [];
+  for (var i = 1; i <= _fiJurusanCount; i++) {
+    var getV = function(id){ var el=document.getElementById(id); return el&&el.value.trim() ? parseFloat(el.value)||null : null; };
+    var getS = function(id){ var el=document.getElementById(id); return el&&el.value.trim() ? el.value.trim() : null; };
+    var nama = getS('fi-jur'+i+'-nama');
+    var titik = getS('fi-jur'+i+'-titik');
+    var r = getV('fi-jur'+i+'-r');
+    // Sertakan jurusan hanya jika ada setidaknya satu nilai
+    if (!nama && !r && !getV('fi-jur'+i+'-s') && !getV('fi-jur'+i+'-t')) continue;
+    result.push({
+      nama:    nama   || ('Jurusan '+i),
+      titik:   titik  || null,
+      r_total: r,
+      s_total: getV('fi-jur'+i+'-s'),
+      t_total: getV('fi-jur'+i+'-t'),
+      n_total: getV('fi-jur'+i+'-n'),
+      v_r_n:   getV('fi-jur'+i+'-rn'),
+      v_s_n:   getV('fi-jur'+i+'-sn'),
+      v_t_n:   getV('fi-jur'+i+'-tn'),
+      thd_r:   getV('fi-jur'+i+'-thdr'),
+      thd_s:   getV('fi-jur'+i+'-thds'),
+      thd_t:   getV('fi-jur'+i+'-thdt'),
+      ipeak_r: getV('fi-jur'+i+'-ipeakr'),
+      ipeak_s: getV('fi-jur'+i+'-ipeaks'),
+      ipeak_t: getV('fi-jur'+i+'-ipeakt'),
+      tpf_r:   getV('fi-jur'+i+'-tpfr'),
+      tpf_s:   getV('fi-jur'+i+'-tpfs'),
+      tpf_t:   getV('fi-jur'+i+'-tpft')
+    });
+  }
+  return result;
+}
+
+// ── Validasi form sebelum submit ──────────────────────────────
+function fiValidate() {
+  var errs = [];
+  if (!document.getElementById('fi-tgl').value) errs.push('Tanggal wajib diisi.');
+  if (!document.getElementById('fi-jam').value) errs.push('Jam ukur wajib diisi.');
+  if (!document.getElementById('fi-petugas').value.trim()) errs.push('Nama petugas wajib diisi.');
+  var rA = parseFloat(document.getElementById('fi-r-total').value);
+  var sA = parseFloat(document.getElementById('fi-s-total').value);
+  var tA = parseFloat(document.getElementById('fi-t-total').value);
+  if (!rA && !sA && !tA) errs.push('Minimal satu nilai arus (R/S/T) harus diisi.');
+  return errs;
+}
+
+// ── Set alert bar ─────────────────────────────────────────────
+function fiSetAlert(msg, isOk) {
+  var el = document.getElementById('fi-alert');
+  el.style.display = 'block';
+  el.className = isOk ? 'alert alert-ok' : 'alert alert-err';
+  el.innerHTML = (isOk ? '✅ ' : '❌ ') + msg;
+  el.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+// ── Submit form inspeksi ──────────────────────────────────────
+function submitFormInspeksi() {
+  var s = getSession();
+  if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
+  if (!_fiGardu) { alert('Data gardu tidak tersedia.'); return; }
+
+  var errs = fiValidate();
+  if (errs.length) {
+    fiSetAlert(errs.join(' '), false);
+    return;
+  }
+
+  // Ambil nilai
+  var getV = function(id){ var el=document.getElementById(id); return el&&el.value.trim() ? parseFloat(el.value)||null : null; };
+  var rA = getV('fi-r-total');
+  var sA = getV('fi-s-total');
+  var tA = getV('fi-t-total');
+  var kva = getV('fi-daya');
+
+  // Kalkulasi final
+  var avgArus = ((rA||0)+(sA||0)+(tA||0))/3;
+  var dayaPakai, prosen, tdkSeimbang;
+
+  if (_fiManualCalc) {
+    dayaPakai   = getV('fi-daya-pakai');
+    prosen      = getV('fi-prosen');
+    tdkSeimbang = getV('fi-tdk-seimbang');
+  } else {
+    dayaPakai   = avgArus > 0 ? parseFloat((380 * avgArus * 1.732 / 1000).toFixed(4)) : null;
+    prosen      = (dayaPakai && kva > 0) ? parseFloat((dayaPakai / kva * 100).toFixed(4)) : null;
+    if (rA > 0 && sA > 0 && tA > 0) {
+      var avg3 = (rA+sA+tA)/3;
+      var maxDev = Math.max(Math.abs(rA-avg3),Math.abs(sA-avg3),Math.abs(tA-avg3));
+      tdkSeimbang = parseFloat((maxDev/avg3*100).toFixed(4));
+    } else { tdkSeimbang = null; }
+  }
+
+  // Jurusan
+  var jurusan = fiGetJurusanData();
+
+  // Disable btn + show spinner
+  var btnSimpan = document.getElementById('fi-btn-simpan');
+  btnSimpan.disabled = true;
+  btnSimpan.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px;"></div>Menyimpan...';
+
+  var params = {
+    action:      'tambahInspeksi',
+    token:       s.token,
+    noGardu:     _fiGardu['NO_GARDU'],
+    tglUkur:     document.getElementById('fi-tgl').value,
+    jamUkur:     document.getElementById('fi-jam').value + ':00',
+    petugas:     document.getElementById('fi-petugas').value.trim(),
+    daya:        kva,
+    fasa:        parseInt(document.getElementById('fi-fasa').value)||3,
+    dayaPakai:   dayaPakai,
+    prosen:      prosen,
+    tdkSeimbang: tdkSeimbang,
+    rTotal:      rA,
+    sTotal:      sA,
+    tTotal:      tA,
+    nTotal:      getV('fi-n-total'),
+    vRN:         getV('fi-v-rn'),
+    vSN:         getV('fi-v-sn'),
+    vTN:         getV('fi-v-tn'),
+    vRS:         getV('fi-v-rs'),
+    vST:         getV('fi-v-st'),
+    vRT:         getV('fi-v-rt'),
+    thdR:        getV('fi-thd-r'),
+    thdS:        getV('fi-thd-s'),
+    thdT:        getV('fi-thd-t'),
+    ipeakR:      getV('fi-ipeak-r'),
+    ipeakS:      getV('fi-ipeak-s'),
+    ipeakT:      getV('fi-ipeak-t'),
+    tpfR:        getV('fi-tpf-r'),
+    tpfS:        getV('fi-tpf-s'),
+    tpfT:        getV('fi-tpf-t'),
+    jurusan:     jurusan.length ? JSON.stringify(jurusan) : null
+  };
+
+  apiGet(params, function(res) {
+    btnSimpan.disabled = false;
+    btnSimpan.innerHTML = '💾 Simpan Inspeksi';
+
+    if (res.status !== 'ok') {
+      fiSetAlert(res.message || 'Gagal menyimpan inspeksi.', false);
+      return;
+    }
+
+    // Sukses
+    fiSetAlert('Inspeksi berhasil disimpan! ' + (res.message||''), true);
+    btnSimpan.textContent = '✅ Tersimpan';
+    btnSimpan.style.background = 'var(--pln-green)';
+
+    // Update cache gardu agar last-inspeksi diperbarui
+    var noGardu = _fiGardu['NO_GARDU'];
+    var gCached = garduIndex[noGardu];
+    if (gCached) {
+      var tgl = document.getElementById('fi-tgl').value;
+      gCached['_lastInspeksi'] = tgl;
+      gCached['_lastPetugas'] = document.getElementById('fi-petugas').value.trim();
+      if (prosen !== null) gCached['_lastBeban'] = String(prosen);
+    }
+
+    // Tutup form setelah 2 detik dan reload detail
+    setTimeout(function() {
+      tutupFormInspeksi();
+      // Reload detail gardu supaya riwayat terupdate
+      bukaDetailGardu(noGardu);
+    }, 2000);
+  });
 }
 
 // ── Export Modal & Format ────────────────────────────────────
@@ -5497,6 +6537,426 @@ window.addEventListener('resize', function() {
 });
 // ══ END PETA JS ═══════════════════════════════════════════════════
 
+
+// ══ PEMELIHARAAN — Wizard Form & List JS ══════════════════════════
+
+var _pmCurrentStep = 1;
+var _pmTotalSteps  = 5;
+var _pmFilterStatus = '';
+var _pmAllData = [];
+var _pmChecklistItems = [];
+
+// Jenis pekerjaan berdasarkan kategori
+var PM_JENIS = {
+  'PREVENTIF': ['Pemeliharaan Rutin Berkala','Pelumasan Bearing','Pembersihan Panel & Trafo','Pengencangan Sambungan','Pengecekan Relay Proteksi','Pengukuran Tahanan Isolasi','Kalibrasi Peralatan Ukur'],
+  'KOREKTIF':  ['Perbaikan Kabel Rusak','Penggantian Terminal','Perbaikan Isolator','Perbaikan Panel','Perbaikan Sistem Pentanahan','Perbaikan Bushing'],
+  'INSPEKSI':  ['Inspeksi Visual Rutin','Inspeksi Setelah Gangguan','Inspeksi K3','Pengukuran Beban','Termografi Inframerah'],
+  'OVERHAUL':  ['Overhaul Trafo','Overhaul Panel LV','Penggantian Minyak Trafo','Rekondisi Peralatan'],
+  'PENGGANTIAN':['Penggantian Trafo','Penggantian Kabel JTR','Penggantian NH Fuse','Penggantian Lightning Arrester','Penggantian Kwh Meter'],
+  'DARURAT':   ['Pemulihan Gangguan','Perbaikan Darurat Kabel Putus','Penanganan Kebakaran/Korsleting','Penggantian Darurat Peralatan']
+};
+
+function pmUpdateJenis() {
+  var kat = document.getElementById('pm-kategori').value;
+  var sel = document.getElementById('pm-jenis');
+  sel.innerHTML = '<option value="">— Pilih Jenis Pekerjaan —</option>';
+  (PM_JENIS[kat] || []).forEach(function(j) {
+    var o = document.createElement('option');
+    o.value = j; o.textContent = j;
+    sel.appendChild(o);
+  });
+}
+
+function pmSelectPill(groupId, btn, styleKey) {
+  var group = document.getElementById(groupId);
+  group.querySelectorAll('.pm-pill').forEach(function(p) {
+    p.className = 'pm-pill';
+  });
+  btn.className = 'pm-pill selected-' + styleKey;
+}
+
+function pmGetPillValue(groupId) {
+  var group = document.getElementById(groupId);
+  var sel = group ? group.querySelector('.pm-pill[class*="selected-"]') : null;
+  return sel ? (sel.getAttribute('data-val') || sel.textContent.trim()) : '';
+}
+
+function pmToggleChecklist(btn, item) {
+  var active = btn.classList.contains('selected-blue');
+  if (active) {
+    btn.className = 'pm-pill';
+    _pmChecklistItems = _pmChecklistItems.filter(function(i){ return i !== item; });
+  } else {
+    btn.className = 'pm-pill selected-blue';
+    if (_pmChecklistItems.indexOf(item) < 0) _pmChecklistItems.push(item);
+  }
+  // append to temuan
+  var ta = document.getElementById('pm-temuan');
+  ta.value = _pmChecklistItems.join('; ');
+}
+
+function pmAppendTindakan(teks) {
+  var ta = document.getElementById('pm-tindakan');
+  ta.value = (ta.value ? ta.value.trim() + '; ' : '') + teks;
+  ta.focus();
+}
+
+function pmTambahBahan() {
+  var list = document.getElementById('pm-bahan-list');
+  var row  = document.createElement('div');
+  row.className = 'pm-bahan-row';
+  row.innerHTML =
+    '<input type="text" class="form-input" placeholder="Nama bahan / material" style="flex:2;min-width:0;">' +
+    '<input type="text" class="form-input" placeholder="Jml" style="flex:1;min-width:0;">' +
+    '<button type="button" class="pm-bahan-remove" onclick="this.parentNode.remove()">✕</button>';
+  list.appendChild(row);
+  row.querySelector('input').focus();
+}
+
+function pmGetBahanPakai() {
+  var rows = document.querySelectorAll('#pm-bahan-list .pm-bahan-row');
+  var result = [];
+  rows.forEach(function(r) {
+    var inputs = r.querySelectorAll('input');
+    var nama = inputs[0] ? inputs[0].value.trim() : '';
+    var qty  = inputs[1] ? inputs[1].value.trim() : '';
+    if (nama) result.push({ nama: nama, qty: qty });
+  });
+  return result;
+}
+
+function pmGoStep(dir) {
+  if (dir === 1) {
+    // Validasi step sekarang
+    if (_pmCurrentStep === 1) {
+      var noGardu = (document.getElementById('pm-nogardu').value || '').trim();
+      var tanggal = document.getElementById('pm-tanggal').value;
+      var petugas = (document.getElementById('pm-petugas').value || '').trim();
+      if (!noGardu) { pmShowStepErr('No. Gardu wajib diisi.'); return; }
+      if (!tanggal) { pmShowStepErr('Tanggal wajib diisi.'); return; }
+      if (!petugas) { pmShowStepErr('Nama Petugas wajib diisi.'); return; }
+    }
+    if (_pmCurrentStep === 2) {
+      if (!document.getElementById('pm-kategori').value) { pmShowStepErr('Kategori wajib dipilih.'); return; }
+      if (!document.getElementById('pm-jenis').value)    { pmShowStepErr('Jenis pekerjaan wajib dipilih.'); return; }
+    }
+    if (_pmCurrentStep === 4) {
+      var tindakan = (document.getElementById('pm-tindakan').value || '').trim();
+      if (!tindakan) { pmShowStepErr('Tindakan yang dilakukan wajib diisi.'); return; }
+    }
+    if (_pmCurrentStep === 5) {
+      // Submit
+      pmSubmit();
+      return;
+    }
+    if (_pmCurrentStep < _pmTotalSteps) _pmCurrentStep++;
+  } else {
+    if (_pmCurrentStep > 1) _pmCurrentStep--;
+  }
+  pmRenderStep();
+}
+
+function pmShowStepErr(msg) {
+  var old = document.getElementById('pm-step-err-temp');
+  if (old) old.remove();
+  var el = document.createElement('div');
+  el.id = 'pm-step-err-temp';
+  el.className = 'alert alert-err';
+  el.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:9999;white-space:nowrap;box-shadow:var(--shadow-md);';
+  el.innerHTML = '<span class="alert-icon">⚠️</span><span class="alert-text">' + esc(msg) + '</span>';
+  document.body.appendChild(el);
+  setTimeout(function(){ if(el.parentNode) el.remove(); }, 2500);
+}
+
+function pmRenderStep() {
+  // Update panels
+  for (var i = 1; i <= _pmTotalSteps; i++) {
+    var panel = document.getElementById('pm-panel-' + i);
+    var step  = document.getElementById('pm-s' + i);
+    if (!panel || !step) continue;
+    panel.classList.toggle('active', i === _pmCurrentStep);
+    step.classList.remove('active','done');
+    if (i < _pmCurrentStep) step.classList.add('done');
+    else if (i === _pmCurrentStep) step.classList.add('active');
+  }
+  // Footer
+  var btnBack = document.getElementById('pm-btn-back-step');
+  var btnNext = document.getElementById('pm-btn-next-step');
+  var hint    = document.getElementById('pm-step-hint');
+  if (btnBack) btnBack.style.display = (_pmCurrentStep > 1) ? '' : 'none';
+  if (btnNext) btnNext.textContent = (_pmCurrentStep === _pmTotalSteps) ? '💾 Simpan Data' : 'Lanjut →';
+  if (hint)    hint.textContent = 'Langkah ' + _pmCurrentStep + ' dari ' + _pmTotalSteps;
+  // Build review on step 5
+  if (_pmCurrentStep === _pmTotalSteps) pmBuildReview();
+  // Scroll to top of form body
+  var view = document.getElementById('form-pemeliharaan-view');
+  if (view) view.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function pmBuildReview() {
+  var anggota = (document.getElementById('pm-anggota').value || '').trim();
+  var bahan = pmGetBahanPakai();
+  var rows = [
+    ['No. Gardu',      document.getElementById('pm-nogardu').value],
+    ['Tanggal',        document.getElementById('pm-tanggal').value],
+    ['Jam Mulai',      document.getElementById('pm-jam-mulai').value || '—'],
+    ['Jam Selesai',    document.getElementById('pm-jam-selesai').value || '—'],
+    ['Petugas',        document.getElementById('pm-petugas').value + (anggota ? ' + ' + anggota : '')],
+    ['Kategori',       document.getElementById('pm-kategori').value],
+    ['Jenis',          document.getElementById('pm-jenis').value],
+    ['Status',         pmGetPillValue('pm-status-group') || 'SELESAI'],
+    ['Kondisi Awal',   pmGetPillValue('pm-kondisi-awal-group') || '—'],
+    ['Kondisi Akhir',  pmGetPillValue('pm-kondisi-akhir-group') || '—'],
+    ['Temuan',         document.getElementById('pm-temuan').value || '—'],
+    ['Tindakan',       document.getElementById('pm-tindakan').value],
+    ['Bahan Pakai',    bahan.length ? bahan.map(function(b){ return b.nama + (b.qty ? ' (' + b.qty + ')' : ''); }).join(', ') : '—'],
+    ['Rekomendasi',    document.getElementById('pm-rekomendasi').value || '—'],
+    ['Catatan',        document.getElementById('pm-catatan').value || '—'],
+  ];
+  var html = '';
+  rows.forEach(function(r) {
+    html += '<div class="detail-row"><div class="key">' + esc(r[0]) + '</div><div class="val-r">' + esc(r[1]) + '</div></div>';
+  });
+  var card = document.getElementById('pm-review-card');
+  if (card) card.innerHTML = html;
+  var msg = document.getElementById('pm-submit-msg');
+  if (msg) msg.style.display = 'none';
+}
+
+async function pmSubmit() {
+  var s = getSession();
+  if (!s) { pmShowStepErr('Sesi berakhir, silakan login kembali.'); return; }
+
+  var anggota = (document.getElementById('pm-anggota').value || '').trim();
+  var petugasVal = (document.getElementById('pm-petugas').value || '').trim();
+  if (anggota) petugasVal += ' + ' + anggota;
+
+  var params = {
+    action:       'tambahPemeliharaan',
+    token:        s.token,
+    noGardu:      (document.getElementById('pm-nogardu').value || '').trim().toUpperCase(),
+    tanggal:      document.getElementById('pm-tanggal').value,
+    jamMulai:     document.getElementById('pm-jam-mulai').value || null,
+    jamSelesai:   document.getElementById('pm-jam-selesai').value || null,
+    petugas:      petugasVal,
+    kategori:     document.getElementById('pm-kategori').value,
+    jenis:        document.getElementById('pm-jenis').value,
+    status:       pmGetPillValue('pm-status-group') || 'SELESAI',
+    kondisiAwal:  pmGetPillValue('pm-kondisi-awal-group') || null,
+    kondisiAkhir: pmGetPillValue('pm-kondisi-akhir-group') || null,
+    temuan:       document.getElementById('pm-temuan').value || null,
+    tindakan:     document.getElementById('pm-tindakan').value,
+    bahanPakai:   pmGetBahanPakai(),
+    rekomendasi:  document.getElementById('pm-rekomendasi').value || null,
+    catatan:      document.getElementById('pm-catatan').value || null
+  };
+
+  var savingEl = document.getElementById('pm-saving-indicator');
+  var btnNext  = document.getElementById('pm-btn-next-step');
+  if (savingEl) savingEl.style.display = '';
+  if (btnNext)  btnNext.disabled = true;
+
+  apiGet(params, function(res) {
+    if (savingEl) savingEl.style.display = 'none';
+    if (btnNext)  btnNext.disabled = false;
+
+    var msgEl = document.getElementById('pm-submit-msg');
+    if (!msgEl) return;
+    msgEl.style.display = 'block';
+
+    if (res.status === 'ok') {
+      msgEl.style.background = '#D1FAE5';
+      msgEl.style.color = '#065F46';
+      msgEl.style.borderColor = '#A7F3D0';
+      msgEl.textContent = '✅ Data pemeliharaan berhasil disimpan!';
+      // Reset dan tutup form setelah 1.8s
+      setTimeout(function() {
+        tutupFormPemeliharaan();
+        muatDaftarPemeliharaan(true);
+      }, 1800);
+    } else {
+      msgEl.style.background = '#FEE2E2';
+      msgEl.style.color = '#991B1B';
+      msgEl.style.borderColor = '#FECACA';
+      msgEl.textContent = '❌ ' + (res.message || 'Gagal menyimpan. Coba lagi.');
+    }
+  });
+}
+
+// ── Buka / Tutup form pemeliharaan ─────────────────────────────
+function bukaFormPemeliharaan(noGarduPrefill) {
+  _pmCurrentStep = 1;
+  _pmChecklistItems = [];
+  pmResetForm();
+  if (noGarduPrefill) {
+    var el = document.getElementById('pm-nogardu');
+    if (el) { el.value = noGarduPrefill; el.readOnly = true; }
+    var title = document.getElementById('pm-topbar-title');
+    if (title) title.textContent = noGarduPrefill;
+  } else {
+    var el2 = document.getElementById('pm-nogardu');
+    if (el2) el2.readOnly = false;
+    var title2 = document.getElementById('pm-topbar-title');
+    if (title2) title2.textContent = 'Input Baru';
+  }
+  pmRenderStep();
+  var view = document.getElementById('form-pemeliharaan-view');
+  if (view) { view.style.display = 'block'; view.scrollTo(0,0); }
+}
+
+function tutupFormPemeliharaan() {
+  var view = document.getElementById('form-pemeliharaan-view');
+  if (view) view.style.display = 'none';
+}
+
+function pmResetForm() {
+  // Reset semua field
+  ['pm-nogardu','pm-tanggal','pm-jam-mulai','pm-jam-selesai','pm-petugas','pm-anggota',
+   'pm-temuan','pm-tindakan','pm-rekomendasi','pm-catatan'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  ['pm-kategori','pm-jenis'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.selectedIndex = 0;
+  });
+  // Reset pills
+  ['pm-status-group','pm-kondisi-awal-group','pm-kondisi-akhir-group'].forEach(function(gid) {
+    var g = document.getElementById(gid);
+    if (!g) return;
+    g.querySelectorAll('.pm-pill').forEach(function(p){ p.className='pm-pill'; });
+    // default status = SELESAI
+    if (gid === 'pm-status-group') {
+      var def = g.querySelector('[data-val="SELESAI"]');
+      if (def) def.className = 'pm-pill selected-ok';
+    }
+  });
+  // Reset checklist pills
+  var cg = document.getElementById('pm-checklist-group');
+  if (cg) cg.querySelectorAll('.pm-pill').forEach(function(p){ p.className='pm-pill'; });
+  // Reset bahan
+  var bl = document.getElementById('pm-bahan-list');
+  if (bl) bl.innerHTML = '';
+  // Set tanggal default hari ini
+  var tgl = document.getElementById('pm-tanggal');
+  if (tgl) {
+    var now = new Date();
+    tgl.value = now.toISOString().split('T')[0];
+  }
+  // Auto-fill petugas dari sesi
+  var s = getSession();
+  if (s && s.nama) {
+    var petEl = document.getElementById('pm-petugas');
+    if (petEl && !petEl.value) petEl.value = s.nama;
+  }
+  // Clear gardu info
+  var gi = document.getElementById('pm-gardu-info');
+  if (gi) gi.style.display = 'none';
+}
+
+// ── Muat daftar pemeliharaan ────────────────────────────────────
+var _pmSudahMuat = false;
+
+function muatDaftarPemeliharaan(force) {
+  if (_pmSudahMuat && !force) return;
+  _pmSudahMuat = true;
+  var s = getSession();
+  if (!s) return;
+
+  var wrap = document.getElementById('pm-list-wrap');
+  if (wrap) wrap.innerHTML = '<div class="loading"><div class="spinner"></div>Memuat data pemeliharaan...</div>';
+
+  var params = { action: 'getDaftarPemeliharaan', token: s.token };
+  if (s.role !== 'superadmin' && s.ulp) params.ulp = s.ulp;
+
+  apiGet(params, function(res) {
+    if (res.status !== 'ok') {
+      if (wrap) wrap.innerHTML = '<div class="alert alert-err"><span class="alert-icon">❌</span><span class="alert-text">Gagal memuat: ' + esc(res.message || 'Error') + '<br><button class="btn btn-outline" style="margin-top:8px;" onclick="muatDaftarPemeliharaan(true)">↻ Coba Lagi</button></span></div>';
+      return;
+    }
+    _pmAllData = res.data || [];
+    renderDaftarPemeliharaan();
+  });
+}
+
+function filterDaftarPemeliharaan(q) {
+  renderDaftarPemeliharaan(q);
+}
+
+function setPmFilter(status) {
+  _pmFilterStatus = status;
+  document.querySelectorAll('#pm-filter-row .tag').forEach(function(t) { t.classList.remove('active'); });
+  var tags = document.querySelectorAll('#pm-filter-row .tag');
+  var idx = ['','SELESAI','PROSES','TUNDA'].indexOf(status);
+  if (tags[idx]) tags[idx].classList.add('active');
+  renderDaftarPemeliharaan();
+}
+
+function renderDaftarPemeliharaan(q) {
+  var wrap = document.getElementById('pm-list-wrap');
+  if (!wrap) return;
+  var query = (q || document.getElementById('pm-search').value || '').toLowerCase();
+  var data = _pmAllData.filter(function(d) {
+    if (_pmFilterStatus && (d.status || '').toUpperCase() !== _pmFilterStatus) return false;
+    if (!query) return true;
+    return (d.no_gardu || '').toLowerCase().includes(query) ||
+           (d.petugas  || '').toLowerCase().includes(query) ||
+           (d.jenis    || '').toLowerCase().includes(query) ||
+           (d.kategori || '').toLowerCase().includes(query);
+  });
+
+  // Update rekap
+  var total   = _pmAllData.length;
+  var selesai = _pmAllData.filter(function(d){ return (d.status||'').toUpperCase()==='SELESAI'; }).length;
+  var proses  = _pmAllData.filter(function(d){ return (d.status||'').toUpperCase()==='PROSES'; }).length;
+  var elT = document.getElementById('pm-count-total');
+  var elS = document.getElementById('pm-count-selesai');
+  var elP = document.getElementById('pm-count-proses');
+  if (elT) elT.textContent = total;
+  if (elS) elS.textContent = selesai;
+  if (elP) elP.textContent = proses;
+
+  if (!data.length) {
+    wrap.innerHTML = '<div class="alert alert-info"><span class="alert-icon">📋</span><span class="alert-text">Belum ada data pemeliharaan.' +
+      (_pmAllData.length === 0 ? ' Tekan <b>+ Input</b> untuk menambah data pertama.' : '') + '</span></div>';
+    return;
+  }
+
+  var html = '';
+  data.forEach(function(d) {
+    var statusCls = d.status === 'SELESAI' ? 'pm-status-selesai' : d.status === 'PROSES' ? 'pm-status-proses' : 'pm-status-tunda';
+    var statusLabel = d.status === 'SELESAI' ? '✅ Selesai' : d.status === 'PROSES' ? '🔄 Proses' : '⏸️ Tunda';
+    html += '<div class="pm-list-card">' +
+      '<div class="pm-list-header">' +
+        '<div>' +
+          '<div style="font-size:var(--fs-xs);font-weight:800;color:var(--pln-biru2);">' + esc(d.no_gardu||'—') + '</div>' +
+          '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:2px;">📅 ' + esc(d.tanggal||'—') + '</div>' +
+        '</div>' +
+        '<span class="pm-status-pill ' + statusCls + '">' + statusLabel + '</span>' +
+      '</div>' +
+      '<div class="pm-list-body">' +
+        '<div class="grid2" style="margin:0;">' +
+          '<div><div class="lbl">Kategori</div><div class="val-sm">' + esc(d.kategori||'—') + '</div></div>' +
+          '<div><div class="lbl">Jenis</div><div class="val-sm">' + esc(d.jenis||'—') + '</div></div>' +
+          '<div><div class="lbl">Petugas</div><div class="val-sm">' + esc(d.petugas||'—') + '</div></div>' +
+          '<div><div class="lbl">Kondisi Akhir</div><div class="val-sm">' + esc(d.kondisi_akhir||'—') + '</div></div>' +
+        '</div>' +
+        (d.tindakan ? '<div style="margin-top:6px;font-size:var(--fs-xs);color:var(--pln-text2);border-top:1px solid var(--pln-border);padding-top:6px;">🛠️ ' + esc(d.tindakan.substring(0,120)) + (d.tindakan.length>120?'...':'') + '</div>' : '') +
+      '</div>' +
+    '</div>';
+  });
+
+  wrap.innerHTML = html;
+}
+
+// Muat daftar pemeliharaan ketika tab dibuka
+var _bukaTabOri = window.bukaTab;
+window.bukaTab = function(id, idx) {
+  if (typeof _bukaTabOri === 'function') _bukaTabOri(id, idx);
+  if (id === 'tab-pemeliharaan') muatDaftarPemeliharaan(false);
+};
+
+// ══ END PEMELIHARAAN JS ═══════════════════════════════════════════
 
 
 
