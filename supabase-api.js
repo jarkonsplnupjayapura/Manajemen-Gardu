@@ -968,6 +968,13 @@ function _mapGarduRow(g) {
 function _mapInspeksiRow(r) {
   var flat = {
     '_id':          r.id         != null ? r.id : null,
+    'NO_GARDU':     r.no_gardu   || '',
+    'NOGARDU':      r.no_gardu   || '',
+    'ULP':          r.ulp        || '',
+    'UNITUP':       r.unitup     || '',
+    'PENYULANG':    r.penyulang  || '',
+    'ALAMAT':       r.alamat     || '',
+    'STATUS_KEPEMILIKAN': r.status_kepemilikan || '',
     'TGLUKUR':      r.tgl_ukur   || '',
     'JAM UKUR':     r.jam_ukur   ? String(r.jam_ukur).slice(0, 5) : '',
     'PETUGAS':      r.petugas    || '',

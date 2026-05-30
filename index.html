@@ -907,10 +907,14 @@ body{
   /* Pages: full-width, tidak lagi mobile-centered 600px */
   .page{max-width:100%;width:100%;}
 
-  /* Form inspeksi & pemeliharaan full width di desktop */
+  /* Form inspeksi & pemeliharaan: offset dari sidebar kiri di desktop */
+  #form-inspeksi-view,
+  #form-pemeliharaan-view {
+    left: 260px !important;
+  }
   #form-inspeksi-view > div,
   #form-pemeliharaan-view > div {
-    max-width:960px !important;
+    max-width: 100% !important;
   }
 
   /* Pengukuran table desktop layout improvement */
@@ -1252,8 +1256,8 @@ if (typeof L === 'undefined') {
     <!-- Filter Form -->
     <div class="card" style="margin-bottom:var(--sp-sm);">
       <div class="sec" style="margin-top:0;">🔍 Filter Laporan</div>
-      <!-- Desktop: 2 kolom layout -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:var(--sp-sm);align-items:end;" class="ukur-filter-grid">
+        <!-- Baris 1 -->
         <div class="form-group" style="margin:0;grid-column:1/3;">
           <label class="form-label">No. Gardu (opsional)</label>
           <input type="text" class="form-input" id="ukur-filter-nogardu" placeholder="Cari No. Gardu..." autocapitalize="characters" oninput="this.value=this.value.toUpperCase()">
@@ -1266,7 +1270,20 @@ if (typeof L === 'undefined') {
           <label class="form-label">Tanggal Akhir</label>
           <input type="date" class="form-input" id="ukur-filter-tgl-akhir">
         </div>
-        <div class="form-group" style="margin:0;grid-column:1/3;">
+        <!-- Baris 2 -->
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">ULP</label>
+          <select class="form-select" id="ukur-filter-ulp">
+            <option value="">Semua ULP</option>
+            <option value="ULP ABEPURA">Abepura</option>
+            <option value="ULP JAYAPURA">Jayapura</option>
+            <option value="ULP SENTANI">Sentani</option>
+            <option value="ULP SARMI">Sarmi</option>
+            <option value="ULP ARSO">Arso</option>
+            <option value="ULP GENYEM">Genyem</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
           <label class="form-label">Status Beban</label>
           <select class="form-select" id="ukur-filter-status">
             <option value="">Semua</option>
@@ -1275,6 +1292,23 @@ if (typeof L === 'undefined') {
             <option value="kritis">Kritis (&gt;80%)</option>
           </select>
         </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Waktu Pengukuran</label>
+          <select class="form-select" id="ukur-filter-waktu">
+            <option value="">Semua Waktu</option>
+            <option value="siang">🌞 Siang (06:00–18:00)</option>
+            <option value="malam">🌙 Malam (18:00–06:00)</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Kepemilikan</label>
+          <select class="form-select" id="ukur-filter-kepemilikan">
+            <option value="">Semua</option>
+            <option value="PLN">PLN</option>
+            <option value="NON PLN">Non PLN</option>
+          </select>
+        </div>
+        <!-- Baris 3: tombol -->
         <div style="display:flex;gap:var(--sp-sm);grid-column:3/5;align-items:flex-end;">
           <button class="btn btn-outline" style="flex:1;margin:0;height:42px;" onclick="resetFilterPengukuran()">↺ Reset</button>
           <button class="btn btn-blue" style="flex:2;margin:0;height:42px;" onclick="muatDataPengukuran(true)">🔍 Tampilkan</button>
@@ -1786,7 +1820,7 @@ if (typeof L === 'undefined') {
     </div><!-- /fi-body -->
 
     <!-- Sticky submit footer -->
-    <div class="form-footer-sticky" style="max-width:900px;margin:0 auto;">
+    <div class="form-footer-sticky" style="max-width:100%;margin:0 auto;">
       <div id="fi-preview-bar" style="display:none;background:var(--pln-biru-pale);border-radius:var(--radius-xs);padding:8px 12px;margin-bottom:var(--sp-sm);font-size:var(--fs-xs);display:none;">
         <span id="fi-preview-text" style="color:var(--pln-biru2);font-weight:600;"></span>
       </div>
@@ -7180,14 +7214,18 @@ function muatDataPengukuran(force) {
   var tglAwal = (document.getElementById('ukur-filter-tgl-awal') || {}).value || '';
   var tglAkhir = (document.getElementById('ukur-filter-tgl-akhir') || {}).value || '';
   var statusBeban = (document.getElementById('ukur-filter-status') || {}).value || '';
+  var ulpFilter = (document.getElementById('ukur-filter-ulp') || {}).value || '';
+  var waktuFilter = (document.getElementById('ukur-filter-waktu') || {}).value || '';
+  var kepemilikanFilter = (document.getElementById('ukur-filter-kepemilikan') || {}).value || '';
 
   var params = {
     action: 'getRiwayat',
     token: s.token,
     noGardu: noGardu || undefined,
+    ulp: ulpFilter || undefined,
     tglAwal: tglAwal || undefined,
     tglAkhir: tglAkhir || undefined,
-    limit: 200
+    limit: 500
   };
 
   apiGet(params, function(res) {
@@ -7196,7 +7234,7 @@ function muatDataPengukuran(force) {
       return;
     }
     _ukurAllData = res.data || [];
-    renderDataPengukuran(statusBeban);
+    renderDataPengukuran(statusBeban, waktuFilter, kepemilikanFilter);
   });
 }
 
@@ -7206,8 +7244,10 @@ function resetFilterPengukuran() {
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
-  var sel = document.getElementById('ukur-filter-status');
-  if (sel) sel.selectedIndex = 0;
+  ['ukur-filter-status','ukur-filter-ulp','ukur-filter-waktu','ukur-filter-kepemilikan'].forEach(function(id){
+    var sel = document.getElementById(id);
+    if (sel) sel.selectedIndex = 0;
+  });
   _ukurSudahMuat = false;
   var wrap = document.getElementById('ukur-list-wrap');
   if (wrap) wrap.innerHTML = '<div class="alert alert-info"><span class="alert-icon">📏</span><span class="alert-text">Atur filter di atas lalu tekan <b>Tampilkan</b> untuk melihat riwayat pengukuran gardu.</span></div>';
@@ -7219,15 +7259,30 @@ function resetFilterPengukuran() {
   if (elK) elK.textContent = '—';
 }
 
-function renderDataPengukuran(statusFilter) {
+function renderDataPengukuran(statusFilter, waktuFilter, kepemilikanFilter) {
   var wrap = document.getElementById('ukur-list-wrap');
   if (!wrap) return;
 
   var data = _ukurAllData.filter(function(r) {
     var prosen = r['PROSEN'] !== '' && r['PROSEN'] !== null && r['PROSEN'] !== undefined ? parseFloat(r['PROSEN']) : null;
-    if (statusFilter === 'normal') return prosen !== null && prosen < 60;
-    if (statusFilter === 'perlu') return prosen !== null && prosen >= 60 && prosen <= 80;
-    if (statusFilter === 'kritis') return prosen !== null && prosen > 80;
+    // Status beban
+    if (statusFilter === 'normal' && !(prosen !== null && prosen < 60)) return false;
+    if (statusFilter === 'perlu' && !(prosen !== null && prosen >= 60 && prosen <= 80)) return false;
+    if (statusFilter === 'kritis' && !(prosen !== null && prosen > 80)) return false;
+    // Waktu: siang 06:00-18:00, malam sisanya
+    if (waktuFilter) {
+      var jam = r['JAM UKUR'] || '';
+      var h = parseInt((jam.split(':')[0])||'0', 10);
+      var isSiang = h >= 6 && h < 18;
+      if (waktuFilter === 'siang' && !isSiang) return false;
+      if (waktuFilter === 'malam' && isSiang) return false;
+    }
+    // Kepemilikan PLN/Non PLN
+    if (kepemilikanFilter) {
+      var kep = (r['STATUS_KEPEMILIKAN'] || '').toUpperCase();
+      if (kepemilikanFilter === 'PLN' && kep !== 'PLN') return false;
+      if (kepemilikanFilter === 'NON PLN' && kep === 'PLN') return false;
+    }
     return true;
   });
 
