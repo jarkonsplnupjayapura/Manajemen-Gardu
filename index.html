@@ -618,6 +618,16 @@ body{
 }
 
 /* ══ FORM INSPEKSI — Slide animation & jurusan card ══════════ */
+/* Pengukuran filter grid - mobile collapse */
+@media(max-width:767px){
+  .ukur-filter-grid{
+    grid-template-columns:1fr 1fr !important;
+  }
+  .ukur-filter-grid > div[style*="grid-column:1/3"],
+  .ukur-filter-grid > div[style*="grid-column:3/5"] {
+    grid-column: 1/3 !important;
+  }
+}
 #form-inspeksi-view{
   animation:fiSlideIn .22s cubic-bezier(.22,1,.36,1);
 }
@@ -896,6 +906,17 @@ body{
 
   /* Pages: full-width, tidak lagi mobile-centered 600px */
   .page{max-width:100%;width:100%;}
+
+  /* Form inspeksi & pemeliharaan full width di desktop */
+  #form-inspeksi-view > div,
+  #form-pemeliharaan-view > div {
+    max-width:960px !important;
+  }
+
+  /* Pengukuran table desktop layout improvement */
+  #tab-pengukuran .page-body {
+    max-width:100%;
+  }
 
   /* Peta: full-height di desktop */
   #peta-map-wrap{
@@ -1231,11 +1252,12 @@ if (typeof L === 'undefined') {
     <!-- Filter Form -->
     <div class="card" style="margin-bottom:var(--sp-sm);">
       <div class="sec" style="margin-top:0;">🔍 Filter Laporan</div>
-      <div class="form-group">
-        <label class="form-label">No. Gardu (opsional)</label>
-        <input type="text" class="form-input" id="ukur-filter-nogardu" placeholder="Cari No. Gardu..." autocapitalize="characters" oninput="this.value=this.value.toUpperCase()">
-      </div>
-      <div class="grid2">
+      <!-- Desktop: 2 kolom layout -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:var(--sp-sm);align-items:end;" class="ukur-filter-grid">
+        <div class="form-group" style="margin:0;grid-column:1/3;">
+          <label class="form-label">No. Gardu (opsional)</label>
+          <input type="text" class="form-input" id="ukur-filter-nogardu" placeholder="Cari No. Gardu..." autocapitalize="characters" oninput="this.value=this.value.toUpperCase()">
+        </div>
         <div class="form-group" style="margin:0;">
           <label class="form-label">Tanggal Mulai</label>
           <input type="date" class="form-input" id="ukur-filter-tgl-awal">
@@ -1244,19 +1266,19 @@ if (typeof L === 'undefined') {
           <label class="form-label">Tanggal Akhir</label>
           <input type="date" class="form-input" id="ukur-filter-tgl-akhir">
         </div>
-      </div>
-      <div class="form-group" style="margin-top:var(--sp-sm);margin-bottom:0;">
-        <label class="form-label">Status Beban</label>
-        <select class="form-select" id="ukur-filter-status">
-          <option value="">Semua</option>
-          <option value="normal">Normal (&lt;60%)</option>
-          <option value="perlu">Perlu Perhatian (60–80%)</option>
-          <option value="kritis">Kritis (&gt;80%)</option>
-        </select>
-      </div>
-      <div style="display:flex;gap:var(--sp-sm);margin-top:var(--sp-sm);">
-        <button class="btn btn-outline" style="flex:1;margin:0;" onclick="resetFilterPengukuran()">↺ Reset</button>
-        <button class="btn btn-blue" style="flex:2;margin:0;" onclick="muatDataPengukuran(true)">🔍 Tampilkan</button>
+        <div class="form-group" style="margin:0;grid-column:1/3;">
+          <label class="form-label">Status Beban</label>
+          <select class="form-select" id="ukur-filter-status">
+            <option value="">Semua</option>
+            <option value="normal">Normal (&lt;60%)</option>
+            <option value="perlu">Perlu Perhatian (60–80%)</option>
+            <option value="kritis">Kritis (&gt;80%)</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:var(--sp-sm);grid-column:3/5;align-items:flex-end;">
+          <button class="btn btn-outline" style="flex:1;margin:0;height:42px;" onclick="resetFilterPengukuran()">↺ Reset</button>
+          <button class="btn btn-blue" style="flex:2;margin:0;height:42px;" onclick="muatDataPengukuran(true)">🔍 Tampilkan</button>
+        </div>
       </div>
     </div>
 
@@ -1305,7 +1327,7 @@ if (typeof L === 'undefined') {
 
 <!-- ══ FORM PEMELIHARAAN — Wizard Step-by-Step ═══════════════ -->
 <div id="form-pemeliharaan-view" style="display:none;position:fixed;inset:0;z-index:200;background:var(--pln-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;">
-  <div style="max-width:600px;margin:0 auto;">
+  <div style="max-width:900px;margin:0 auto;">
     <!-- Topbar -->
     <div class="topbar" style="position:sticky;top:0;z-index:10;">
       <button class="topbar-back" onclick="tutupFormPemeliharaan()">←</button>
@@ -1522,7 +1544,7 @@ if (typeof L === 'undefined') {
 <!-- FORM INSPEKSI — Slide-in page, dipanggil dari detail gardu -->
 <!-- ══════════════════════════════════════════════════════════ -->
 <div id="form-inspeksi-view" style="display:none;position:fixed;inset:0;z-index:200;background:var(--pln-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;">
-  <div style="max-width:600px;margin:0 auto;">
+  <div style="max-width:900px;margin:0 auto;">
     <!-- Topbar form inspeksi -->
     <div class="topbar" style="position:sticky;top:0;z-index:10;">
       <button class="topbar-back" id="fi-btn-back" onclick="tutupFormInspeksi()">←</button>
@@ -1764,7 +1786,7 @@ if (typeof L === 'undefined') {
     </div><!-- /fi-body -->
 
     <!-- Sticky submit footer -->
-    <div class="form-footer-sticky" style="max-width:600px;margin:0 auto;">
+    <div class="form-footer-sticky" style="max-width:900px;margin:0 auto;">
       <div id="fi-preview-bar" style="display:none;background:var(--pln-biru-pale);border-radius:var(--radius-xs);padding:8px 12px;margin-bottom:var(--sp-sm);font-size:var(--fs-xs);display:none;">
         <span id="fi-preview-text" style="color:var(--pln-biru2);font-weight:600;"></span>
       </div>
@@ -2362,29 +2384,46 @@ function onLoginSuccess(user) {
   // Set state admin & ULP
   if (user.role !== 'superadmin' && user.ulp) {
     currentULP = user.ulp;
-    // v36: role check via getSession()
   } else {
     currentULP = '';
-    // v36: role check via getSession()
   }
 
-  // Reset filter UI — filter ULP ditentukan oleh session, bukan tag
+  // Reset filter UI
   activeFilterULP = '';
   activeFilterStatus = '';
 
-  // Sembunyikan filter ULP tag untuk non-superadmin (mereka hanya lihat ULP sendiri)
   var filterULPRow = document.getElementById('filter-ulp-row');
   if (filterULPRow) filterULPRow.style.display = (user.role === 'superadmin') ? '' : 'none';
 
-  // Muat data aplikasi — pass ULP eksplisit agar tidak ada race condition
   var ulpUntukFilter = (user.role !== 'superadmin' && user.ulp) ? user.ulp : '';
   muatDaftarGardu(true, ulpUntukFilter);
   _updateSidebarUserFooter();
 
-  // Reset rekap agar tidak tampil data ULP sebelumnya saat ganti login
   rekapSudahMuat = false;
   var rekapEl = document.getElementById('rekap-content');
   if (rekapEl) rekapEl.innerHTML = '<div class="loading"><div class="spinner"></div>Memuat rekap...</div>';
+
+  // Cek redirect setelah login dari QR scan
+  var urlParams = new URLSearchParams(window.location.search);
+  var redirect = urlParams.get('redirect');
+  var noGarduParam = urlParams.get('noGardu');
+  if (redirect && noGarduParam) {
+    setTimeout(function() {
+      if (redirect === 'pengukuran') {
+        var g = garduIndex[noGarduParam.toUpperCase()];
+        if (g) { bukaFormInspeksi(noGarduParam.toUpperCase()); }
+        else {
+          // Try after data loads
+          setTimeout(function() {
+            var g2 = garduIndex[noGarduParam.toUpperCase()];
+            if (g2) bukaFormInspeksi(noGarduParam.toUpperCase());
+          }, 2000);
+        }
+      } else if (redirect === 'pemeliharaan') {
+        bukaFormPemeliharaanDariDetail(noGarduParam.toUpperCase());
+      }
+    }, 500);
+  }
 }
 
 // Normalisasi string ULP untuk perbandingan yang toleran
@@ -2735,11 +2774,13 @@ window.onload = function(){
       // Banner login di bawah konten
       var content = document.getElementById('detail-content');
       var banner = document.createElement('div');
-      banner.style.cssText = 'margin:var(--sp-md) 0;padding:var(--sp-md);background:var(--pln-biru-pale);border-radius:var(--radius-sm);border:1px solid var(--pln-border2);text-align:center;';
+      banner.style.cssText = 'margin:var(--sp-md) 0;padding:var(--sp-md);background:var(--pln-biru-pale);border-radius:var(--radius-sm);border:1px solid var(--pln-border2);';
       banner.innerHTML =
-        '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-bottom:var(--sp-sm);">📷 Anda mengakses via scan QR Code</div>' +
-        '<button onclick="window.location.href=window.location.pathname" class="btn btn-blue" style="font-size:var(--fs-sm);padding:10px 20px;">' +
-        '🔑 Login untuk Lihat Detail</button>';
+        '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-bottom:var(--sp-sm);text-align:center;">📷 Anda mengakses via scan QR Code. Login untuk input data.</div>' +
+        '<div style="display:flex;flex-direction:column;gap:10px;">' +
+        '<button onclick="window.location.href=window.location.pathname+\'?login=1&redirect=pengukuran&noGardu='+encodeURIComponent(QR_NOGARDU)+'\'" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:clamp(13px,3.5vw,16px);background:linear-gradient(135deg,#1A7A4A,#229A5F);color:#fff;border:none;border-radius:var(--radius-sm);font-size:var(--fs-sm);font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.2px;touch-action:manipulation;box-shadow:0 2px 8px rgba(26,122,74,.3);">📏 Input Pengukuran Gardu</button>' +
+        '<button onclick="window.location.href=window.location.pathname+\'?login=1&redirect=pemeliharaan&noGardu='+encodeURIComponent(QR_NOGARDU)+'\'" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:clamp(13px,3.5vw,16px);background:linear-gradient(135deg,#1048A8,#2E7CF6);color:#fff;border:none;border-radius:var(--radius-sm);font-size:var(--fs-sm);font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.2px;touch-action:manipulation;box-shadow:0 2px 8px rgba(16,72,168,.3);">🔧 Input Pemeliharaan</button>' +
+        '</div>';
       content.appendChild(banner);
     });
 
@@ -7206,42 +7247,137 @@ function renderDataPengukuran(statusFilter) {
     return;
   }
 
-  var html = '<div class="sec">' + data.length + ' Data Ditemukan</div>';
-  data.forEach(function(r) {
-    var prosen = r['PROSEN'] !== '' && r['PROSEN'] !== null ? parseFloat(r['PROSEN']) : null;
-    var bc = prosen === null ? 'badge-nonaktif' : prosen > 80 ? 'badge-kritis' : prosen > 60 ? 'badge-perlu' : 'badge-normal';
-    var prosenLabel = prosen !== null ? prosen.toFixed(1) + '%' : '—';
-    var bebanColor = prosen === null ? '#94A3B8' : prosen > 80 ? 'var(--pln-red)' : prosen > 60 ? 'var(--pln-orange)' : 'var(--pln-green)';
-    var bebanPct = prosen !== null ? Math.min(100, prosen) : 0;
-    var noGardu = r['NO_GARDU'] || r['NOGARDU'] || '—';
+  // ── Pagination ──
+  _ukurFilteredData = data;
+  _ukurCurrentPage = 1;
+  _ukurPageSize = 10;
+  renderTabelPengukuran();
+}
 
-    html += '<div class="pm-list-card" onclick="bukaDetailGarduDariPengukuran(\'' + esc(noGardu) + '\')">';
-    html += '<div class="pm-list-header">';
-    html += '<div>';
-    html += '<div style="font-size:var(--fs-xs);font-weight:800;color:var(--pln-biru2);">' + esc(noGardu) + '</div>';
-    html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:2px;">📅 ' + esc(formatTgl(r['TGLUKUR']) || r['TGLUKUR'] || '—') + (r['JAM UKUR'] ? ' &nbsp;·&nbsp; 🕐 ' + esc(r['JAM UKUR']) : '') + '</div>';
-    html += '</div>';
-    html += '<span class="badge ' + bc + '">' + prosenLabel + '</span>';
-    html += '</div>';
-    html += '<div class="pm-list-body">';
-    html += '<div style="margin-bottom:6px;">';
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">';
-    html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);font-weight:600;">BEBAN TRAFO</span>';
-    html += '<span style="font-size:var(--fs-xs);font-weight:800;color:' + bebanColor + ';">' + prosenLabel + '</span>';
-    html += '</div>';
-    html += '<div class="beban-bar"><div class="beban-bar-fill" style="width:' + bebanPct + '%;background:' + bebanColor + ';"></div></div>';
-    html += '</div>';
-    html += '<div class="grid2" style="margin:0;">';
-    html += '<div><div class="lbl">Daya Pakai</div><div class="val-sm">' + esc(r['DAYA PAKAI'] || '—') + ' kVA</div></div>';
-    html += '<div><div class="lbl">Tdk Seimbang</div><div class="val-sm">' + esc(r['TDKSEIMBANG'] || r['TDK SEIMBANG'] || '—') + '%</div></div>';
-    html += '<div><div class="lbl">Petugas</div><div class="val-sm">' + esc(r['PETUGAS'] || '—') + '</div></div>';
-    html += '<div><div class="lbl">Fasa</div><div class="val-sm">' + esc(r['FASA'] || '—') + '</div></div>';
-    html += '</div>';
-    html += '</div>';
-    html += '</div>';
+var _ukurFilteredData = [];
+var _ukurCurrentPage = 1;
+var _ukurPageSize = 10;
+
+function renderTabelPengukuran() {
+  var wrap = document.getElementById('ukur-list-wrap');
+  if (!wrap) return;
+  var data = _ukurFilteredData;
+  var pageSize = _ukurPageSize;
+  var page = _ukurCurrentPage;
+  var totalPages = Math.ceil(data.length / pageSize);
+  var start = (page - 1) * pageSize;
+  var end = Math.min(start + pageSize, data.length);
+  var pageData = data.slice(start, end);
+
+  var isMobile = window.innerWidth < 768;
+
+  var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-sm);flex-wrap:wrap;gap:6px;">';
+  html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);font-weight:600;">';
+  html += 'Menampilkan <b style="color:var(--pln-biru2);">' + (start+1) + '–' + end + '</b> dari <b style="color:var(--pln-biru2);">' + data.length + '</b> data';
+  html += '</div>';
+  html += '<div style="display:flex;align-items:center;gap:6px;">';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);">Baris:</span>';
+  html += '<select style="font-size:var(--fs-xs);border:1px solid var(--pln-border);border-radius:6px;padding:3px 6px;background:#fff;" onchange="ukurSetPageSize(+this.value)">';
+  [10,25,50,100].forEach(function(s) {
+    html += '<option value="'+s+'"'+(s===pageSize?' selected':'')+'>'+s+'</option>';
   });
+  html += '</select></div></div>';
+
+  if (isMobile) {
+    // Mobile: card view
+    pageData.forEach(function(r, i) {
+      var prosen = r['PROSEN'] !== '' && r['PROSEN'] !== null ? parseFloat(r['PROSEN']) : null;
+      var bc = prosen === null ? 'badge-nonaktif' : prosen > 80 ? 'badge-kritis' : prosen > 60 ? 'badge-perlu' : 'badge-normal';
+      var prosenLabel = prosen !== null ? prosen.toFixed(1) + '%' : '—';
+      var bebanColor = prosen === null ? '#94A3B8' : prosen > 80 ? 'var(--pln-red)' : prosen > 60 ? 'var(--pln-orange)' : 'var(--pln-green)';
+      var bebanPct = prosen !== null ? Math.min(100, prosen) : 0;
+      var noGardu = r['NO_GARDU'] || r['NOGARDU'] || '—';
+      html += '<div class="pm-list-card" onclick="bukaDetailGarduDariPengukuran(\''+esc(noGardu)+'\')">';
+      html += '<div class="pm-list-header">';
+      html += '<div>';
+      html += '<div style="font-size:var(--fs-xs);font-weight:800;color:var(--pln-biru2);">'+esc(noGardu)+'</div>';
+      html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:2px;">📅 '+esc(formatTgl(r['TGLUKUR'])||r['TGLUKUR']||'—')+(r['JAM UKUR']?' · 🕐 '+esc(r['JAM UKUR']):'')+'</div>';
+      html += '</div><span class="badge '+bc+'">'+prosenLabel+'</span></div>';
+      html += '<div class="pm-list-body"><div style="margin-bottom:6px;">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;"><span style="font-size:var(--fs-xs);color:var(--pln-text3);font-weight:600;">BEBAN TRAFO</span><span style="font-size:var(--fs-xs);font-weight:800;color:'+bebanColor+';">'+prosenLabel+'</span></div>';
+      html += '<div class="beban-bar"><div class="beban-bar-fill" style="width:'+bebanPct+'%;background:'+bebanColor+';"></div></div>';
+      html += '</div><div class="grid2" style="margin:0;">';
+      html += '<div><div class="lbl">Daya Pakai</div><div class="val-sm">'+esc(r['DAYA PAKAI']||'—')+' kVA</div></div>';
+      html += '<div><div class="lbl">Tdk Seimbang</div><div class="val-sm">'+esc(r['TDKSEIMBANG']||r['TDK SEIMBANG']||'—')+'%</div></div>';
+      html += '<div><div class="lbl">Petugas</div><div class="val-sm">'+esc(r['PETUGAS']||'—')+'</div></div>';
+      html += '<div><div class="lbl">Fasa</div><div class="val-sm">'+esc(r['FASA']||'—')+'</div></div>';
+      html += '</div></div></div>';
+    });
+  } else {
+    // Desktop: table view seperti gambar 2 & 3
+    html += '<div style="background:#fff;border-radius:var(--radius);border:1px solid var(--pln-border);overflow:hidden;box-shadow:var(--shadow);margin-bottom:var(--sp-sm);">';
+    html += '<div style="overflow-x:auto;">';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:var(--fs-xs);">';
+    html += '<thead>';
+    html += '<tr style="background:var(--pln-biru);color:#fff;">';
+    ['NO','NO GARDU','PENYULANG','ALAMAT','DAYA (kVA)','FASA','DAYA PAKAI','PROSEN %','TDK SEIMBANG','JAM UKUR','TGL UKUR','PETUGAS','STATUS'].forEach(function(h) {
+      html += '<th style="padding:10px 12px;text-align:left;white-space:nowrap;font-weight:700;font-size:11px;letter-spacing:.3px;">'+h+'</th>';
+    });
+    html += '</tr></thead><tbody>';
+
+    pageData.forEach(function(r, i) {
+      var prosen = r['PROSEN'] !== '' && r['PROSEN'] !== null ? parseFloat(r['PROSEN']) : null;
+      var prosenLabel = prosen !== null ? prosen.toFixed(2) : '—';
+      var statusColor = prosen === null ? '#94A3B8' : prosen > 80 ? 'var(--pln-red)' : prosen > 60 ? 'var(--pln-orange)' : 'var(--pln-green)';
+      var statusLabel = prosen === null ? '—' : prosen > 80 ? 'Kritis' : prosen > 60 ? 'Perlu Perhatian' : 'Normal';
+      var noGardu = r['NO_GARDU'] || r['NOGARDU'] || '—';
+      var rowBg = i % 2 === 0 ? '#fff' : '#F8FAFD';
+      html += '<tr style="background:'+rowBg+';cursor:pointer;transition:background .1s;" onclick="bukaDetailGarduDariPengukuran(\''+esc(noGardu)+'\')" onmouseover="this.style.background=\'#EEF4FF\'" onmouseout="this.style.background=\''+rowBg+'\'">';
+      html += '<td style="padding:9px 12px;color:var(--pln-text3);">'+(start+i+1)+'</td>';
+      html += '<td style="padding:9px 12px;font-weight:700;color:var(--pln-biru2);">'+esc(noGardu)+'</td>';
+      html += '<td style="padding:9px 12px;">'+esc(r['PENYULANG']||'—')+'</td>';
+      html += '<td style="padding:9px 12px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+esc(r['ALAMAT']||'')+'">'+esc(r['ALAMAT']||'—')+'</td>';
+      html += '<td style="padding:9px 12px;text-align:right;">'+esc(r['DAYA']||r['KAPASITAS_KVA']||'—')+'</td>';
+      html += '<td style="padding:9px 12px;text-align:center;">'+esc(r['FASA']||'—')+'</td>';
+      html += '<td style="padding:9px 12px;text-align:right;">'+esc(r['DAYA PAKAI']||'—')+'</td>';
+      html += '<td style="padding:9px 12px;text-align:right;font-weight:700;color:'+statusColor+';">'+prosenLabel+'</td>';
+      html += '<td style="padding:9px 12px;text-align:right;">'+esc(r['TDKSEIMBANG']||r['TDK SEIMBANG']||'—')+'</td>';
+      html += '<td style="padding:9px 12px;">'+esc(r['JAM UKUR']||'—')+'</td>';
+      html += '<td style="padding:9px 12px;white-space:nowrap;">'+esc(formatTgl(r['TGLUKUR'])||r['TGLUKUR']||'—')+'</td>';
+      html += '<td style="padding:9px 12px;">'+esc(r['PETUGAS']||'—')+'</td>';
+      html += '<td style="padding:9px 12px;"><span style="background:'+statusColor+';color:#fff;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;">'+statusLabel+'</span></td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div></div>';
+  }
+
+  // Pagination controls
+  if (totalPages > 1) {
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:var(--sp-sm);flex-wrap:wrap;gap:8px;">';
+    html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);">Halaman <b style="color:var(--pln-biru2);">'+page+'</b> dari <b style="color:var(--pln-biru2);">'+totalPages+'</b></div>';
+    html += '<div style="display:flex;gap:4px;align-items:center;">';
+    html += '<button onclick="ukurGoPage(1)" '+(page===1?'disabled':'')+' style="padding:5px 10px;border:1px solid var(--pln-border);background:'+(page===1?'#f0f0f0':'#fff')+';border-radius:6px;cursor:'+(page===1?'not-allowed':'pointer')+';font-size:var(--fs-xs);color:var(--pln-text2);">«</button>';
+    html += '<button onclick="ukurGoPage('+(page-1)+')" '+(page===1?'disabled':'')+' style="padding:5px 10px;border:1px solid var(--pln-border);background:'+(page===1?'#f0f0f0':'#fff')+';border-radius:6px;cursor:'+(page===1?'not-allowed':'pointer')+';font-size:var(--fs-xs);color:var(--pln-text2);">‹ Prev</button>';
+    var startPg = Math.max(1, page-2), endPg = Math.min(totalPages, page+2);
+    for (var pg = startPg; pg <= endPg; pg++) {
+      html += '<button onclick="ukurGoPage('+pg+')" style="padding:5px 10px;border:1px solid '+(pg===page?'var(--pln-biru2)':'var(--pln-border)')+';background:'+(pg===page?'var(--pln-biru2)':'#fff')+';color:'+(pg===page?'#fff':'var(--pln-text2)')+';border-radius:6px;cursor:pointer;font-size:var(--fs-xs);font-weight:'+(pg===page?'700':'400')+';">'+pg+'</button>';
+    }
+    html += '<button onclick="ukurGoPage('+(page+1)+')" '+(page===totalPages?'disabled':'')+' style="padding:5px 10px;border:1px solid var(--pln-border);background:'+(page===totalPages?'#f0f0f0':'#fff')+';border-radius:6px;cursor:'+(page===totalPages?'not-allowed':'pointer')+';font-size:var(--fs-xs);color:var(--pln-text2);">Next ›</button>';
+    html += '<button onclick="ukurGoPage('+totalPages+')" '+(page===totalPages?'disabled':'')+' style="padding:5px 10px;border:1px solid var(--pln-border);background:'+(page===totalPages?'#f0f0f0':'#fff')+';border-radius:6px;cursor:'+(page===totalPages?'not-allowed':'pointer')+';font-size:var(--fs-xs);color:var(--pln-text2);">»</button>';
+    html += '</div></div>';
+  }
 
   wrap.innerHTML = html;
+}
+
+function ukurGoPage(page) {
+  var totalPages = Math.ceil(_ukurFilteredData.length / _ukurPageSize);
+  if (page < 1 || page > totalPages) return;
+  _ukurCurrentPage = page;
+  renderTabelPengukuran();
+  var wrap = document.getElementById('ukur-list-wrap');
+  if (wrap) wrap.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function ukurSetPageSize(size) {
+  _ukurPageSize = size;
+  _ukurCurrentPage = 1;
+  renderTabelPengukuran();
 }
 
 function bukaDetailGarduDariPengukuran(noGardu) {
