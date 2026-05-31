@@ -7250,8 +7250,41 @@ function muatDataPengukuran(force) {
       if (wrap) wrap.innerHTML = '<div class="alert alert-err"><span class="alert-icon">❌</span><span class="alert-text">Gagal memuat: ' + esc(res.message || 'Error') + '<br><button class="btn btn-outline" style="margin-top:8px;" onclick="muatDataPengukuran(true)">↻ Coba Lagi</button></span></div>';
       return;
     }
-    _ukurAllData = res.data || [];
-    renderDataPengukuran(statusBeban, waktuFilter, kepemilikanFilter);
+    // ── Enrich: isi PENYULANG & ALAMAT dari garduIndex (data master gardu) ──
+    // Kolom ini kosong di tabel inspeksi, diambil dari data gardu yang sudah di-load
+    var rawData = res.data || [];
+    function _enrichAndRender() {
+      rawData.forEach(function(r) {
+        var key = (r['NO_GARDU'] || r['NOGARDU'] || '').trim().toUpperCase();
+        if (!key) return;
+        var gInfo = garduIndex[key];
+        if (!gInfo) return;
+        // Isi hanya jika kosong (prioritas data inspeksi jika ada)
+        if (!r['PENYULANG'] && gInfo['PENYULANG']) r['PENYULANG'] = gInfo['PENYULANG'];
+        if (!r['ALAMAT']    && gInfo['ALAMAT'])    r['ALAMAT']    = gInfo['ALAMAT'];
+        if (!r['ULP']       && gInfo['ULP'])       r['ULP']       = gInfo['ULP'];
+      });
+      _ukurAllData = rawData;
+      renderDataPengukuran(statusBeban, waktuFilter, kepemilikanFilter);
+    }
+    // Jika garduIndex belum ada (user langsung buka tab Pengukuran tanpa muat Daftar),
+    // muat daftar gardu dulu secara background lalu enrich
+    if (Object.keys(garduIndex).length === 0) {
+      var sEnrich = getSession();
+      var ulpEnrich = (sEnrich && sEnrich.role !== 'superadmin') ? (sEnrich.ulp || '') : '';
+      apiGet({ action: 'getDaftarGardu', ulp: ulpEnrich || undefined }, function(gRes) {
+        if (gRes.status === 'ok' && gRes.data) {
+          allGardu = gRes.data;
+          garduIndex = {};
+          allGardu.forEach(function(g) {
+            if (g && g['NO_GARDU']) garduIndex[g['NO_GARDU'].trim().toUpperCase()] = g;
+          });
+        }
+        _enrichAndRender();
+      });
+    } else {
+      _enrichAndRender();
+    }
   });
 }
 
