@@ -1936,11 +1936,11 @@ if (typeof L === 'undefined') {
       <button onclick="tutupPanelAdmin()" style="background:var(--pln-bg);border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;">✕</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:var(--sp-sm);" id="admin-panel-actions">
+      <!-- Isi dirender ulang oleh _tampilkanPanelAdmin() sesuai role -->
       <button class="btn btn-blue" onclick="bukaFormTambahGardu()">➕ Tambah Gardu Baru</button>
       <button class="btn btn-outline" onclick="bukaFormEditGardu()">✏️ Edit Gardu</button>
+      <button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalUserULP()">👥 Kelola User ULP Saya</button>
       <button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalExport()">📊 Export Laporan</button>
-      <button id="btn-kelola-user" class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalUser()" style="display:none;">👥 Kelola User</button>
-      <button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalSetPin()">🔑 Set / Ganti PIN User</button>
       <button class="btn btn-red" onclick="doLogout()">🚪 Logout</button>
     </div>
   </div>
@@ -2574,9 +2574,12 @@ function filterGarduBySession(data) {
 function bukaMenuAdmin() {
   var s = getSession();
   if (!s) return;
-  // Petugas tidak punya akses menu admin
+  // Petugas: tidak punya akses admin, tapi bisa logout
   if (s.role === 'petugas') {
-    alert('Anda login sebagai Petugas. Akses ke menu admin tidak tersedia.');
+    // Tampilkan hanya modal logout sederhana untuk petugas
+    if (confirm('Anda login sebagai Petugas.\n\nAkses menu admin tidak tersedia.\n\nKlik OK untuk Logout.')) {
+      doLogout();
+    }
     return;
   }
   // Superadmin langsung masuk (tidak perlu PIN tambahan)
@@ -2658,12 +2661,13 @@ function _tampilkanPanelAdmin(s) {
         '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalSetPin()">🔑 Set / Ganti PIN User</button>' +
         '<button class="btn btn-red" onclick="doLogout()">🚪 Logout</button>';
     } else {
-      // Admin ULP: Tambah, Edit gardu + Kelola User ULP sendiri + Export
+      // Admin ULP: Tambah, Edit gardu + Kelola User ULP sendiri + Set PIN + Export
       actionsEl.innerHTML =
         '<button class="btn btn-blue" onclick="bukaFormTambahGardu()">&#10133; Tambah Gardu Baru</button>' +
         '<button class="btn btn-outline" onclick="bukaFormEditGardu()">&#9999;&#65039; Edit Gardu</button>' +
         '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalUserULP()">&#128101; Kelola User ULP Saya</button>' +
         '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalExport()">&#128202; Export Laporan</button>' +
+        '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalSetPin()">&#128273; Set / Ganti PIN</button>' +
         '<button class="btn btn-red" onclick="doLogout()">&#128682; Logout</button>';
     }
   }
@@ -6567,15 +6571,9 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-// ── bukaModalAdmin (untuk buka panel, tidak perlu PIN lagi di v36) ──
+// ── bukaModalAdmin (legacy compat — redirect ke bukaMenuAdmin) ──
 function bukaModalAdmin() {
-  var s = getSession();
-  if (!s) return;
-  if (s.role === 'petugas') {
-    alert('Anda login sebagai Petugas. Akses menu admin tidak tersedia.');
-    return;
-  }
-  _tampilkanPanelAdmin(s);
+  bukaMenuAdmin();
 }
 
 function tutupModalAdmin() {
