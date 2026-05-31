@@ -1988,6 +1988,61 @@ if (typeof L === 'undefined') {
   </div>
 </div>
 
+<!-- MODAL KELOLA USER ULP (Admin ULP) -->
+<div id="modal-user-ulp" style="display:none;position:fixed;inset:0;z-index:9250;background:rgba(0,0,0,.55);align-items:flex-start;justify-content:center;padding:var(--sp-md);overflow-y:auto;">
+  <div style="background:var(--pln-card);border-radius:var(--radius);padding:var(--sp-lg);width:100%;max-width:480px;margin:auto;box-shadow:var(--shadow-lg);">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <div>
+        <div style="font-size:var(--fs-md);font-weight:700;">&#128101; Kelola User ULP</div>
+        <div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:2px;">Hanya user dari ULP Anda yang dapat dikelola</div>
+      </div>
+      <button onclick="tutupModalUserULP()" style="background:var(--pln-bg);border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;flex-shrink:0;">&#10005;</button>
+    </div>
+    <!-- Info ULP badge -->
+    <div id="user-ulp-badge" style="display:inline-flex;align-items:center;gap:6px;background:var(--pln-biru-pale);color:var(--pln-biru2);border-radius:20px;padding:4px 12px;font-size:var(--fs-xs);font-weight:700;margin-bottom:var(--sp-md);"></div>
+    <!-- Daftar user -->
+    <div id="user-ulp-list-wrap" style="margin-bottom:var(--sp-md);border:1.5px solid var(--pln-border);border-radius:var(--radius-sm);overflow:hidden;min-height:60px;"></div>
+    <button class="btn btn-blue" onclick="bukaFormTambahUserULP()" style="margin-bottom:0;">&#10133; Tambah User Baru</button>
+    <!-- Form tambah/edit user ULP -->
+    <div id="user-ulp-form-wrap" style="display:none;margin-top:var(--sp-md);background:var(--pln-bg);border-radius:var(--radius-sm);padding:var(--sp-md);">
+      <div style="font-weight:700;margin-bottom:var(--sp-sm);font-size:var(--fs-sm);" id="user-ulp-form-title">Tambah User</div>
+      <input type="hidden" id="uuf-edit-idx" value="">
+      <div class="form-group">
+        <label class="form-label">Username *</label>
+        <input id="uuf-username" class="form-input" placeholder="Contoh: petugas_abe1" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="form-group" id="uuf-password-wrap">
+        <label class="form-label">Password * <span style="font-weight:400;opacity:.6;">(kosongkan jika tidak diubah)</span></label>
+        <input id="uuf-password" class="form-input" type="password" placeholder="Min 4 karakter">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nama Lengkap *</label>
+        <input id="uuf-nama" class="form-input" placeholder="Nama lengkap">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Role *</label>
+        <select id="uuf-role" class="form-select">
+          <option value="petugas">&#128309; Petugas</option>
+          <option value="admin">&#128994; Admin ULP</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ULP</label>
+        <div style="padding:10px 14px;background:#fff;border:1.5px solid var(--pln-border);border-radius:var(--radius-sm);font-size:var(--fs-sm);font-weight:700;color:var(--pln-biru2);">
+          &#127962; <span id="uuf-ulp-display">—</span>
+          <span style="font-size:var(--fs-xs);color:var(--pln-text3);font-weight:400;margin-left:6px;">(otomatis sesuai ULP Anda)</span>
+        </div>
+      </div>
+      <div id="uuf-msg" style="display:none;padding:8px 10px;border-radius:6px;font-size:var(--fs-xs);margin-bottom:8px;"></div>
+      <div class="btn-row">
+        <button class="btn btn-outline" onclick="tutupFormUserULP()">Batal</button>
+        <button class="btn btn-blue" onclick="simpanUserULP()">&#128190; Simpan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL TAMBAH GARDU -->
 <div id="modal-tambah-gardu" style="display:none;position:fixed;inset:0;z-index:9100;background:rgba(0,0,0,.55);align-items:flex-end;justify-content:center;">
   <div style="background:var(--pln-card);border-radius:var(--radius) var(--radius) 0 0;padding:var(--sp-lg);width:100%;max-width:600px;max-height:92vh;overflow-y:auto;">
@@ -2603,12 +2658,13 @@ function _tampilkanPanelAdmin(s) {
         '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalSetPin()">🔑 Set / Ganti PIN User</button>' +
         '<button class="btn btn-red" onclick="doLogout()">🚪 Logout</button>';
     } else {
-      // Admin ULP: hanya Tambah, Edit, Export
+      // Admin ULP: Tambah, Edit gardu + Kelola User ULP sendiri + Export
       actionsEl.innerHTML =
-        '<button class="btn btn-blue" onclick="bukaFormTambahGardu()">➕ Tambah Gardu Baru</button>' +
-        '<button class="btn btn-outline" onclick="bukaFormEditGardu()">✏️ Edit Gardu</button>' +
-        '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalExport()">📊 Export Laporan</button>' +
-        '<button class="btn btn-red" onclick="doLogout()">🚪 Logout</button>';
+        '<button class="btn btn-blue" onclick="bukaFormTambahGardu()">&#10133; Tambah Gardu Baru</button>' +
+        '<button class="btn btn-outline" onclick="bukaFormEditGardu()">&#9999;&#65039; Edit Gardu</button>' +
+        '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalUserULP()">&#128101; Kelola User ULP Saya</button>' +
+        '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalExport()">&#128202; Export Laporan</button>' +
+        '<button class="btn btn-red" onclick="doLogout()">&#128682; Logout</button>';
     }
   }
 
@@ -2743,6 +2799,155 @@ function hapusUser(username) {
     else { alert('Gagal hapus: ' + (res.message || 'error')); }
   });
 }
+
+// ══ KELOLA USER ULP — Khusus Admin ULP ═══════════════════════
+// Admin ULP hanya bisa lihat/tambah/edit/hapus user dari ULP-nya sendiri
+// Tidak bisa membuat superadmin. Role yang bisa dibuat: admin & petugas (ULP sama)
+function bukaModalUserULP() {
+  var s = getSession();
+  if (!s || s.role !== 'admin') return;
+  var badge = document.getElementById('user-ulp-badge');
+  if (badge) badge.textContent = '&#127962; ' + (s.ulp || '');
+  renderUserListULP();
+  tutupFormUserULP();
+  document.getElementById('modal-user-ulp').style.display = 'flex';
+}
+
+function tutupModalUserULP() {
+  document.getElementById('modal-user-ulp').style.display = 'none';
+}
+
+function renderUserListULP() {
+  var s = getSession();
+  if (!s || !s.ulp) return;
+  var wrap = document.getElementById('user-ulp-list-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--pln-text3)"><div class="spinner"></div>Memuat user...</div>';
+  apiGet({ action: 'getDaftarUser', token: s.token }, function(res) {
+    if (res.status !== 'ok') {
+      wrap.innerHTML = '<div style="color:var(--pln-red);padding:16px;">Gagal memuat: ' + esc(res.message||'error') + '</div>';
+      return;
+    }
+    // Filter hanya user dari ULP yang sama (kecuali superadmin — tidak ditampilkan)
+    var myULP = (s.ulp || '').toUpperCase();
+    var users = (res.data || []).filter(function(u) {
+      return u.role !== 'superadmin' && (u.ulp || '').toUpperCase() === myULP;
+    });
+    wrap._userUlpCache = users;
+    if (!users.length) {
+      wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--pln-text3);font-size:var(--fs-sm);">Belum ada user untuk '+esc(s.ulp)+'.<br>Klik <b>+ Tambah User</b> untuk menambahkan.</div>';
+      return;
+    }
+    var html = '<div class="user-table-row user-table-head" style="grid-template-columns:1fr 1fr auto auto;"><span>User</span><span>Role</span><span></span><span></span></div>';
+    users.forEach(function(u, i) {
+      var roleStr = u.role === 'admin' ? '&#128994; Admin ULP' : '&#128309; Petugas';
+      var pinBadge = u.hasPIN
+        ? '<span style="font-size:9px;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 5px;margin-left:4px;">&#128273; PIN &#10003;</span>'
+        : '<span style="font-size:9px;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 5px;margin-left:4px;">&#128273; Belum PIN</span>';
+      html += '<div class="user-table-row" style="grid-template-columns:1fr 1fr auto auto;">';
+      html += '<span><b>'+esc(u.username)+'</b><br><span style="opacity:.6;font-size:9px;">'+esc(u.nama)+'</span>'+pinBadge+'</span>';
+      html += '<span>'+roleStr+'</span>';
+      html += '<button class="user-action-btn btn-edit-user" onclick="editUserULP('+i+')">&#9999;&#65039; Edit</button>';
+      html += '<button class="user-action-btn btn-del-user" onclick="hapusUserULP(\''+esc(u.username)+'\')">&#128465;&#65039;</button>';
+      html += '</div>';
+    });
+    wrap.innerHTML = html;
+    wrap._userUlpCache = users;
+  });
+}
+
+function bukaFormTambahUserULP() {
+  var s = getSession();
+  document.getElementById('uuf-edit-idx').value = '';
+  document.getElementById('uuf-username').value = '';
+  document.getElementById('uuf-password').value = '';
+  document.getElementById('uuf-nama').value = '';
+  document.getElementById('uuf-role').value = 'petugas';
+  document.getElementById('uuf-ulp-display').textContent = s ? s.ulp : '';
+  document.getElementById('uuf-msg').style.display = 'none';
+  document.getElementById('user-ulp-form-title').textContent = 'Tambah User Baru';
+  document.getElementById('uuf-password-wrap').style.display = '';
+  document.getElementById('user-ulp-form-wrap').style.display = 'block';
+}
+
+function editUserULP(idx) {
+  var wrap = document.getElementById('user-ulp-list-wrap');
+  var cache = wrap && wrap._userUlpCache ? wrap._userUlpCache : [];
+  var u = cache[idx];
+  if (!u) return;
+  var s = getSession();
+  document.getElementById('uuf-edit-idx').value = u.username;
+  document.getElementById('uuf-username').value = u.username;
+  document.getElementById('uuf-password').value = '';
+  document.getElementById('uuf-nama').value = u.nama;
+  document.getElementById('uuf-role').value = u.role;
+  document.getElementById('uuf-ulp-display').textContent = s ? s.ulp : (u.ulp || '');
+  document.getElementById('uuf-msg').style.display = 'none';
+  document.getElementById('user-ulp-form-title').textContent = 'Edit User: ' + u.username;
+  document.getElementById('uuf-password-wrap').style.display = '';
+  document.getElementById('user-ulp-form-wrap').style.display = 'block';
+}
+
+function tutupFormUserULP() {
+  var fw = document.getElementById('user-ulp-form-wrap');
+  if (fw) fw.style.display = 'none';
+}
+
+function simpanUserULP() {
+  var s = getSession();
+  if (!s || s.role !== 'admin' || !s.ulp) return;
+  var usernameLama = document.getElementById('uuf-edit-idx').value;
+  var uname = (document.getElementById('uuf-username').value || '').trim().toLowerCase();
+  var pass  = (document.getElementById('uuf-password').value || '').trim();
+  var nama  = (document.getElementById('uuf-nama').value || '').trim();
+  var role  = document.getElementById('uuf-role').value;
+  var msgEl = document.getElementById('uuf-msg');
+
+  function showMsg(msg, isErr) {
+    msgEl.textContent = msg;
+    msgEl.style.background = isErr ? '#FEE2E2' : '#D1FAE5';
+    msgEl.style.color = isErr ? '#991B1B' : '#065F46';
+    msgEl.style.display = 'block';
+  }
+
+  if (!uname) return showMsg('Username wajib diisi.', true);
+  if (!nama)  return showMsg('Nama lengkap wajib diisi.', true);
+  if (!usernameLama && !pass) return showMsg('Password wajib diisi untuk user baru.', true);
+  if (pass && pass.length < 4) return showMsg('Password minimal 4 karakter.', true);
+  // Admin ULP tidak boleh buat superadmin
+  if (role === 'superadmin') return showMsg('Anda tidak dapat membuat akun Superadmin.', true);
+
+  showMsg('Menyimpan...', false);
+  var params = {
+    action: usernameLama ? 'editUser' : 'tambahUser',
+    token: s.token,
+    username: uname,
+    nama: nama,
+    role: role,
+    ulp: s.ulp  // selalu ULP admin yang sedang login
+  };
+  if (usernameLama) params.usernameLama = usernameLama;
+  if (pass) params.password = pass;
+
+  apiGet(params, function(res) {
+    if (res.status === 'ok') {
+      showMsg('User berhasil disimpan!', false);
+      setTimeout(function() { renderUserListULP(); tutupFormUserULP(); }, 1200);
+    } else {
+      showMsg(res.message || 'Gagal menyimpan user.', true);
+    }
+  });
+}
+
+function hapusUserULP(username) {
+  if (!confirm('Hapus user "' + username + '"?\nTindakan ini tidak bisa dibatalkan.')) return;
+  var s = getSession();
+  apiGet({ action: 'hapusUser', token: s ? s.token : '', username: username }, function(res) {
+    if (res.status === 'ok') { renderUserListULP(); }
+    else { alert('Gagal hapus: ' + (res.message || 'error')); }
+  });
+}
+// ══ END KELOLA USER ULP ═══════════════════════════════════════
 
 // ══════════════════════════════════════════════════════════════
 //  KONFIGURASI & STATE
@@ -4330,11 +4535,22 @@ function hapusInspeksiById(id, tglLabel) {
 
 
 function bukaModalExport() {
+  var s = getSession();
+  var isNonSuperadmin = s && s.role !== 'superadmin' && s.ulp;
   var sel = document.getElementById('export-ulp-filter');
-  var ulpSet={};
-  allGardu.forEach(function(g){ if(g&&g['ULP']) ulpSet[g['ULP'].trim()]=true; });
-  var ulps = Object.keys(ulpSet).sort();
-  sel.innerHTML = '<option value="">Semua ULP</option>'+ulps.map(function(u){ return '<option value="'+esc(u)+'">'+esc(u)+'</option>'; }).join('');
+  if (isNonSuperadmin) {
+    // Non-superadmin: kunci ke ULP sendiri, tidak bisa pilih ULP lain
+    sel.innerHTML = '<option value="'+esc(s.ulp)+'">'+esc(s.ulp)+'</option>';
+    sel.disabled = true;
+    sel.style.opacity = '.7';
+  } else {
+    sel.disabled = false;
+    sel.style.opacity = '';
+    var ulpSet={};
+    allGardu.forEach(function(g){ if(g&&g['ULP']) ulpSet[g['ULP'].trim()]=true; });
+    var ulps = Object.keys(ulpSet).sort();
+    sel.innerHTML = '<option value="">Semua ULP</option>'+ulps.map(function(u){ return '<option value="'+esc(u)+'">'+esc(u)+'</option>'; }).join('');
+  }
   var tahunSel = document.getElementById('export-tahun-picker');
   var nowY = new Date().getFullYear();
   tahunSel.innerHTML = '';
@@ -5453,18 +5669,16 @@ function generateRekapStatusKepemilikan(rows, periodeLabel, ulpFilter) {
 
 function muatRekap() {
   var s = getSession();
-  // [Fix] Cover role 'admin' (Supabase) dan 'adminUlp' (legacy AppScript)
-  var isAdminUlp = s && (s.role === 'admin' || s.role === 'adminUlp') && s.ulp;
+  // Superadmin: lihat semua ULP. Admin ULP & Petugas: filter ke ULP masing-masing
   var params = { action:'getRekap' };
-  if (isAdminUlp) {
-    // Kirim ULP apa adanya dari session — _getRekap di supabase-api.js akan normalisasi ke 'ULP XXXX'
+  if (s && s.role !== 'superadmin' && s.ulp) {
     params.ulp = s.ulp;
   }
   apiGet(params, function(res) {
     rekapSudahMuat = true;
     if (res.status !== 'ok') {
       document.getElementById('rekap-content').innerHTML =
-        '<div class="alert alert-err"><span class="alert-icon">❌</span><span class="alert-text">'+esc(res.message)+'</span></div>'; return;
+        '<div class="alert alert-err"><span class="alert-icon">&#10060;</span><span class="alert-text">'+esc(res.message)+'</span></div>'; return;
     }
     renderRekap(res.data);
   });
@@ -5473,12 +5687,15 @@ function muatRekap() {
 function renderRekap(d) {
   var html = '';
   var s = getSession();
-  // [Fix] Cover role 'admin' (Supabase) dan 'adminUlp' (legacy AppScript)
-  var isAdminUlp = s && (s.role === 'admin' || s.role === 'adminUlp') && s.ulp;
+  var isNonSuperadmin = s && s.role !== 'superadmin' && s.ulp;
 
-  // [Fix Rekap] Tampilkan label ULP jika login sebagai adminUlp
-  if (isAdminUlp) {
-    html += '<div style="background:linear-gradient(90deg,var(--pln-biru),var(--pln-biru2));color:#fff;border-radius:var(--radius);padding:var(--sp-sm) var(--sp-md);margin-bottom:var(--sp-sm);font-size:var(--fs-xs);font-weight:700;">🏢 Data Rekap: '+esc(s.ulp)+'</div>';
+  // Tampilkan label ULP untuk non-superadmin (admin ULP & petugas)
+  if (isNonSuperadmin) {
+    var roleLabel = s.role === 'petugas' ? 'Petugas' : 'Admin ULP';
+    html += '<div style="background:linear-gradient(90deg,var(--pln-biru),var(--pln-biru2));color:#fff;border-radius:var(--radius);padding:var(--sp-sm) var(--sp-md);margin-bottom:var(--sp-sm);font-size:var(--fs-xs);font-weight:700;display:flex;align-items:center;gap:8px;">'+
+      '<span style="font-size:16px;">&#127962;</span>'+
+      '<span>Data Rekap: <b>'+esc(s.ulp)+'</b> &nbsp;&#183;&nbsp; Login sebagai '+esc(roleLabel)+'</span>'+
+      '</div>';
   }
 
   // ── Total daya: gunakan data.totalKva dari server (fn_get_rekap v11)
@@ -5622,7 +5839,7 @@ function renderRekap(d) {
 
 
   // ── Per ULP progress bar (hanya untuk superadmin) ──
-  if (!isAdminUlp) {
+  if (!isNonSuperadmin) {
     html += '<div class="sec">Progress Inspeksi Per ULP</div>';
     html += '<div class="card"><div class="ulp-bar-list">';
     Object.keys(d.perULP||{}).sort().forEach(function(ulp){
@@ -5681,9 +5898,8 @@ var KRITIS_PAGE_SIZE = 20;
 function muatGarduKritis() {
   var s = getSession();
   var params = { action: 'getGarduKritis' };
-  // [Fix] Cover role 'admin' (Supabase) dan 'adminUlp' (legacy AppScript)
-  // Kirim ULP apa adanya — _getGarduKritis di supabase-api.js akan normalisasi ke 'ULP XXXX'
-  if (s && (s.role === 'admin' || s.role === 'adminUlp') && s.ulp) {
+  // Superadmin lihat semua, admin ULP & petugas filter ke ULP masing-masing
+  if (s && s.role !== 'superadmin' && s.ulp) {
     params.ulp = s.ulp;
   }
   apiGet(params, function(res) {
@@ -5691,16 +5907,15 @@ function muatGarduKritis() {
     if (!el) return;
     if (res.status !== 'ok') {
       el.innerHTML = '<div class="alert alert-err" style="margin:var(--sp-sm);">' +
-        '<span class="alert-icon">❌</span>' +
+        '<span class="alert-icon">&#10060;</span>' +
         '<span class="alert-text">' + esc(res.message || 'Gagal memuat data kritis.') + ' ' +
-        '<button class="btn btn-outline" style="margin-top:8px;min-width:120px;" onclick="muatGarduKritis()">↻ Coba Lagi</button>' +
+        '<button class="btn btn-outline" style="margin-top:8px;min-width:120px;" onclick="muatGarduKritis()">&#8635; Coba Lagi</button>' +
         '</span></div>';
       return;
     }
     var d = res.data;
     // Filter sisi klien sebagai pengaman tambahan
-    // Normalisasi ULP session ke format 'ULP XXXX' untuk perbandingan
-    if (s && (s.role === 'admin' || s.role === 'adminUlp') && s.ulp) {
+    if (s && s.role !== 'superadmin' && s.ulp) {
       var ulpEnum = _normalizeUlpEnumClient(s.ulp);
       if (d.bebanLebih) d.bebanLebih = d.bebanLebih.filter(function(g){ return _normalizeUlpEnumClient(g.ulp||'') === ulpEnum; });
       if (d.overdue)    d.overdue    = d.overdue.filter(function(g){    return _normalizeUlpEnumClient(g.ulp||'') === ulpEnum; });
@@ -7397,15 +7612,10 @@ function renderTabelPengukuran() {
       var bebanColor = prosen === null ? '#94A3B8' : prosen > 80 ? 'var(--pln-red)' : prosen > 60 ? 'var(--pln-orange)' : 'var(--pln-green)';
       var bebanPct = prosen !== null ? Math.min(100, prosen) : 0;
       var noGardu = r['NO_GARDU'] || r['NOGARDU'] || '—';
-      var _gCard = garduIndex[(noGardu||'').trim().toUpperCase()] || {};
-      var _penyulangCard = r['PENYULANG'] || _gCard['PENYULANG'] || '';
-      var _alamatCard    = r['ALAMAT']    || _gCard['ALAMAT']    || '';
       html += '<div class="pm-list-card" onclick="bukaDetailGarduDariPengukuran(\''+esc(noGardu)+'\')">';
       html += '<div class="pm-list-header">';
       html += '<div style="flex:1;min-width:0;">';
       html += '<div style="font-size:var(--fs-xs);font-weight:800;color:var(--pln-biru2);">'+esc(noGardu)+'</div>';
-      if (_penyulangCard) html += '<div style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;margin-top:1px;">⚡ '+esc(_penyulangCard)+'</div>';
-      if (_alamatCard) html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 '+esc(_alamatCard)+'</div>';
       html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:2px;">📅 '+esc(formatTgl(r['TGLUKUR'])||r['TGLUKUR']||'—')+(r['JAM UKUR']?' · 🕐 '+esc(r['JAM UKUR']):'')+'</div>';
       html += '</div><span class="badge '+bc+'">'+prosenLabel+'</span></div>';
       html += '<div class="pm-list-body"><div style="margin-bottom:6px;">';
@@ -7425,7 +7635,7 @@ function renderTabelPengukuran() {
     html += '<table style="width:100%;border-collapse:collapse;font-size:var(--fs-xs);">';
     html += '<thead>';
     html += '<tr style="background:var(--pln-biru);color:#fff;">';
-    ['NO','NO GARDU','PENYULANG','ALAMAT','DAYA (kVA)','FASA','DAYA PAKAI','PROSEN %','TDK SEIMBANG','JAM UKUR','TGL UKUR','PETUGAS','STATUS'].forEach(function(h) {
+    ['NO','NO GARDU','DAYA (kVA)','FASA','DAYA PAKAI','PROSEN %','TDK SEIMBANG','JAM UKUR','TGL UKUR','PETUGAS','STATUS'].forEach(function(h) {
       html += '<th style="padding:10px 12px;text-align:left;white-space:nowrap;font-weight:700;font-size:11px;letter-spacing:.3px;">'+h+'</th>';
     });
     html += '</tr></thead><tbody>';
@@ -7439,12 +7649,7 @@ function renderTabelPengukuran() {
       var rowBg = i % 2 === 0 ? '#fff' : '#F8FAFD';
       html += '<tr style="background:'+rowBg+';cursor:pointer;transition:background .1s;" onclick="bukaDetailGarduDariPengukuran(\''+esc(noGardu)+'\')" onmouseover="this.style.background=\'#EEF4FF\'" onmouseout="this.style.background=\''+rowBg+'\'">';
       html += '<td style="padding:9px 12px;color:var(--pln-text3);">'+(start+i+1)+'</td>';
-      var _gIdx = garduIndex[noGardu.trim().toUpperCase()] || {};
-      var _penyulang = r['PENYULANG'] || _gIdx['PENYULANG'] || '—';
-      var _alamat    = r['ALAMAT']    || _gIdx['ALAMAT']    || '—';
       html += '<td style="padding:9px 12px;font-weight:700;color:var(--pln-biru2);">'+esc(noGardu)+'</td>';
-      html += '<td style="padding:9px 12px;">'+esc(_penyulang)+'</td>';
-      html += '<td style="padding:9px 12px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+esc(_alamat)+'">'+esc(_alamat)+'</td>';
       html += '<td style="padding:9px 12px;text-align:right;">'+esc(r['DAYA']||r['KAPASITAS_KVA']||'—')+'</td>';
       html += '<td style="padding:9px 12px;text-align:center;">'+esc(r['FASA']||'—')+'</td>';
       html += '<td style="padding:9px 12px;text-align:right;">'+esc(r['DAYA PAKAI']||'—')+'</td>';
