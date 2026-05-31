@@ -79,7 +79,8 @@ body{
 .topbar{
   background:var(--pln-biru);
   padding:0 var(--sp-md);
-  height:var(--topbar-h);
+  padding-top: env(safe-area-inset-top, 0px);
+  height:calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
   display:flex;align-items:center;gap:var(--sp-sm);
   position:sticky;top:0;z-index:100;
   box-shadow:0 1px 0 rgba(255,255,255,.08), 0 4px 20px rgba(10,45,107,.35);
@@ -615,6 +616,19 @@ body{
   border-radius:var(--radius-sm);padding:var(--sp-sm) var(--sp-md);
   margin-top:var(--sp-xs);font-size:var(--fs-xs);color:#A8071A;
   line-height:1.6;
+}
+
+/* ══ FORM VIEWS — Mobile safe area top fix ══════════════════ */
+@media(max-width:767px){
+  #form-inspeksi-view,
+  #form-pemeliharaan-view {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  /* Ensure detail-view topbar is always at the very top */
+  #detail-view > .topbar {
+    padding-top: env(safe-area-inset-top, 0px);
+    height: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+  }
 }
 
 /* ══ FORM INSPEKSI — Slide animation & jurusan card ══════════ */
@@ -3235,7 +3249,10 @@ function renderDetailGardu(g, riwayat){
   if (hasGps) {
     var embedUrl = 'https://maps.google.com/maps?q='+lat+','+lon+'&z=17&output=embed';
     html += '<div class="gps-map-wrap" style="cursor:pointer;position:relative;margin-bottom:var(--sp-sm);" onclick="window.open(\''+mapsUrl+'\',\'_blank\',\'noopener\')">';
-    html += '<iframe src="'+embedUrl+'" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Lokasi Gardu" style="width:100%;height:clamp(140px,35vw,180px);border:0;pointer-events:none;display:block;"></iframe>';
+    html += '<div style="width:100%;height:clamp(140px,35vw,180px);background:linear-gradient(135deg,#e8edf2,#d5dce8);display:flex;align-items:center;justify-content:center;position:relative;">';
+    html += '<span style="font-size:28px;opacity:.35;">🗺️</span>';
+    html += '<iframe src="'+embedUrl+'" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Lokasi Gardu" style="position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none;"></iframe>';
+    html += '</div>';
     html += '<div class="gps-map-overlay">';
     html += '<div class="gps-map-badge">🗺️ Buka Google Maps</div>';
     html += '</div>';
@@ -7347,10 +7364,15 @@ function renderTabelPengukuran() {
       var bebanColor = prosen === null ? '#94A3B8' : prosen > 80 ? 'var(--pln-red)' : prosen > 60 ? 'var(--pln-orange)' : 'var(--pln-green)';
       var bebanPct = prosen !== null ? Math.min(100, prosen) : 0;
       var noGardu = r['NO_GARDU'] || r['NOGARDU'] || '—';
+      var _gCard = garduIndex[(noGardu||'').trim().toUpperCase()] || {};
+      var _penyulangCard = r['PENYULANG'] || _gCard['PENYULANG'] || '';
+      var _alamatCard    = r['ALAMAT']    || _gCard['ALAMAT']    || '';
       html += '<div class="pm-list-card" onclick="bukaDetailGarduDariPengukuran(\''+esc(noGardu)+'\')">';
       html += '<div class="pm-list-header">';
-      html += '<div>';
+      html += '<div style="flex:1;min-width:0;">';
       html += '<div style="font-size:var(--fs-xs);font-weight:800;color:var(--pln-biru2);">'+esc(noGardu)+'</div>';
+      if (_penyulangCard) html += '<div style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;margin-top:1px;">⚡ '+esc(_penyulangCard)+'</div>';
+      if (_alamatCard) html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 '+esc(_alamatCard)+'</div>';
       html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:2px;">📅 '+esc(formatTgl(r['TGLUKUR'])||r['TGLUKUR']||'—')+(r['JAM UKUR']?' · 🕐 '+esc(r['JAM UKUR']):'')+'</div>';
       html += '</div><span class="badge '+bc+'">'+prosenLabel+'</span></div>';
       html += '<div class="pm-list-body"><div style="margin-bottom:6px;">';
@@ -7384,9 +7406,12 @@ function renderTabelPengukuran() {
       var rowBg = i % 2 === 0 ? '#fff' : '#F8FAFD';
       html += '<tr style="background:'+rowBg+';cursor:pointer;transition:background .1s;" onclick="bukaDetailGarduDariPengukuran(\''+esc(noGardu)+'\')" onmouseover="this.style.background=\'#EEF4FF\'" onmouseout="this.style.background=\''+rowBg+'\'">';
       html += '<td style="padding:9px 12px;color:var(--pln-text3);">'+(start+i+1)+'</td>';
+      var _gIdx = garduIndex[noGardu.trim().toUpperCase()] || {};
+      var _penyulang = r['PENYULANG'] || _gIdx['PENYULANG'] || '—';
+      var _alamat    = r['ALAMAT']    || _gIdx['ALAMAT']    || '—';
       html += '<td style="padding:9px 12px;font-weight:700;color:var(--pln-biru2);">'+esc(noGardu)+'</td>';
-      html += '<td style="padding:9px 12px;">'+esc(r['PENYULANG']||'—')+'</td>';
-      html += '<td style="padding:9px 12px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+esc(r['ALAMAT']||'')+'">'+esc(r['ALAMAT']||'—')+'</td>';
+      html += '<td style="padding:9px 12px;">'+esc(_penyulang)+'</td>';
+      html += '<td style="padding:9px 12px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+esc(_alamat)+'">'+esc(_alamat)+'</td>';
       html += '<td style="padding:9px 12px;text-align:right;">'+esc(r['DAYA']||r['KAPASITAS_KVA']||'—')+'</td>';
       html += '<td style="padding:9px 12px;text-align:center;">'+esc(r['FASA']||'—')+'</td>';
       html += '<td style="padding:9px 12px;text-align:right;">'+esc(r['DAYA PAKAI']||'—')+'</td>';
