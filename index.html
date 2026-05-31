@@ -1961,7 +1961,12 @@ if (typeof L === 'undefined') {
       <div style="font-weight:700;margin-bottom:var(--sp-sm);" id="user-form-title">Tambah User</div>
       <input type="hidden" id="uf-edit-idx" value="">
       <div class="form-group"><label class="form-label">Username *</label><input id="uf-username" class="form-input" placeholder="Contoh: petugas_abe1" autocorrect="off" autocapitalize="none"></div>
-      <div class="form-group"><label class="form-label">Password *</label><input id="uf-password" class="form-input" type="password" placeholder="Min 4 karakter"></div>
+      <div class="form-group"><label class="form-label">Password * <span style="font-weight:400;opacity:.6;">(kosongkan jika tidak diubah)</span></label>
+        <div style="position:relative;">
+          <input id="uf-password" class="form-input" type="password" placeholder="Min 4 karakter" style="padding-right:44px;">
+          <button type="button" id="btn-toggle-uf-pass" onclick="toggleUfPassword()" title="Tampilkan/Sembunyikan password" style="position:absolute;right:0;top:0;height:100%;width:44px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--pln-text3);display:flex;align-items:center;justify-content:center;">👁️</button>
+        </div>
+      </div>
       <div class="form-group"><label class="form-label">Nama Lengkap *</label><input id="uf-nama" class="form-input" placeholder="Nama petugas"></div>
       <div class="form-group"><label class="form-label">Role *</label>
         <select id="uf-role" class="form-select" onchange="onUFRoleChange()">
@@ -2016,7 +2021,7 @@ if (typeof L === 'undefined') {
         <label class="form-label">Password * <span style="font-weight:400;opacity:.6;">(kosongkan jika tidak diubah)</span></label>
         <div style="position:relative;">
           <input id="uuf-password" class="form-input" type="password" placeholder="Min 4 karakter" style="padding-right:44px;">
-          <button type="button" onclick="toggleUufPassword()" title="Tampilkan/Sembunyikan password" style="position:absolute;right:0;top:0;height:100%;width:44px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--pln-text3);display:flex;align-items:center;justify-content:center;" id="btn-toggle-uuf-pass">👁️</button>
+          <button type="button" id="btn-toggle-uuf-pass" onclick="toggleUufPassword()" title="Tampilkan/Sembunyikan password" style="position:absolute;right:0;top:0;height:100%;width:44px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--pln-text3);display:flex;align-items:center;justify-content:center;">👁️</button>
         </div>
       </div>
       <div class="form-group">
@@ -2393,18 +2398,6 @@ function toggleShowPassword() {
   }
 }
 
-function toggleUufPassword() {
-  var inp = document.getElementById('uuf-password');
-  var btn = document.getElementById('btn-toggle-uuf-pass');
-  if (inp.type === 'password') {
-    inp.type = 'text';
-    if (btn) btn.textContent = '🙈';
-  } else {
-    inp.type = 'password';
-    if (btn) btn.textContent = '👁️';
-  }
-}
-
 // Fungsi login
 function doLogin() {
   var username = (document.getElementById('login-username').value || '').trim().toLowerCase();
@@ -2708,17 +2701,27 @@ function renderUserList() {
     }
     var users = res.data || [];
     wrap._userCache = users;
+    if (!users.length) {
+      wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--pln-text3);font-size:var(--fs-sm);">Belum ada user.</div>';
+      return;
+    }
     var html = '<div class="user-table-row user-table-head"><span>User</span><span>Role / ULP</span><span></span><span></span></div>';
     users.forEach(function(u, i) {
-      var roleStr = u.role === 'superadmin' ? '⭐ Super Admin' : u.role === 'admin' ? '🟢 Admin ULP' : '🔵 Petugas';
-      var ulpStr  = u.ulp ? ('<br><span style="opacity:.6;font-size:9px;">'+esc(u.ulp)+'</span>') : '';
-      var pinBadge = u.hasPIN ? '<span style="font-size:9px;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 5px;margin-left:4px;">🔑 PIN ✓</span>' : '<span style="font-size:9px;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 5px;margin-left:4px;">🔑 Belum set PIN</span>';
-      var canDel  = u.role !== 'superadmin';
+      var isAktif   = !u.aktif || (u.aktif||'').toUpperCase() === 'YA';
+      var roleStr   = u.role === 'superadmin' ? '⭐ Super Admin' : u.role === 'admin' ? '🟢 Admin ULP' : '🔵 Petugas';
+      var ulpStr    = u.ulp ? ('<br><span style="opacity:.6;font-size:9px;">'+esc(u.ulp)+'</span>') : '';
+      var pinBadge  = u.hasPIN
+        ? '<span style="font-size:9px;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 5px;margin-left:4px;">🔑 PIN ✓</span>'
+        : '<span style="font-size:9px;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 5px;margin-left:4px;">🔑 Belum PIN</span>';
+      var aktifBadge = isAktif
+        ? '<span style="font-size:9px;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 5px;margin-left:4px;">✅ Aktif</span>'
+        : '<span style="font-size:9px;background:#FEE2E2;color:#991B1B;border-radius:4px;padding:1px 5px;margin-left:4px;">🚫 Nonaktif</span>';
+      var canDel = u.role !== 'superadmin';
       html += '<div class="user-table-row">';
-      html += '<span><b>'+esc(u.username)+'</b><br><span style="opacity:.6;font-size:9px;">'+esc(u.nama)+'</span>'+pinBadge+'</span>';
+      html += '<span><b>'+esc(u.username)+'</b><br><span style="opacity:.6;font-size:9px;">'+esc(u.nama)+'</span>'+pinBadge+aktifBadge+'</span>';
       html += '<span>'+roleStr+ulpStr+'</span>';
       html += '<button class="user-action-btn btn-edit-user" onclick="editUser('+i+',null)">✏️ Edit</button>';
-      html += canDel ? '<button class="user-action-btn btn-del-user" onclick="hapusUser(\'' + esc(u.username) + '\')">🗑️</button>' : '<span></span>';
+      html += canDel ? '<button class="user-action-btn btn-del-user" onclick="hapusUser(\''+esc(u.username)+'\',\''+esc(u.nama)+'\')">🗑️</button>' : '<span></span>';
       html += '</div>';
     });
     wrap.innerHTML = html;
@@ -2810,8 +2813,9 @@ function simpanUser() {
   });
 }
 
-function hapusUser(username) {
-  if (!confirm('Hapus user "' + username + '"? Tindakan ini tidak bisa dibatalkan.')) return;
+function hapusUser(username, nama) {
+  var label = nama ? '"' + nama + '" (' + username + ')' : '"' + username + '"';
+  if (!confirm('Hapus akun ' + label + '?\n\nUser ini tidak akan bisa login lagi.\nTindakan ini tidak bisa dibatalkan.')) return;
   var s = getSession();
   apiGet({ action: 'hapusUser', token: s ? s.token : '', username: username }, function(res) {
     if (res.status === 'ok') { renderUserList(); }
@@ -2847,7 +2851,6 @@ function renderUserListULP() {
       wrap.innerHTML = '<div style="color:var(--pln-red);padding:16px;">Gagal memuat: ' + esc(res.message||'error') + '</div>';
       return;
     }
-    // Filter hanya user dari ULP yang sama (kecuali superadmin — tidak ditampilkan)
     var myULP = (s.ulp || '').toUpperCase();
     var users = (res.data || []).filter(function(u) {
       return u.role !== 'superadmin' && (u.ulp || '').toUpperCase() === myULP;
@@ -2857,17 +2860,41 @@ function renderUserListULP() {
       wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--pln-text3);font-size:var(--fs-sm);">Belum ada user untuk '+esc(s.ulp)+'.<br>Klik <b>+ Tambah User</b> untuk menambahkan.</div>';
       return;
     }
-    var html = '<div class="user-table-row user-table-head" style="grid-template-columns:1fr 1fr auto auto;"><span>User</span><span>Role</span><span></span><span></span></div>';
+    var html = '';
     users.forEach(function(u, i) {
-      var roleStr = u.role === 'admin' ? '&#128994; Admin ULP' : '&#128309; Petugas';
-      var pinBadge = u.hasPIN
-        ? '<span style="font-size:9px;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 5px;margin-left:4px;">&#128273; PIN &#10003;</span>'
-        : '<span style="font-size:9px;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 5px;margin-left:4px;">&#128273; Belum PIN</span>';
-      html += '<div class="user-table-row" style="grid-template-columns:1fr 1fr auto auto;">';
-      html += '<span><b>'+esc(u.username)+'</b><br><span style="opacity:.6;font-size:9px;">'+esc(u.nama)+'</span>'+pinBadge+'</span>';
-      html += '<span>'+roleStr+'</span>';
-      html += '<button class="user-action-btn btn-edit-user" onclick="editUserULP('+i+')">&#9999;&#65039; Edit</button>';
-      html += '<button class="user-action-btn btn-del-user" onclick="hapusUserULP(\''+esc(u.username)+'\')">&#128465;&#65039;</button>';
+      var isAktif   = !u.aktif || (u.aktif||'').toUpperCase() === 'YA';
+      var roleStr   = u.role === 'admin' ? '&#128994; Admin ULP' : '&#128309; Petugas';
+      var pinBadge  = u.hasPIN
+        ? '<span style="font-size:9px;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 5px;">&#128273; PIN &#10003;</span>'
+        : '<span style="font-size:9px;background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 5px;">&#128273; Belum PIN</span>';
+      var aktifBadge = isAktif
+        ? '<span style="font-size:9px;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 5px;">&#9989; Aktif</span>'
+        : '<span style="font-size:9px;background:#FEE2E2;color:#991B1B;border-radius:4px;padding:1px 5px;">&#128683; Nonaktif</span>';
+
+      html += '<div style="border-bottom:1px solid var(--pln-border);padding:10px 12px;">';
+      // Baris 1: info user
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">';
+      html += '<div style="flex:1;min-width:0;">';
+      html += '<div style="font-weight:700;font-size:var(--fs-sm);">'+esc(u.username)+'</div>';
+      html += '<div style="font-size:10px;color:var(--pln-text3);">'+esc(u.nama)+'</div>';
+      html += '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;">'+roleStr+'</div>';
+      html += '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;">'+aktifBadge+' '+pinBadge+'</div>';
+      html += '</div>';
+      // Tombol Edit & Hapus
+      html += '<div style="display:flex;gap:6px;flex-shrink:0;">';
+      html += '<button class="user-action-btn btn-edit-user" onclick="editUserULP('+i+')" style="font-size:11px;padding:4px 8px;">&#9999;&#65039; Edit</button>';
+      html += '<button class="user-action-btn btn-del-user" onclick="hapusUserULP(\''+esc(u.username)+'\',\''+esc(u.nama)+'\')" style="font-size:11px;padding:4px 8px;">&#128465;&#65039;</button>';
+      html += '</div></div>';
+      // Baris 2: tombol aksi tambahan
+      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">';
+      html += '<button onclick="resetPasswordULP(\''+esc(u.username)+'\')" style="flex:1;min-width:90px;font-size:10px;padding:5px 6px;border-radius:6px;border:1.5px solid var(--pln-border);background:var(--pln-bg);cursor:pointer;color:var(--pln-biru2);font-weight:600;">&#128273; Reset Password</button>';
+      html += '<button onclick="resetPinULP(\''+esc(u.username)+'\')" style="flex:1;min-width:80px;font-size:10px;padding:5px 6px;border-radius:6px;border:1.5px solid var(--pln-border);background:var(--pln-bg);cursor:pointer;color:#D97706;font-weight:600;">&#128221; Reset PIN</button>';
+      if (isAktif) {
+        html += '<button onclick="toggleAktifULP(\''+esc(u.username)+'\',false)" style="flex:1;min-width:90px;font-size:10px;padding:5px 6px;border-radius:6px;border:1.5px solid #FCA5A5;background:#FEF2F2;cursor:pointer;color:#991B1B;font-weight:600;">&#128683; Nonaktifkan</button>';
+      } else {
+        html += '<button onclick="toggleAktifULP(\''+esc(u.username)+'\',true)" style="flex:1;min-width:90px;font-size:10px;padding:5px 6px;border-radius:6px;border:1.5px solid #6EE7B7;background:#ECFDF5;cursor:pointer;color:#065F46;font-weight:600;">&#9989; Aktifkan</button>';
+      }
+      html += '</div>';
       html += '</div>';
     });
     wrap.innerHTML = html;
@@ -2958,8 +2985,9 @@ function simpanUserULP() {
   });
 }
 
-function hapusUserULP(username) {
-  if (!confirm('Hapus user "' + username + '"?\nTindakan ini tidak bisa dibatalkan.')) return;
+function hapusUserULP(username, nama) {
+  var label = nama ? '"' + nama + '" (' + username + ')' : '"' + username + '"';
+  if (!confirm('Hapus akun ' + label + '?\n\nUser ini tidak akan bisa login lagi.\nTindakan ini tidak bisa dibatalkan.')) return;
   var s = getSession();
   apiGet({ action: 'hapusUser', token: s ? s.token : '', username: username }, function(res) {
     if (res.status === 'ok') { renderUserListULP(); }
@@ -2967,6 +2995,71 @@ function hapusUserULP(username) {
   });
 }
 // ══ END KELOLA USER ULP ═══════════════════════════════════════
+
+// ── Toggle show/hide password — form Admin ULP ───────────────
+function toggleUufPassword() {
+  var inp = document.getElementById('uuf-password');
+  var btn = document.getElementById('btn-toggle-uuf-pass');
+  if (!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  if (btn) btn.textContent = inp.type === 'password' ? '👁️' : '🙈';
+}
+
+// ── Toggle show/hide password — form Superadmin ──────────────
+function toggleUfPassword() {
+  var inp = document.getElementById('uf-password');
+  var btn = document.getElementById('btn-toggle-uf-pass');
+  if (!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  if (btn) btn.textContent = inp.type === 'password' ? '👁️' : '🙈';
+}
+
+// ── Reset Password oleh Admin ULP ────────────────────────────
+function resetPasswordULP(username) {
+  var pw = prompt('Reset password untuk "' + username + '".\n\nMasukkan password baru (min 4 karakter):');
+  if (pw === null) return;
+  pw = pw.trim();
+  if (pw.length < 4) { alert('Password minimal 4 karakter.'); return; }
+  var s = getSession();
+  if (!s) return;
+  apiGet({ action: 'resetPassword', token: s.token, username: username, passwordBaru: pw }, function(res) {
+    if (res.status === 'ok') {
+      alert('✅ Password "' + username + '" berhasil direset.');
+    } else {
+      alert('Gagal reset password:\n' + (res.message || 'error'));
+    }
+  });
+}
+
+// ── Reset PIN oleh Admin ULP ─────────────────────────────────
+function resetPinULP(username) {
+  if (!confirm('Reset PIN untuk "' + username + '"?\n\nUser harus set PIN baru saat login berikutnya.')) return;
+  var s = getSession();
+  if (!s) return;
+  apiGet({ action: 'resetPin', token: s.token, username: username }, function(res) {
+    if (res.status === 'ok') {
+      alert('✅ PIN "' + username + '" berhasil direset.');
+      renderUserListULP();
+    } else {
+      alert('Gagal reset PIN:\n' + (res.message || 'error'));
+    }
+  });
+}
+
+// ── Aktifkan / Nonaktifkan user oleh Admin ULP ───────────────
+function toggleAktifULP(username, aktifkan) {
+  var aksi = aktifkan ? 'mengaktifkan' : 'menonaktifkan';
+  if (!confirm((aktifkan ? 'Aktifkan' : 'Nonaktifkan') + ' akun "' + username + '"?')) return;
+  var s = getSession();
+  if (!s) return;
+  apiGet({ action: 'aktifkanUser', token: s.token, username: username, aktifkan: aktifkan }, function(res) {
+    if (res.status === 'ok') {
+      renderUserListULP();
+    } else {
+      alert('Gagal ' + aksi + ' user:\n' + (res.message || 'error'));
+    }
+  });
+}
 
 // ══════════════════════════════════════════════════════════════
 //  KONFIGURASI & STATE
