@@ -1199,9 +1199,9 @@ if (typeof L === 'undefined') {
     <div class="topbar-info"><div class="topbar-sub">UP3 Jayapura</div><div class="topbar-title">SOP & Panduan</div></div>
   </div>
   <div class="page-body">
-    <div class="alert alert-info">📋 Standar Operasional Prosedur inspeksi dan pemeliharaan gardu distribusi PLN UP3 Jayapura.</div>
+    <div class="alert alert-info">📋 Standar Operasional Prosedur inspeksi dan pemeliharaan gardu PLN UP3 Jayapura.</div>
     <div class="sec">Pemeliharaan Gardu</div>
-    <div class="sop-card" onclick="bukaLinkSOP('LINK_SOP_PEMELIHARAAN_GARDU')"><div class="sop-icon">📄</div><div class="sop-info"><div class="sop-title">SOP Pemeliharaan Gardu Distribusi</div><div class="sop-sub">Prosedur pemeliharaan rutin gardu trafo distribusi</div></div><div class="sop-arrow">›</div></div>
+    <div class="sop-card" onclick="bukaLinkSOP('LINK_SOP_PEMELIHARAAN_GARDU')"><div class="sop-icon">📄</div><div class="sop-info"><div class="sop-title">SOP Pemeliharaan Gardu</div><div class="sop-sub">Prosedur pemeliharaan rutin gardu trafo distribusi</div></div><div class="sop-arrow">›</div></div>
     <div class="sec">Keselamatan Kerja</div>
     <div class="sop-card" onclick="bukaLinkSOP('LINK_SOP_K3')"><div class="sop-icon">⛑️</div><div class="sop-info"><div class="sop-title">SOP K3 Pekerjaan Tegangan Menengah</div><div class="sop-sub">Prosedur keselamatan kerja di area tegangan menengah</div></div><div class="sop-arrow">›</div></div>
   </div>
@@ -4858,7 +4858,7 @@ function generateXLSX(rows, periodeLabel, ulpFilter) {
 
   ws1.mergeCells('A2:H2');
   var subKop = ws1.getCell('A2');
-  subKop.value = 'LAPORAN REKAP INSPEKSI GARDU DISTRIBUSI';
+  subKop.value = 'LAPORAN REKAP INSPEKSI GARDU';
   subKop.style = {
     font:      { bold:true, size:12, color:{argb:C.plnBlue}, name:'Calibri' },
     fill:      { type:'pattern', pattern:'solid', fgColor:{argb:C.plnGold} },
@@ -5025,7 +5025,7 @@ function generateXLSX(rows, periodeLabel, ulpFilter) {
 
   // Baris 1-2: Header judul
   ws2.mergeCells('A1:T1');
-  ws2.getCell('A1').value = 'PT. PLN (PERSERO) UP3 JAYAPURA — DATA LENGKAP GARDU DISTRIBUSI';
+  ws2.getCell('A1').value = 'PT. PLN (PERSERO) UP3 JAYAPURA — DATA LENGKAP GARDU';
   ws2.getCell('A1').style = { font:{bold:true,size:13,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnBlue}}, alignment:{horizontal:'center',vertical:'middle'} };
   ws2.getRow(1).height = 26;
 
@@ -5379,7 +5379,7 @@ function generatePrintHTML(rows, periodeLabel, ulpFilter) {
   parts.push('<head>');
   parts.push('<meta charset="UTF-8">');
   parts.push('<meta name="viewport" content="width=device-width,initial-scale=1">');
-  parts.push('<title>Laporan Gardu Distribusi - PT. PLN UP3 Jayapura</title>');
+  parts.push('<title>Laporan Gardu - PT. PLN UP3 Jayapura</title>');
   parts.push('<style>');
   parts.push('@media print{@page{size:A4 landscape;margin:12mm;}');
   parts.push('body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}');
@@ -5430,11 +5430,11 @@ function generatePrintHTML(rows, periodeLabel, ulpFilter) {
   parts.push('<div class="kop-right">');
   parts.push('<div class="kop-r1">PT. PLN (PERSERO)</div>');
   parts.push('<div class="kop-r2">UNIT PELAKSANA PELAYANAN PELANGGAN (UP3) JAYAPURA</div>');
-  parts.push('<div class="kop-r3">Laporan Rekap Inspeksi Gardu Distribusi</div>');
+  parts.push('<div class="kop-r3">Laporan Rekap Inspeksi Gardu</div>');
   parts.push('</div></div>');
 
   // Judul
-  parts.push('<h2>Laporan Rekap Inspeksi Gardu Distribusi</h2>');
+  parts.push('<h2>Laporan Rekap Inspeksi Gardu</h2>');
   parts.push('<div class="sub">Periode: ' + periodeLabel + ' &nbsp;|&nbsp; ULP: ' + ulpLabel + ' &nbsp;|&nbsp; Tanggal Cetak: ' + tglCetak + '</div>');
 
   // Statistik
@@ -7774,7 +7774,7 @@ function exportPengukuranExcel() {
 
       ws1.mergeCells('A2:H2');
       var k2 = ws1.getCell('A2');
-      k2.value = 'LAPORAN RIWAYAT PENGUKURAN GARDU DISTRIBUSI';
+      k2.value = 'LAPORAN RIWAYAT PENGUKURAN GARDU';
       k2.style = { font:{bold:true,size:12,color:{argb:C.plnBlue},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnGold}}, alignment:{horizontal:'center',vertical:'middle'} };
       ws1.getRow(2).height = 22;
 
@@ -7879,7 +7879,7 @@ function exportPengukuranExcel() {
       ];
 
       ws2.mergeCells('A1:AF1');
-      ws2.getCell('A1').value = 'PT. PLN (PERSERO) UP3 JAYAPURA — DATA LENGKAP PENGUKURAN GARDU DISTRIBUSI';
+      ws2.getCell('A1').value = 'PT. PLN (PERSERO) UP3 JAYAPURA — DATA LENGKAP PENGUKURAN GARDU';
       ws2.getCell('A1').style = { font:{bold:true,size:13,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnBlue}}, alignment:{horizontal:'center',vertical:'middle'} };
       ws2.getRow(1).height = 26;
 
@@ -8123,7 +8123,7 @@ function exportPemeliharaanExcel() {
 
       ws1.mergeCells('A2:H2');
       var k2 = ws1.getCell('A2');
-      k2.value = 'LAPORAN PEMELIHARAAN GARDU DISTRIBUSI';
+      k2.value = 'LAPORAN PEMELIHARAAN GARDU';
       k2.style = { font:{bold:true,size:12,color:{argb:C.plnBlue},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnGold}}, alignment:{horizontal:'center',vertical:'middle'} };
       ws1.getRow(2).height = 22;
 
@@ -8224,7 +8224,7 @@ function exportPemeliharaanExcel() {
       ];
 
       ws2.mergeCells('A1:G1');
-      ws2.getCell('A1').value = 'PT. PLN (PERSERO) UP3 JAYAPURA — DATA LENGKAP PEMELIHARAAN GARDU DISTRIBUSI';
+      ws2.getCell('A1').value = 'PT. PLN (PERSERO) UP3 JAYAPURA — DATA LENGKAP PEMELIHARAAN GARDU';
       ws2.getCell('A1').style = { font:{bold:true,size:13,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnBlue}}, alignment:{horizontal:'center',vertical:'middle'} };
       ws2.getRow(1).height = 26;
 
