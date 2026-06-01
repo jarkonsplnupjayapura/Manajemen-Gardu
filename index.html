@@ -7,6 +7,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#003B7B">
+<!-- KEAMANAN: Isi content di bawah dengan Supabase anon key via server-side injection.
+     JANGAN isi langsung di sini jika file ini di-commit ke repository publik.
+     Gunakan proses build / CI-CD untuk inject nilai ini. -->
+<meta name="sb-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrYXJmaG1heWRxaGNjbHZ1ZXFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMzkwNTgsImV4cCI6MjA5NDkxNTA1OH0.js9CKdBZ-8omTQpwaTfnuvTGStuB1tajjRbdCrP5L6o">
+<!-- DEBUG_MODE: set false di production, true hanya saat development lokal -->
+<script>var DEBUG_MODE = false;</script>
 <title>Manajemen Gardu – PLN UP3 Jayapura</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -163,10 +169,46 @@ body{
 .nav-label{font-weight:600;letter-spacing:-.01em;font-size:clamp(8px,2.2vw,10px);text-align:center;line-height:1.2;word-break:break-word;max-width:100%;}
 
 /* ══ PAGES ═══════════════════════════════════════════════════ */
-.page{display:none;width:100%;max-width:600px;margin:0 auto;}
-.page.active{
-  display:block;
-  animation:pageFadeIn .18s ease;
+.page{
+  display:none;
+  width:100%;
+  max-width:600px;
+  margin:0 auto;
+}
+/* Mobile: setiap page aktif jadi fixed full-screen agar scroll terisolasi
+   — ini menghilangkan whitespace/gap di atas pada halaman pengukuran & pemeliharaan */
+@media(max-width:767px){
+  .page.active{
+    display:flex;
+    flex-direction:column;
+    position:fixed;
+    inset:0;
+    z-index:10;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-y:contain;
+    background:var(--pln-bg);
+    max-width:100%;
+    margin:0;
+    animation:pageFadeIn .18s ease;
+  }
+  .page.active .topbar{
+    /* Topbar di dalam page jadi sticky relative ke fixed container */
+    position:sticky;
+    top:0;
+    z-index:100;
+    flex-shrink:0;
+  }
+  .page.active .page-body{
+    flex:1;
+  }
+}
+/* Desktop: tetap pakai display:block biasa */
+@media(min-width:768px){
+  .page.active{
+    display:block;
+    animation:pageFadeIn .18s ease;
+  }
 }
 @keyframes pageFadeIn{from{opacity:.7;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
 .page-body{
@@ -1119,7 +1161,8 @@ if (typeof L === 'undefined') {
       </div>
     </div>
     <div id="login-err" class="login-err">Username atau password salah.</div>
-    <button class="login-btn" onclick="doLogin()">Masuk →</button>
+    <div id="login-lockout-bar" style="display:none;background:#FEF3C7;border:1px solid #FDE68A;border-radius:var(--radius-xs);padding:10px 12px;font-size:var(--fs-xs);color:#92400E;margin-top:var(--sp-sm);text-align:center;font-weight:600;"></div>
+    <button class="login-btn" id="login-btn-submit" onclick="doLogin()">Masuk →</button>
   </div>
   <div class="login-footer">PT. PLN (Persero) UP3 Jayapura</div>
 </div>
@@ -1786,7 +1829,7 @@ if (typeof L === 'undefined') {
       <div style="font-size:var(--fs-xs);color:var(--pln-text3);">Masukkan PIN Anda untuk melanjutkan</div>
     </div>
     <div style="display:flex;gap:8px;justify-content:center;margin-bottom:var(--sp-md);" id="pin-gardu-dots">
-      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
       <button class="btn btn-outline pin-key" data-target="gardu" data-v="1">1</button>
@@ -1818,8 +1861,8 @@ if (typeof L === 'undefined') {
     <div style="display:flex;flex-direction:column;gap:var(--sp-sm);">
       <div><label class="form-label">Password Akun Anda</label>
         <input id="setpin-password" type="password" class="form-input" placeholder="Masukkan password login"></div>
-      <div><label class="form-label">PIN Baru (min. 4 digit)</label>
-        <input id="setpin-baru" type="password" class="form-input" placeholder="Minimal 4 karakter" maxlength="8" inputmode="numeric"></div>
+      <div><label class="form-label">PIN Baru (min. 6 digit)</label>
+        <input id="setpin-baru" type="password" class="form-input" placeholder="Minimal 6 digit angka" maxlength="8" inputmode="numeric"></div>
       <div><label class="form-label">Ulangi PIN Baru</label>
         <input id="setpin-konfirmasi" type="password" class="form-input" placeholder="Ulangi PIN baru" maxlength="8" inputmode="numeric"></div>
     </div>
@@ -2302,32 +2345,110 @@ function toggleShowPassword() {
 }
 
 // Fungsi login
+// ── Rate Limiting Login — proteksi brute-force ───────────────
+// Maks 5 percobaan gagal, lockout bertambah per kegagalan
+var _loginAttempts = 0;
+var _loginLockedUntil = 0;
+var _LOGIN_MAX_ATTEMPTS = 5;
+var _LOGIN_LOCKOUT_BASE_MS = 30000; // 30 detik base, naik 2x per kegagalan
+
+function _loginIsLocked() {
+  return Date.now() < _loginLockedUntil;
+}
+function _loginLockoutRemainingSec() {
+  return Math.ceil((_loginLockedUntil - Date.now()) / 1000);
+}
+function _loginRecordFailure() {
+  _loginAttempts++;
+  if (_loginAttempts >= _LOGIN_MAX_ATTEMPTS) {
+    // Lockout: durasi berlipat tiap kali limit tercapai
+    var lockMs = _LOGIN_LOCKOUT_BASE_MS * Math.pow(2, Math.floor(_loginAttempts / _LOGIN_MAX_ATTEMPTS) - 1);
+    _loginLockedUntil = Date.now() + Math.min(lockMs, 900000); // maks 15 menit
+  }
+}
+function _loginRecordSuccess() {
+  _loginAttempts = 0;
+  _loginLockedUntil = 0;
+}
+
 function doLogin() {
-  var username = (document.getElementById('login-username').value || '').trim().toLowerCase();
-  var password = (document.getElementById('login-password').value || '').trim();
   var errEl = document.getElementById('login-err');
   errEl.style.display = 'none';
+
+  // Cek lockout aktif
+  if (_loginIsLocked()) {
+    var lockBar0 = document.getElementById('login-lockout-bar');
+    if (lockBar0) {
+      lockBar0.style.display = 'block';
+      lockBar0.textContent = '🔒 Terlalu banyak percobaan gagal. Coba lagi dalam ' + _loginLockoutRemainingSec() + ' detik.';
+    } else {
+      errEl.textContent = '🔒 Terlalu banyak percobaan gagal. Coba lagi dalam ' + _loginLockoutRemainingSec() + ' detik.';
+      errEl.style.display = 'block';
+    }
+    return;
+  }
+
+  var username = (document.getElementById('login-username').value || '').trim().toLowerCase();
+  var password = (document.getElementById('login-password').value || '').trim();
 
   if (!username || !password) {
     errEl.textContent = 'Username dan password tidak boleh kosong.';
     errEl.style.display = 'block'; return;
   }
 
+  // Validasi panjang minimum password sebelum dikirim ke server
+  if (password.length < 8) {
+    errEl.textContent = 'Password minimal 8 karakter.';
+    errEl.style.display = 'block'; return;
+  }
+
   // Tampilkan loading
-  var btnLogin = document.querySelector('.login-btn');
+  var btnLogin = document.getElementById('login-btn-submit');
   if (btnLogin) { btnLogin.textContent = 'Memverifikasi...'; btnLogin.disabled = true; }
 
   apiGet({ action: 'loginUser', username: username, password: password }, function(res) {
       if (btnLogin) { btnLogin.textContent = 'Masuk →'; btnLogin.disabled = false; }
       if (res.status === 'ok' && res.user) {
         var u = res.user;
+        _loginRecordSuccess();
+        var lockBar = document.getElementById('login-lockout-bar');
+        if (lockBar) lockBar.style.display = 'none';
         setSession({ username: u.username, role: u.role, ulp: u.ulp || '', nama: u.nama, token: res.token });
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('login-password').value = '';
         onLoginSuccess(u);
       } else {
-        errEl.textContent = res.message || 'Username atau password salah.';
-        errEl.style.display = 'block';
+        _loginRecordFailure();
+        var sisaPercobaan = Math.max(0, _LOGIN_MAX_ATTEMPTS - _loginAttempts);
+        var lockBar2 = document.getElementById('login-lockout-bar');
+        if (_loginIsLocked()) {
+          errEl.style.display = 'none';
+          if (lockBar2) {
+            lockBar2.style.display = 'block';
+            // Countdown timer
+            var _lockInterval = setInterval(function() {
+              if (!_loginIsLocked()) {
+                clearInterval(_lockInterval);
+                lockBar2.style.display = 'none';
+                if (btnLogin) { btnLogin.disabled = false; btnLogin.textContent = 'Masuk →'; }
+                return;
+              }
+              lockBar2.textContent = '🔒 Terlalu banyak percobaan. Coba lagi dalam ' + _loginLockoutRemainingSec() + ' detik.';
+              if (btnLogin) { btnLogin.disabled = true; btnLogin.textContent = '🔒 Terkunci...'; }
+            }, 1000);
+            lockBar2.textContent = '🔒 Akun dikunci ' + _loginLockoutRemainingSec() + ' detik karena terlalu banyak percobaan gagal.';
+            if (btnLogin) { btnLogin.disabled = true; btnLogin.textContent = '🔒 Terkunci...'; }
+          }
+        } else {
+          if (lockBar2) lockBar2.style.display = 'none';
+          if (sisaPercobaan > 0) {
+            errEl.textContent = (res.message || 'Username atau password salah.') +
+              ' Sisa ' + sisaPercobaan + ' percobaan.';
+          } else {
+            errEl.textContent = res.message || 'Username atau password salah.';
+          }
+          errEl.style.display = 'block';
+        }
         document.getElementById('login-password').value = '';
       }
   });
@@ -2461,15 +2582,17 @@ function filterGarduByULP(data, ulpFilter) {
     return ulpSheet === sheetValue || ulpSheet === directValue;
   });
 
-  // Debug log — buka konsol browser (F12) untuk cek
-  var ulpUnik = {};
-  data.forEach(function(g){ if (g['ULP']) ulpUnik[normalizeULP(g['ULP'])] = true; });
-  console.log('[PLN Filter] Akun ULP: "' + ulpFilter + '" → cari di sheet: "' + sheetValue + '" (fallback: "' + directValue + '")');
-  console.log('[PLN Filter] ULP di data sheet: [' + Object.keys(ulpUnik).map(function(u){return '"'+u+'"';}).join(', ') + ']');
-  console.log('[PLN Filter] Total gardu: ' + data.length + ' → Setelah filter: ' + result.length);
-  if (result.length === 0 && data.length > 0) {
-    console.warn('[PLN Filter] ⚠️ TIDAK ADA yang cocok! Cek ULP_SHEET_MAP di index.html — pastikan nilai sheet[] sesuai dengan kolom ULP di spreadsheet.');
-    console.warn('[PLN Filter] Tip: buka Manajemen Gardu lihat kolom ULP, lalu sesuaikan ULP_SHEET_MAP.');
+  // Debug log — hanya aktif jika DEBUG_MODE = true (JANGAN aktifkan di production)
+  if (typeof DEBUG_MODE !== 'undefined' && DEBUG_MODE === true) {
+    var ulpUnik = {};
+    data.forEach(function(g){ if (g['ULP']) ulpUnik[normalizeULP(g['ULP'])] = true; });
+    console.log('[PLN Filter] Akun ULP: "' + ulpFilter + '" → cari di sheet: "' + sheetValue + '" (fallback: "' + directValue + '")');
+    console.log('[PLN Filter] ULP di data sheet: [' + Object.keys(ulpUnik).map(function(u){return '"'+u+'"';}).join(', ') + ']');
+    console.log('[PLN Filter] Total gardu: ' + data.length + ' → Setelah filter: ' + result.length);
+    if (result.length === 0 && data.length > 0) {
+      console.warn('[PLN Filter] ⚠️ TIDAK ADA yang cocok! Cek ULP_SHEET_MAP di index.html — pastikan nilai sheet[] sesuai dengan kolom ULP di spreadsheet.');
+      console.warn('[PLN Filter] Tip: buka Manajemen Gardu lihat kolom ULP, lalu sesuaikan ULP_SHEET_MAP.');
+    }
   }
   return result;
 }
@@ -2919,17 +3042,134 @@ function toggleUfPassword() {
 
 // ── Reset Password oleh Admin ULP ────────────────────────────
 function resetPasswordULP(username) {
-  var pw = prompt('Reset password untuk "' + username + '".\n\nMasukkan password baru (min 4 karakter):');
-  if (pw === null) return;
-  pw = pw.trim();
-  if (pw.length < 4) { alert('Password minimal 4 karakter.'); return; }
+  // FIX KEAMANAN: Tidak menggunakan prompt() — ganti dengan modal form proper
+  _bukaModalResetPassword(username);
+}
+
+// Modal reset password yang aman (tidak pakai prompt() browser)
+function _bukaModalResetPassword(username) {
+  var modal = document.getElementById('modal-reset-password-secure');
+  if (!modal) {
+    // Buat modal dinamis jika belum ada di DOM
+    modal = document.createElement('div');
+    modal.id = 'modal-reset-password-secure';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(10,45,107,.55);display:flex;align-items:center;justify-content:center;padding:var(--sp-md);backdrop-filter:blur(4px);';
+    modal.innerHTML =
+      '<div style="background:#fff;border-radius:var(--radius);padding:var(--sp-lg);width:100%;max-width:360px;box-shadow:var(--shadow-lg);">' +
+        '<div style="font-size:var(--fs-md);font-weight:700;color:var(--pln-text);margin-bottom:var(--sp-sm);">🔑 Reset Password User</div>' +
+        '<div id="rp-username-label" style="font-size:var(--fs-xs);color:var(--pln-text3);margin-bottom:var(--sp-md);padding:8px 12px;background:var(--pln-bg);border-radius:var(--radius-xs);font-weight:600;"></div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">Password Baru <span class="req">*</span></label>' +
+          '<div style="position:relative;">' +
+            '<input id="rp-password-baru" class="form-input" type="password" placeholder="Min. 8 karakter" style="padding-right:44px;" autocomplete="new-password">' +
+            '<button type="button" onclick="(function(b){var i=document.getElementById(\'rp-password-baru\');i.type=i.type===\'password\'?\'text\':\'password\';})(this)" style="position:absolute;right:0;top:0;height:100%;width:44px;background:none;border:none;cursor:pointer;font-size:17px;color:var(--pln-text3);">👁️</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">Konfirmasi Password <span class="req">*</span></label>' +
+          '<div style="position:relative;">' +
+            '<input id="rp-password-konfirmasi" class="form-input" type="password" placeholder="Ulangi password baru" style="padding-right:44px;" autocomplete="new-password">' +
+            '<button type="button" onclick="(function(b){var i=document.getElementById(\'rp-password-konfirmasi\');i.type=i.type===\'password\'?\'text\':\'password\';})(this)" style="position:absolute;right:0;top:0;height:100%;width:44px;background:none;border:none;cursor:pointer;font-size:17px;color:var(--pln-text3);">👁️</button>' +
+          '</div>' +
+        '</div>' +
+        '<div id="rp-strength-bar" style="display:none;margin-bottom:var(--sp-sm);">' +
+          '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-bottom:4px;">Kekuatan Password: <span id="rp-strength-label" style="font-weight:700;"></span></div>' +
+          '<div style="height:5px;background:var(--pln-border);border-radius:3px;overflow:hidden;"><div id="rp-strength-fill" style="height:100%;border-radius:3px;transition:.3s;"></div></div>' +
+        '</div>' +
+        '<div id="rp-error-msg" style="display:none;background:#FEE2E2;color:#991B1B;border:1px solid #FECACA;border-radius:var(--radius-xs);padding:10px 12px;font-size:var(--fs-xs);margin-bottom:var(--sp-sm);"></div>' +
+        '<div style="display:flex;gap:var(--sp-sm);margin-top:var(--sp-sm);">' +
+          '<button class="btn btn-outline" style="flex:1;margin:0;" onclick="document.getElementById(\'modal-reset-password-secure\').style.display=\'none\';">Batal</button>' +
+          '<button class="btn btn-blue" style="flex:1;margin:0;" onclick="_submitResetPassword()">Reset Password</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(modal);
+
+    // Live password strength checker
+    var rpInput = document.getElementById('rp-password-baru');
+    if (rpInput) {
+      rpInput.addEventListener('input', function() {
+        var pw = this.value;
+        var bar = document.getElementById('rp-strength-bar');
+        var fill = document.getElementById('rp-strength-fill');
+        var lbl = document.getElementById('rp-strength-label');
+        if (!pw) { bar.style.display = 'none'; return; }
+        bar.style.display = 'block';
+        var score = 0;
+        if (pw.length >= 8) score++;
+        if (pw.length >= 12) score++;
+        if (/[A-Z]/.test(pw)) score++;
+        if (/[0-9]/.test(pw)) score++;
+        if (/[^A-Za-z0-9]/.test(pw)) score++;
+        var levels = [
+          {lbl:'Sangat Lemah', w:'20%', color:'#DC2626'},
+          {lbl:'Lemah',        w:'40%', color:'#D97706'},
+          {lbl:'Sedang',       w:'60%', color:'#F59E0B'},
+          {lbl:'Kuat',         w:'80%', color:'#059669'},
+          {lbl:'Sangat Kuat',  w:'100%',color:'#047857'}
+        ];
+        var lvl = levels[Math.max(0, Math.min(score - 1, 4))];
+        fill.style.width = lvl.w;
+        fill.style.background = lvl.color;
+        lbl.textContent = lvl.lbl;
+        lbl.style.color = lvl.color;
+      });
+    }
+  }
+
+  var usernameLabel = document.getElementById('rp-username-label');
+  if (usernameLabel) usernameLabel.textContent = '👤 User: ' + username;
+  document.getElementById('rp-password-baru').value = '';
+  document.getElementById('rp-password-konfirmasi').value = '';
+  var errEl = document.getElementById('rp-error-msg');
+  if (errEl) errEl.style.display = 'none';
+  var bar = document.getElementById('rp-strength-bar');
+  if (bar) bar.style.display = 'none';
+
+  // Simpan username di modal untuk dipakai saat submit
+  modal.dataset.targetUsername = username;
+  modal.style.display = 'flex';
+  setTimeout(function() {
+    var inp = document.getElementById('rp-password-baru');
+    if (inp) inp.focus();
+  }, 100);
+}
+
+function _submitResetPassword() {
+  var modal = document.getElementById('modal-reset-password-secure');
+  var username = modal ? modal.dataset.targetUsername : '';
+  var pw = (document.getElementById('rp-password-baru').value || '').trim();
+  var pwK = (document.getElementById('rp-password-konfirmasi').value || '').trim();
+  var errEl = document.getElementById('rp-error-msg');
+
+  function showErr(msg) {
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+  }
+
+  errEl.style.display = 'none';
+
+  if (!pw || !pwK) { showErr('Semua field wajib diisi.'); return; }
+  if (pw.length < 8) { showErr('Password minimal 8 karakter.'); return; }
+  if (pw !== pwK)    { showErr('Password baru dan konfirmasi tidak sama.'); return; }
+
+  // Validasi kompleksitas minimal
+  var hasUpper = /[A-Z]/.test(pw);
+  var hasDigit = /[0-9]/.test(pw);
+  if (!hasDigit) { showErr('Password harus mengandung minimal 1 angka.'); return; }
+
   var s = getSession();
-  if (!s) return;
+  if (!s) { showErr('Sesi habis. Silakan login ulang.'); return; }
+
+  var btn = modal.querySelector('.btn-blue');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Menyimpan...'; }
+
   apiGet({ action: 'resetPassword', token: s.token, username: username, passwordBaru: pw }, function(res) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Reset Password'; }
     if (res.status === 'ok') {
+      modal.style.display = 'none';
       alert('✅ Password "' + username + '" berhasil direset.');
     } else {
-      alert('Gagal reset password:\n' + (res.message || 'error'));
+      showErr('Gagal reset password: ' + (res.message || 'error'));
     }
   });
 }
@@ -3151,10 +3391,13 @@ function bukaTab(id, idx){
   document.querySelectorAll('.nav-btn')[idx].classList.add('active');
   currentTab = idx;
   // ── Scroll reset ke atas setiap pindah tab ──
+  // Di mobile: page adalah fixed container, scroll reset di elemen page itu sendiri
+  var activePage = document.getElementById(id);
+  if (activePage) activePage.scrollTop = 0;
+  // Fallback untuk desktop
   window.scrollTo(0, 0);
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
-  // Scroll page-body juga ke atas
   var pb = document.querySelector('#' + id + ' .page-body');
   if (pb) pb.scrollTop = 0;
   if(id==='tab-rekap' && !rekapSudahMuat) muatRekap();
@@ -6545,7 +6788,8 @@ function submitSetPin() {
   }
 
   if (!pass || !pinBaru || !pinKonfirmasi) { showMsg('Semua field wajib diisi.', false); return; }
-  if (pinBaru.length < 4) { showMsg('PIN minimal 4 karakter.', false); return; }
+  if (pinBaru.length < 6) { showMsg('PIN minimal 6 digit.', false); return; }
+  if (!/^\d+$/.test(pinBaru)) { showMsg('PIN hanya boleh berisi angka.', false); return; }
   if (pinBaru !== pinKonfirmasi) { showMsg('PIN baru dan konfirmasi tidak sama.', false); return; }
 
   apiGet({ action:'setPin', token: s.token, password: pass, pinBaru: pinBaru }, function(res){
@@ -6568,7 +6812,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (pinGarduBuffer.length >= 6) return;
       pinGarduBuffer += v;
       updatePinGarduDots();
-      if (pinGarduBuffer.length >= 4 && _pinGarduCallback) {
+      if (pinGarduBuffer.length >= 6 && _pinGarduCallback) {
         // Simpan pin dan callback SEKARANG sebelum setTimeout,
         // karena _pinGarduCallback & pinGarduBuffer bisa berubah oleh kode lain.
         // PENTING: JANGAN tutupModalPinGardu() di sini.

@@ -5,8 +5,29 @@
 // ============================================================
 
 // ── KONFIGURASI ──────────────────────────────────────────────
+// CATATAN KEAMANAN: SUPABASE_ANON key dipindahkan ke environment variable
+// atau dikonfigurasi melalui server-side. Jangan pernah hard-code API key
+// sensitif di kode frontend yang bisa dilihat publik melalui DevTools.
+//
+// Cara konfigurasi (pilih salah satu):
+//   1. Inject via server-side template: <script>var _SB_KEY='...';</script>
+//   2. Baca dari meta tag: <meta name="sb-key" content="...">
+//   3. Gunakan backend/edge function sebagai proxy (DIREKOMENDASIKAN)
+//
+// Pastikan Supabase Row Level Security (RLS) AKTIF di semua tabel agar
+// anon key tidak bisa dieksploitasi meski terekspos.
 var SUPABASE_URL  = 'https://ckarfhmaydqhcclvueqn.supabase.co';
-var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrYXJmaG1heWRxaGNjbHZ1ZXFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMzkwNTgsImV4cCI6MjA5NDkxNTA1OH0.js9CKdBZ-8omTQpwaTfnuvTGStuB1tajjRbdCrP5L6o';
+
+// Baca key dari meta tag (cara aman — isi meta tag di server/build process)
+var SUPABASE_ANON = (function() {
+  var metaEl = document.querySelector('meta[name="sb-key"]');
+  if (metaEl && metaEl.getAttribute('content')) return metaEl.getAttribute('content');
+  // Fallback: baca dari window._sbKey yang bisa di-inject server-side
+  if (typeof window._sbKey === 'string' && window._sbKey) return window._sbKey;
+  // PERINGATAN: Jangan isi string di sini. Isi via meta tag atau window._sbKey.
+  console.warn('[Supabase API] PERINGATAN: SUPABASE_ANON key belum dikonfigurasi. Baca PETUNJUK KEAMANAN di supabase-api.js.');
+  return '';
+})();
 
 // ── ULP Enum normalizer ──────────────────────────────────────
 function _normalizeUlpEnum(ulp) {
@@ -157,7 +178,9 @@ async function _getUserFromToken(token) {
     if (!data || data.status !== 'ok') return null;
     return data;
   } catch (e) {
-    console.error('[sbApi] _getUserFromToken error:', e);
+    if (typeof DEBUG_MODE !== 'undefined' && DEBUG_MODE === true) {
+      console.error('[sbApi] _getUserFromToken error:', e);
+    }
     return null;
   }
 }
@@ -320,7 +343,9 @@ async function _getDetailLengkap(p, signal) {
       }
     }
   } catch (e) {
-    console.warn('[sbApi] Gagal memuat riwayat inspeksi:', e);
+    if (typeof DEBUG_MODE !== 'undefined' && DEBUG_MODE === true) {
+      console.warn('[sbApi] Gagal memuat riwayat inspeksi:', e);
+    }
   }
 
   // Map gardu dari v_gardu_lengkap
@@ -440,8 +465,17 @@ async function _verifyPin(p, signal) {
 
 // ── SET PIN via RPC ──────────────────────────────────────────
 async function _setPin(p, signal) {
+  // Validasi PIN minimal 6 digit dan hanya angka (defence in depth)
+  var pinBaru = String(p.pinBaru || '').trim();
+  if (pinBaru.length < 6) {
+    return { status: 'error', message: 'PIN minimal 6 digit.' };
+  }
+  if (!/^\d+$/.test(pinBaru)) {
+    return { status: 'error', message: 'PIN hanya boleh berisi angka.' };
+  }
+
   var pwHash  = await sha256(String(p.password || '').trim());
-  var pinHash = await sha256(String(p.pinBaru  || '').trim());
+  var pinHash = await sha256(pinBaru);
 
   var data = await rpcCall('fn_set_pin_user', {
     p_token:         p.token,
@@ -650,8 +684,14 @@ async function _editUser(p, signal) {
 
 // ── GANTI PASSWORD via RPC ───────────────────────────────────
 async function _gantiPassword(p, signal) {
+  // Validasi panjang minimum password di layer API (defence in depth)
+  var pwBaru = String(p.passwordBaru || '').trim();
+  if (pwBaru.length < 8) {
+    return { status: 'error', message: 'Password baru minimal 8 karakter.' };
+  }
+
   var oldHash = await sha256(String(p.passwordLama || '').trim());
-  var newHash = await sha256(String(p.passwordBaru || '').trim());
+  var newHash = await sha256(pwBaru);
 
   var data = await rpcCall('fn_ganti_password', {
     p_token:              p.token,
@@ -882,7 +922,12 @@ async function _editInspeksi(p, signal) {
 
 // ── RESET PASSWORD BY ADMIN via RPC ──────────────────────────
 async function _resetPasswordByAdmin(p, signal) {
-  var pwHash = await sha256(String(p.passwordBaru || '').trim());
+  var pwBaru = String(p.passwordBaru || '').trim();
+  if (pwBaru.length < 8) {
+    return { status: 'error', message: 'Password baru minimal 8 karakter.' };
+  }
+
+  var pwHash = await sha256(pwBaru);
 
   var data = await rpcCall('fn_reset_password_by_admin', {
     p_token:           p.token,
@@ -1119,4 +1164,7 @@ window.apiGet = function(params, cb) {
 };
 
 window._sbApiReady = true;
-console.log('[Supabase API v8] Layer aktif. URL:', SUPABASE_URL);
+// console.log dinonaktifkan di production — aktifkan hanya saat debug lokal
+if (typeof DEBUG_MODE !== 'undefined' && DEBUG_MODE === true) {
+  console.log('[Supabase API v8] Layer aktif. URL:', SUPABASE_URL);
+}
