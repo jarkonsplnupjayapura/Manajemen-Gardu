@@ -7720,15 +7720,10 @@ function exportPengukuranExcel() {
       var ulpLabel  = ulpFilter || 'SEMUA ULP';
 
       // ── Meta rows ──
-      var metaRows = [
-        ['PT PLN (PERSERO) UIW P2B — UP3 JAYAPURA', '', '', '', '', '', '', '', '', '', '', ''],
-        ['ULP: ' + ulpLabel, '', '', '', '', '', '', '', '', '', '', ''],
-        ['PERIODE: ' + periodeStr, '', '', '', '', '', '', '', '', '', '', ''],
-        ['Dicetak: ' + dateDisp + ' oleh Sistem Manajemen Gardu', '', '', '', '', '', '', '', '', '', '', ''],
-        [],
-        ['LAPORAN RIWAYAT PENGUKURAN GARDU', '', '', '', '', '', '', '', '', '', '', ''],
-        []
-      ];
+      // Buat array helper agar lebar cell meta = totalCols (diisi setelah colHeaders diketahui)
+      // Kita defer pengisian empty cols ke setelah totalCols tersedia.
+      var _mkRow = function(val, n){ var a=[val]; for(var i=1;i<n;i++) a.push(''); return a; };
+      var metaRows = null; // diisi setelah totalCols
 
       var colHeaders = [
         'NO','NO GARDU','ULP','PENYULANG','ALAMAT','DAYA (kVA)','FASA',
@@ -7779,32 +7774,49 @@ function exportPengukuranExcel() {
         ];
       });
 
+      var totalCols = colHeaders.length;
+      var lastColLetter = XLSX.utils.encode_col(totalCols - 1);
+
+      // ── Build metaRows setelah totalCols diketahui ──
+      metaRows = [
+        _mkRow('PT PLN (PERSERO) UIW P2B — UP3 JAYAPURA', totalCols),
+        _mkRow('ULP       : ' + ulpLabel, totalCols),
+        _mkRow('PERIODE   : ' + periodeStr, totalCols),
+        _mkRow('Dicetak   : ' + dateDisp + ' oleh Sistem Manajemen Gardu', totalCols),
+        _mkRow('', totalCols),
+        _mkRow('LAPORAN RIWAYAT PENGUKURAN GARDU', totalCols),
+        _mkRow('', totalCols)
+      ];
+
+      var headerRowIdx = metaRows.length; // 0-based = 7
       var allRows = metaRows.concat([colHeaders]).concat(dataRows);
       var wb = XLSX.utils.book_new();
       var ws = XLSX.utils.aoa_to_sheet(allRows);
-      var totalCols = colHeaders.length;
-      var lastColLetter = XLSX.utils.encode_col(totalCols - 1);
-      var headerRowIdx = metaRows.length; // 0-based
 
       // ── Style: Judul institusi (baris 0) ──
       var titleAddr = XLSX.utils.encode_cell({r:0,c:0});
       if (ws[titleAddr]) ws[titleAddr].s = {
-        font:{bold:true,sz:12,color:{rgb:'0A2D6B'}},
-        alignment:{horizontal:'left'}
+        font:{bold:true,sz:13,color:{rgb:'0A2D6B'}},
+        alignment:{horizontal:'left',vertical:'center'}
       };
 
-      // ── Style: Meta rows ──
+      // ── Style: Meta rows 1–3 ──
       [1,2,3].forEach(function(ri){
         var a = XLSX.utils.encode_cell({r:ri,c:0});
-        if (ws[a]) ws[a].s = {font:{sz:10,color:{rgb:'3D5580'}},alignment:{horizontal:'left'}};
+        if (ws[a]) ws[a].s = {font:{sz:10,color:{rgb:'3D5580'}},alignment:{horizontal:'left',vertical:'center'}};
       });
 
       // ── Style: Judul laporan (baris 5) ──
       var laporanAddr = XLSX.utils.encode_cell({r:5,c:0});
       if (ws[laporanAddr]) ws[laporanAddr].s = {
         font:{bold:true,sz:14,color:{rgb:'0A2D6B'}},
-        alignment:{horizontal:'center'}
+        alignment:{horizontal:'center',vertical:'center'}
       };
+
+      // ── Row heights meta ──
+      var rowHMeta = [
+        {hpt:20},{hpt:16},{hpt:16},{hpt:16},{hpt:6},{hpt:22},{hpt:6}
+      ];
 
       // ── Style: Header kolom ──
       for (var ci = 0; ci < totalCols; ci++) {
@@ -7850,7 +7862,7 @@ function exportPengukuranExcel() {
       });
 
       // ── Row heights ──
-      var rowHeights = [];
+      var rowHeights = rowHMeta.slice(); // meta rows
       rowHeights[headerRowIdx] = {hpt: 36};
       ws['!rows'] = rowHeights;
 
@@ -7882,8 +7894,18 @@ function exportPengukuranExcel() {
         {s:{r:5,c:0},e:{r:5,c:totalCols-1}}
       ];
 
+      // ── Baris total ──
       var lastDataRow = headerRowIdx + dataRows.length;
-      ws['!ref'] = 'A1:' + lastColLetter + (lastDataRow + 1);
+      var totalRowIdx2 = lastDataRow + 1;
+      XLSX.utils.sheet_add_aoa(ws, [['TOTAL: ' + dataRows.length + ' data']], {origin: XLSX.utils.encode_cell({r:totalRowIdx2,c:0})});
+      var totAddr2 = XLSX.utils.encode_cell({r:totalRowIdx2,c:0});
+      if (ws[totAddr2]) ws[totAddr2].s = {
+        font:{bold:true,sz:10,color:{rgb:'0A2D6B'}},
+        fill:{fgColor:{rgb:'EEF4FF'}},
+        alignment:{horizontal:'left'}
+      };
+
+      ws['!ref'] = 'A1:' + lastColLetter + (totalRowIdx2 + 1);
 
       XLSX.utils.book_append_sheet(wb, ws, 'RIWAYAT PENGUKURAN');
       XLSX.writeFile(wb, 'Pengukuran_Gardu_' + dateStr + '.xlsx');
@@ -7924,20 +7946,21 @@ function exportPemeliharaanExcel() {
       var wb = XLSX.utils.book_new();
       var ws = {};
 
-      // ── Meta header rows (baris 0–6) ──
-      var metaRows = [
-        ['PT PLN (PERSERO) UIW P2B — UP3 JAYAPURA'],
-        ['ULP       : ' + ulpLabel],
-        ['Periode   : ' + periodeStr],
-        ['Dicetak   : ' + dateDisp + ' oleh Sistem Manajemen Gardu'],
-        [],
-        ['LAPORAN PEMELIHARAAN GARDU'],
-        []
-      ];
-
       // ── Header kolom ──
       var colHeaders = ['NO', 'ULP', 'TANGGAL', 'NO GARDU', 'NAMA PETUGAS', 'UNIT (PLN/NON PLN)', 'JENIS PEKERJAAN'];
       var totalCols = colHeaders.length;
+      var _mkRowPm = function(val, n){ var a=[val]; for(var i=1;i<n;i++) a.push(''); return a; };
+
+      // ── Meta header rows (baris 0–6) ──
+      var metaRows = [
+        _mkRowPm('PT PLN (PERSERO) UIW P2B — UP3 JAYAPURA', totalCols),
+        _mkRowPm('ULP       : ' + ulpLabel, totalCols),
+        _mkRowPm('Periode   : ' + periodeStr, totalCols),
+        _mkRowPm('Dicetak   : ' + dateDisp + ' oleh Sistem Manajemen Gardu', totalCols),
+        _mkRowPm('', totalCols),
+        _mkRowPm('LAPORAN PEMELIHARAAN GARDU', totalCols),
+        _mkRowPm('', totalCols)
+      ];
 
       // ── Data rows ──
       var dataRows = data.map(function(d, i) {
@@ -7959,19 +7982,19 @@ function exportPemeliharaanExcel() {
 
       // ── Style: Judul institusi ──
       var a0 = XLSX.utils.encode_cell({r:0,c:0});
-      if (ws[a0]) ws[a0].s = {font:{bold:true,sz:13,color:{rgb:'0A2D6B'}},alignment:{horizontal:'left'}};
+      if (ws[a0]) ws[a0].s = {font:{bold:true,sz:13,color:{rgb:'0A2D6B'}},alignment:{horizontal:'left',vertical:'center'}};
 
       // ── Style: meta rows ──
       [1,2,3].forEach(function(ri) {
         var a = XLSX.utils.encode_cell({r:ri,c:0});
-        if (ws[a]) ws[a].s = {font:{sz:10,color:{rgb:'3D5580'}},alignment:{horizontal:'left'}};
+        if (ws[a]) ws[a].s = {font:{sz:10,color:{rgb:'3D5580'}},alignment:{horizontal:'left',vertical:'center'}};
       });
 
       // ── Style: Judul Laporan (baris 5) ──
       var a5 = XLSX.utils.encode_cell({r:5,c:0});
       if (ws[a5]) ws[a5].s = {
         font:{bold:true,sz:14,color:{rgb:'0A2D6B'}},
-        alignment:{horizontal:'center'}
+        alignment:{horizontal:'center',vertical:'center'}
       };
 
       // ── Style: Header kolom ──
@@ -8018,7 +8041,7 @@ function exportPemeliharaanExcel() {
 
       // ── Baris total di akhir ──
       var totalRowIdx = headerRowIdx + 1 + dataRows.length;
-      XLSX.utils.sheet_add_aoa(ws, [['TOTAL: ' + dataRows.length + ' data']], {origin: XLSX.utils.encode_cell({r:totalRowIdx,c:0})});
+      XLSX.utils.sheet_add_aoa(ws, [_mkRowPm('TOTAL: ' + dataRows.length + ' data', totalCols)], {origin: XLSX.utils.encode_cell({r:totalRowIdx,c:0})});
       var totAddr = XLSX.utils.encode_cell({r:totalRowIdx,c:0});
       if (ws[totAddr]) ws[totAddr].s = {
         font:{bold:true,sz:10,color:{rgb:'0A2D6B'}},
@@ -8027,7 +8050,9 @@ function exportPemeliharaanExcel() {
       };
 
       // ── Row heights ──
-      var rowHeights = [];
+      var rowHeights = [
+        {hpt:20},{hpt:16},{hpt:16},{hpt:16},{hpt:6},{hpt:22},{hpt:6}
+      ];
       rowHeights[headerRowIdx] = {hpt:30};
       ws['!rows'] = rowHeights;
 
@@ -8046,7 +8071,7 @@ function exportPemeliharaanExcel() {
         {s:{r:totalRowIdx,c:0},e:{r:totalRowIdx,c:totalCols-1}}
       ];
 
-      ws['!ref'] = 'A1:G' + (totalRowIdx + 1);
+      ws['!ref'] = 'A1:' + XLSX.utils.encode_col(totalCols-1) + (totalRowIdx + 1);
 
       XLSX.utils.book_append_sheet(wb, ws, 'PEMELIHARAAN GARDU');
       XLSX.writeFile(wb, 'Pemeliharaan_Gardu_' + dateFile + '.xlsx');
