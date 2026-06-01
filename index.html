@@ -1430,12 +1430,12 @@ if (typeof L === 'undefined') {
       <div class="card">
         <div class="form-group">
           <label class="form-label">No. Gardu <span class="req">*</span></label>
-          <input type="text" class="form-input" id="pm-nogardu" placeholder="Contoh: GD001" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()">
+          <input type="text" class="form-input" id="pm-nogardu" placeholder="Contoh: GD001" autocapitalize="characters" oninput="this.value=this.value.toUpperCase();pmOnGarduInput(this.value)">
           <div id="pm-gardu-info" style="margin-top:6px;font-size:var(--fs-xs);color:var(--pln-text2);display:none;"></div>
         </div>
         <div class="form-group" style="margin-bottom:0;">
-          <label class="form-label">Unit (ULP) <span class="req">*</span></label>
-          <input type="text" class="form-input" id="pm-ulp" placeholder="Contoh: ULP JAYAPURA KOTA" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()">
+          <label class="form-label">ULP <span class="req">*</span></label>
+          <input type="text" class="form-input" id="pm-ulp" placeholder="Otomatis dari gardu" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()" readonly style="background:var(--pln-bg);color:var(--pln-text3);">
         </div>
       </div>
 
@@ -7007,6 +7007,32 @@ var PM_JENIS = {
   'NON PLN': ['Pemeliharaan Rutin Berkala','Pembersihan Panel & Trafo','Pengencangan Sambungan','Pengecekan Proteksi','Perbaikan Kabel','Penggantian Komponen','Overhaul Trafo','Penggantian Minyak Trafo','Inspeksi Visual','Perbaikan Darurat','Pelayanan Pelanggan PLN']
 };
 
+// Auto-fill ULP & UNIT dari garduIndex saat user mengetik no. gardu manual
+function pmOnGarduInput(val) {
+  if (!val || val.length < 3) return;
+  var gInfo = garduIndex[val.trim().toUpperCase()];
+  if (!gInfo) return;
+  var ulpEl = document.getElementById('pm-ulp');
+  if (ulpEl && gInfo['ULP']) {
+    ulpEl.value = gInfo['ULP'];
+    ulpEl.readOnly = true;
+    ulpEl.style.background = 'var(--pln-bg)';
+    ulpEl.style.color = 'var(--pln-text3)';
+  }
+  var tipe = String(gInfo['TIPE'] || '').trim().toUpperCase();
+  var kategoriVal = (tipe === 'PLN') ? 'PLN' : (tipe === 'NON' || tipe === 'NON PLN') ? 'NON PLN' : '';
+  if (kategoriVal) {
+    var katEl = document.getElementById('pm-kategori');
+    if (katEl && !katEl.value) { katEl.value = kategoriVal; pmUpdateJenis(); }
+  }
+  var infoEl = document.getElementById('pm-gardu-info');
+  if (infoEl && gInfo['NAMA_GARDU']) {
+    infoEl.textContent = '✅ ' + gInfo['NAMA_GARDU'] + (gInfo['PENYULANG'] ? ' · ' + gInfo['PENYULANG'] : '');
+    infoEl.style.display = 'block';
+    infoEl.style.color = 'var(--pln-green)';
+  }
+}
+
 function pmUpdateJenis() {
   var kat = document.getElementById('pm-kategori').value;
   var sel = document.getElementById('pm-jenis');
@@ -7028,13 +7054,24 @@ function bukaFormPemeliharaan(noGarduPrefill) {
     if (title) title.textContent = noGarduPrefill;
     // Auto-fill ULP dari garduIndex
     var gInfo = garduIndex[noGarduPrefill.trim().toUpperCase()];
-    if (gInfo && gInfo['ULP']) {
-      var ulpEl = document.getElementById('pm-ulp');
-      if (ulpEl && !ulpEl.readOnly) ulpEl.value = gInfo['ULP'];
+    if (gInfo) {
+      if (gInfo['ULP']) {
+        var ulpEl = document.getElementById('pm-ulp');
+        if (ulpEl) { ulpEl.value = gInfo['ULP']; ulpEl.readOnly = true; ulpEl.style.background='var(--pln-bg)'; ulpEl.style.color='var(--pln-text3)'; }
+      }
+      // Auto-fill UNIT (kategori) dari TIPE gardu: 'PLN' atau 'NON' → 'NON PLN'
+      var tipe = String(gInfo['TIPE'] || '').trim().toUpperCase();
+      var kategoriVal = (tipe === 'PLN') ? 'PLN' : (tipe === 'NON' || tipe === 'NON PLN') ? 'NON PLN' : '';
+      if (kategoriVal) {
+        var katEl = document.getElementById('pm-kategori');
+        if (katEl) { katEl.value = kategoriVal; pmUpdateJenis(); }
+      }
     }
   } else {
     var el2 = document.getElementById('pm-nogardu');
     if (el2) el2.readOnly = false;
+    var ulpEl2 = document.getElementById('pm-ulp');
+    if (ulpEl2) { ulpEl2.readOnly = false; ulpEl2.style.background=''; ulpEl2.style.color=''; ulpEl2.removeAttribute('readonly'); }
     var title2 = document.getElementById('pm-topbar-title');
     if (title2) title2.textContent = 'Input Baru';
   }
@@ -7049,10 +7086,14 @@ function tutupFormPemeliharaan() {
 
 function pmResetForm() {
   var el;
-  ['pm-nogardu','pm-ulp','pm-tanggal','pm-petugas'].forEach(function(id) {
+  ['pm-nogardu','pm-tanggal','pm-petugas'].forEach(function(id) {
     el = document.getElementById(id);
     if (el) { el.value = ''; el.readOnly = false; }
   });
+  // Reset ULP field back to editable
+  el = document.getElementById('pm-ulp');
+  if (el) { el.value = ''; el.readOnly = false; el.style.background = ''; el.style.color = ''; el.placeholder = 'Otomatis dari gardu'; }
+
   el = document.getElementById('pm-kategori');
   if (el) el.selectedIndex = 0;
   el = document.getElementById('pm-jenis');
@@ -7072,10 +7113,10 @@ function pmResetForm() {
     el = document.getElementById('pm-petugas');
     if (el && !el.value) el.value = s.nama;
   }
-  // Auto-fill ULP dari sesi
+  // Auto-fill ULP dari sesi (jika tidak ada gardu prefill)
   if (s && s.ulp) {
     el = document.getElementById('pm-ulp');
-    if (el && !el.value) el.value = s.ulp;
+    if (el && !el.value) { el.value = s.ulp; }
   }
 
   var btn = document.getElementById('pm-btn-simpan');
@@ -7095,7 +7136,7 @@ async function pmSubmit() {
   var jenis    = (document.getElementById('pm-jenis').value    || '').trim();
 
   if (!noGardu)  { pmShowErr('No. Gardu wajib diisi.');        return; }
-  if (!ulp)      { pmShowErr('Unit (ULP) wajib diisi.');       return; }
+  if (!ulp)      { pmShowErr('ULP wajib diisi.');       return; }
   if (!tanggal)  { pmShowErr('Tanggal wajib diisi.');          return; }
   if (!petugas)  { pmShowErr('Nama Petugas wajib diisi.');     return; }
   if (!kategori) { pmShowErr('Unit (PLN/NON PLN) wajib dipilih.');       return; }
@@ -7649,14 +7690,7 @@ function bukaDetailGarduDariPengukuran(noGardu) {
 
 // ── Buka Form Pemeliharaan dari Detail Gardu ─────────────────
 function bukaFormPemeliharaanDariDetail(noGardu) {
-  bukaFormPemeliharaan();
-  // Pre-fill no gardu setelah form terbuka
-  setTimeout(function() {
-    var el = document.getElementById('pm-nogardu');
-    if (el && noGardu) {
-      el.value = noGardu.toUpperCase();
-    }
-  }, 100);
+  bukaFormPemeliharaan(noGardu ? noGardu.toUpperCase() : null);
 }
 
 // ══ EXPORT PENGUKURAN GARDU → XLSX (format RIWAYAT INSPEKSI) ═══
@@ -7674,21 +7708,51 @@ function exportPengukuranExcel() {
 
       var now = new Date();
       var dateStr = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+      var dateDisp = String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear();
 
-      // Build rows sesuai format FORM_INSPEKSI.xlsx
-      var headers = ['UNITUP','NOGARDU','PENYULANG','ALAMAT','DAYA','FASA','DAYA PAKAI','PROSEN','TDK SEIMBANG','JAM UKUR','TGLUKUR','PETUGAS',
-                     'R TOTAL','S TOTAL','T TOTAL','N TOTAL','R - N','S - N','T - N','R - S','S - T','R - T',
-                     'THD-R','THD-S','THD-T','IPEAK-R','IPEAK-S','IPEAK-T','TPF-R','TPF-S','TPF-T',
-                     'JURUSAN 1','JUR1_R_TOTAL','JUR1_S_TOTAL','JUR1_T_TOTAL','JUR1_N_TOTAL','JUR1_R-N','JUR1_S-N','JUR1_T-N',
-                     'JUR1_THD-R','JUR1_THD-S','JUR1_THD-T','JUR1_IPEAK-R','JUR1_IPEAK-S','JUR1_IPEAK-T','JUR1_TPF-R','JUR1_TPF-S','JUR1_TPF-T','JUR1_TITIK_UKUR',
-                     'JURUSAN 2'];
+      // ── Meta info header ──
+      var tglAwal  = (document.getElementById('ukur-filter-tgl-awal')||{}).value  || '';
+      var tglAkhir = (document.getElementById('ukur-filter-tgl-akhir')||{}).value || '';
+      var periodeStr = (tglAwal || tglAkhir)
+        ? ((tglAwal ? _fmtTglExport(tglAwal) : '—') + ' s/d ' + (tglAkhir ? _fmtTglExport(tglAkhir) : dateDisp))
+        : 'Semua Periode';
+      var ulpFilter = ((document.getElementById('ukur-filter-ulp')||{}).value||'').toUpperCase();
+      var ulpLabel  = ulpFilter || 'SEMUA ULP';
 
-      var sheetData = [headers];
+      // ── Meta rows ──
+      var metaRows = [
+        ['PT PLN (PERSERO) UIW P2B — UP3 JAYAPURA', '', '', '', '', '', '', '', '', '', '', ''],
+        ['ULP: ' + ulpLabel, '', '', '', '', '', '', '', '', '', '', ''],
+        ['PERIODE: ' + periodeStr, '', '', '', '', '', '', '', '', '', '', ''],
+        ['Dicetak: ' + dateDisp + ' oleh Sistem Manajemen Gardu', '', '', '', '', '', '', '', '', '', '', ''],
+        [],
+        ['LAPORAN RIWAYAT PENGUKURAN GARDU', '', '', '', '', '', '', '', '', '', '', ''],
+        []
+      ];
 
-      data.forEach(function(r) {
-        var row = [
-          r['UNITUP']||r['ULP']||'42110',
+      var colHeaders = [
+        'NO','NO GARDU','ULP','PENYULANG','ALAMAT','DAYA (kVA)','FASA',
+        'DAYA PAKAI','PROSEN (%)','TDK SEIMBANG (%)','JAM UKUR','TGL UKUR','PETUGAS',
+        'IR TOTAL (A)','IS TOTAL (A)','IT TOTAL (A)','IN TOTAL (A)',
+        'VR-N (V)','VS-N (V)','VT-N (V)',
+        'VR-S (V)','VS-T (V)','VR-T (V)',
+        'THD-R (%)','THD-S (%)','THD-T (%)',
+        'IPEAK-R','IPEAK-S','IPEAK-T',
+        'TPF-R','TPF-S','TPF-T',
+        'JURUSAN 1',
+        'JUR1 IR','JUR1 IS','JUR1 IT','JUR1 IN',
+        'JUR1 VR-N','JUR1 VS-N','JUR1 VT-N',
+        'JUR1 THD-R','JUR1 THD-S','JUR1 THD-T',
+        'JUR1 IPEAK-R','JUR1 IPEAK-S','JUR1 IPEAK-T',
+        'JUR1 TPF-R','JUR1 TPF-S','JUR1 TPF-T',
+        'JUR1 TITIK UKUR','JURUSAN 2'
+      ];
+
+      var dataRows = data.map(function(r, i) {
+        return [
+          i + 1,
           r['NO_GARDU']||r['NOGARDU']||'',
+          r['ULP']||'',
           r['PENYULANG']||'',
           r['ALAMAT']||'',
           r['DAYA']||r['KAPASITAS_KVA']||'',
@@ -7710,36 +7774,118 @@ function exportPengukuranExcel() {
           r['JUR1_R - N']||'',r['JUR1_S - N']||'',r['JUR1_T - N']||'',
           r['JUR1_THD-R']||'',r['JUR1_THD-S']||'',r['JUR1_THD-T']||'',
           r['JUR1_IPEAK-R']||'',r['JUR1_IPEAK-S']||'',r['JUR1_IPEAK-T']||'',
-          r['JUR1_TPF-R']||'',r['JUR1_TPF-S']||'',r['JUR1_TPF-T']||'','',
-          r['JURUSAN 2']||''
+          r['JUR1_TPF-R']||'',r['JUR1_TPF-S']||'',r['JUR1_TPF-T']||'',
+          '',r['JURUSAN 2']||''
         ];
-        sheetData.push(row);
       });
 
+      var allRows = metaRows.concat([colHeaders]).concat(dataRows);
       var wb = XLSX.utils.book_new();
-      var ws = XLSX.utils.aoa_to_sheet(sheetData);
+      var ws = XLSX.utils.aoa_to_sheet(allRows);
+      var totalCols = colHeaders.length;
+      var lastColLetter = XLSX.utils.encode_col(totalCols - 1);
+      var headerRowIdx = metaRows.length; // 0-based
 
-      // Styling header biru PLN
-      var range = XLSX.utils.decode_range(ws['!ref']);
-      for (var C = range.s.c; C <= range.e.c; C++) {
-        var cellAddr = XLSX.utils.encode_cell({r:0, c:C});
-        if (!ws[cellAddr]) continue;
+      // ── Style: Judul institusi (baris 0) ──
+      var titleAddr = XLSX.utils.encode_cell({r:0,c:0});
+      if (ws[titleAddr]) ws[titleAddr].s = {
+        font:{bold:true,sz:12,color:{rgb:'0A2D6B'}},
+        alignment:{horizontal:'left'}
+      };
+
+      // ── Style: Meta rows ──
+      [1,2,3].forEach(function(ri){
+        var a = XLSX.utils.encode_cell({r:ri,c:0});
+        if (ws[a]) ws[a].s = {font:{sz:10,color:{rgb:'3D5580'}},alignment:{horizontal:'left'}};
+      });
+
+      // ── Style: Judul laporan (baris 5) ──
+      var laporanAddr = XLSX.utils.encode_cell({r:5,c:0});
+      if (ws[laporanAddr]) ws[laporanAddr].s = {
+        font:{bold:true,sz:14,color:{rgb:'0A2D6B'}},
+        alignment:{horizontal:'center'}
+      };
+
+      // ── Style: Header kolom ──
+      for (var ci = 0; ci < totalCols; ci++) {
+        var cellAddr = XLSX.utils.encode_cell({r:headerRowIdx, c:ci});
+        if (!ws[cellAddr]) ws[cellAddr] = {v:colHeaders[ci],t:'s'};
         ws[cellAddr].s = {
-          fill: { fgColor: { rgb: '0A2D6B' } },
-          font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 10 },
-          alignment: { horizontal: 'center', wrapText: true },
-          border: { bottom: { style: 'thin', color: { rgb: '000000' } } }
+          fill:{fgColor:{rgb:'0A2D6B'}},
+          font:{bold:true,color:{rgb:'FFFFFF'},sz:9},
+          alignment:{horizontal:'center',vertical:'center',wrapText:true},
+          border:{
+            top:{style:'medium',color:{rgb:'000000'}},
+            bottom:{style:'medium',color:{rgb:'000000'}},
+            left:{style:'thin',color:{rgb:'1048A8'}},
+            right:{style:'thin',color:{rgb:'1048A8'}}
+          }
         };
       }
 
-      // Auto column width
-      var colWidths = headers.map(function(h) { return { wch: Math.max(h.length, 10) }; });
-      ws['!cols'] = colWidths;
+      // ── Style: Data rows dengan warna alternating ──
+      var EVEN_BG = 'FFFFFF', ODD_BG = 'EEF4FF';
+      dataRows.forEach(function(row, ri) {
+        var rowIdx = headerRowIdx + 1 + ri;
+        var bg = ri % 2 === 0 ? EVEN_BG : ODD_BG;
+        for (var ci = 0; ci < totalCols; ci++) {
+          var addr = XLSX.utils.encode_cell({r:rowIdx, c:ci});
+          if (!ws[addr]) ws[addr] = {v:'',t:'s'};
+          var isNum = ci === 0 || (ci >= 7 && ci <= 9) || (ci >= 13 && ci <= 31);
+          ws[addr].s = {
+            fill:{fgColor:{rgb:bg}},
+            font:{sz:9,color:{rgb: ci===0 ? '3D5580' : '0F1E38'}},
+            alignment:{
+              horizontal: ci===0 ? 'center' : (isNum ? 'right' : 'left'),
+              vertical:'center'
+            },
+            border:{
+              top:{style:'thin',color:{rgb:'D0D8E8'}},
+              bottom:{style:'thin',color:{rgb:'D0D8E8'}},
+              left:{style:'thin',color:{rgb:'D0D8E8'}},
+              right:{style:'thin',color:{rgb:'D0D8E8'}}
+            }
+          };
+        }
+      });
 
-      // Freeze header row
-      ws['!freeze'] = { xSplit: 0, ySplit: 1, topLeftCell: 'A2', activePane: 'bottomLeft' };
+      // ── Row heights ──
+      var rowHeights = [];
+      rowHeights[headerRowIdx] = {hpt: 36};
+      ws['!rows'] = rowHeights;
 
-      XLSX.utils.book_append_sheet(wb, ws, 'RIWAYAT INSPEKSI');
+      // ── Column widths ──
+      ws['!cols'] = [
+        {wch:5},{wch:13},{wch:18},{wch:16},{wch:28},{wch:10},{wch:6},
+        {wch:10},{wch:9},{wch:11},{wch:9},{wch:11},{wch:20},
+        {wch:9},{wch:9},{wch:9},{wch:9},
+        {wch:9},{wch:9},{wch:9},
+        {wch:9},{wch:9},{wch:9},
+        {wch:8},{wch:8},{wch:8},
+        {wch:8},{wch:8},{wch:8},
+        {wch:7},{wch:7},{wch:7},
+        {wch:14},
+        {wch:8},{wch:8},{wch:8},{wch:8},
+        {wch:8},{wch:8},{wch:8},
+        {wch:8},{wch:8},{wch:8},
+        {wch:8},{wch:8},{wch:8},
+        {wch:7},{wch:7},{wch:7},
+        {wch:12},{wch:14}
+      ];
+
+      // ── Freeze pane ──
+      ws['!freeze'] = {xSplit:2, ySplit:headerRowIdx+1, topLeftCell:'C'+(headerRowIdx+2), activePane:'bottomRight'};
+
+      // ── Merge judul ──
+      ws['!merges'] = [
+        {s:{r:0,c:0},e:{r:0,c:totalCols-1}},
+        {s:{r:5,c:0},e:{r:5,c:totalCols-1}}
+      ];
+
+      var lastDataRow = headerRowIdx + dataRows.length;
+      ws['!ref'] = 'A1:' + lastColLetter + (lastDataRow + 1);
+
+      XLSX.utils.book_append_sheet(wb, ws, 'RIWAYAT PENGUKURAN');
       XLSX.writeFile(wb, 'Pengukuran_Gardu_' + dateStr + '.xlsx');
     } catch(e) {
       alert('Gagal export: ' + e.message);
@@ -7765,31 +7911,33 @@ function exportPemeliharaanExcel() {
       var now = new Date();
       var tglAwal  = (document.getElementById('pm-filter-tgl-awal')||{}).value  || '';
       var tglAkhir = (document.getElementById('pm-filter-tgl-akhir')||{}).value || '';
+      var dateDisp = String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear();
       var periodeStr = (tglAwal || tglAkhir)
         ? ((tglAwal  ? _fmtTglExport(tglAwal)  : '01/01/2025') + ' s/d ' +
-           (tglAkhir ? _fmtTglExport(tglAkhir) : _fmtTglExport(now.toISOString().split('T')[0])))
-        : '01/07/2025 s/d ' + _fmtTglExport(now.toISOString().split('T')[0]);
+           (tglAkhir ? _fmtTglExport(tglAkhir) : dateDisp))
+        : '01/07/2025 s/d ' + dateDisp;
 
       var ulpFilter = ((document.getElementById('pm-filter-ulp')||{}).value||'').toUpperCase();
-      var ulpLabel  = ulpFilter || '--- SEMUA ---';
+      var ulpLabel  = ulpFilter || 'SEMUA ULP';
       var dateFile  = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
 
       var wb = XLSX.utils.book_new();
       var ws = {};
 
-      // ── Baris header institusi (baris 1-3) ──
+      // ── Meta header rows (baris 0–6) ──
       var metaRows = [
-        ['UIW : UIW. P2B'],
-        ['UP3 : UP3 JAYAPURA'],
-        ['ULP : ' + ulpLabel],
+        ['PT PLN (PERSERO) UIW P2B — UP3 JAYAPURA'],
+        ['ULP       : ' + ulpLabel],
+        ['Periode   : ' + periodeStr],
+        ['Dicetak   : ' + dateDisp + ' oleh Sistem Manajemen Gardu'],
         [],
-        ['DAFTAR PEMELIHARAAN GARDU'],
-        ['PERIODE : ' + periodeStr],
+        ['LAPORAN PEMELIHARAAN GARDU'],
         []
       ];
 
-      // ── Baris header tabel (baris 8) ──
-      var colHeaders = ['NO','ULP','TANGGAL','NO GARDU','PETUGAS','UNIT','JENIS PEKERJAAN'];
+      // ── Header kolom ──
+      var colHeaders = ['NO', 'ULP', 'TANGGAL', 'NO GARDU', 'NAMA PETUGAS', 'UNIT (PLN/NON PLN)', 'JENIS PEKERJAAN'];
+      var totalCols = colHeaders.length;
 
       // ── Data rows ──
       var dataRows = data.map(function(d, i) {
@@ -7807,69 +7955,100 @@ function exportPemeliharaanExcel() {
       var allRows = metaRows.concat([colHeaders]).concat(dataRows);
       XLSX.utils.sheet_add_aoa(ws, allRows, { origin: 'A1' });
 
-      var headerRowIdx = metaRows.length; // 0-based index dari baris header kolom
+      var headerRowIdx = metaRows.length; // 0-based
 
-      // Style header kolom (biru PLN)
-      colHeaders.forEach(function(_, ci) {
-        var addr = XLSX.utils.encode_cell({ r: headerRowIdx, c: ci });
-        if (!ws[addr]) ws[addr] = { v: colHeaders[ci], t: 's' };
+      // ── Style: Judul institusi ──
+      var a0 = XLSX.utils.encode_cell({r:0,c:0});
+      if (ws[a0]) ws[a0].s = {font:{bold:true,sz:13,color:{rgb:'0A2D6B'}},alignment:{horizontal:'left'}};
+
+      // ── Style: meta rows ──
+      [1,2,3].forEach(function(ri) {
+        var a = XLSX.utils.encode_cell({r:ri,c:0});
+        if (ws[a]) ws[a].s = {font:{sz:10,color:{rgb:'3D5580'}},alignment:{horizontal:'left'}};
+      });
+
+      // ── Style: Judul Laporan (baris 5) ──
+      var a5 = XLSX.utils.encode_cell({r:5,c:0});
+      if (ws[a5]) ws[a5].s = {
+        font:{bold:true,sz:14,color:{rgb:'0A2D6B'}},
+        alignment:{horizontal:'center'}
+      };
+
+      // ── Style: Header kolom ──
+      for (var ci = 0; ci < totalCols; ci++) {
+        var addr = XLSX.utils.encode_cell({r:headerRowIdx, c:ci});
+        if (!ws[addr]) ws[addr] = {v:colHeaders[ci],t:'s'};
         ws[addr].s = {
-          fill: { fgColor: { rgb: '0A2D6B' } },
-          font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 10 },
-          alignment: { horizontal: 'center', wrapText: true },
-          border: {
-            top: { style: 'thin', color: { rgb: '000000' } },
-            bottom: { style: 'thin', color: { rgb: '000000' } },
-            left: { style: 'thin', color: { rgb: '000000' } },
-            right: { style: 'thin', color: { rgb: '000000' } }
+          fill:{fgColor:{rgb:'0A2D6B'}},
+          font:{bold:true,color:{rgb:'FFFFFF'},sz:10},
+          alignment:{horizontal:'center',vertical:'center',wrapText:true},
+          border:{
+            top:{style:'medium',color:{rgb:'000000'}},
+            bottom:{style:'medium',color:{rgb:'000000'}},
+            left:{style:'thin',color:{rgb:'1048A8'}},
+            right:{style:'thin',color:{rgb:'1048A8'}}
           }
         };
-      });
+      }
 
-      // Style judul
-      [0,1,2,4,5].forEach(function(ri) {
-        var addr = XLSX.utils.encode_cell({ r: ri, c: 0 });
-        if (!ws[addr]) return;
-        ws[addr].s = { font: { bold: ri === 4, sz: ri === 4 ? 13 : 10 } };
-      });
-
-      // Style data rows — border tipis, alternating
-      dataRows.forEach(function(_, ri) {
+      // ── Style: Data rows — alternating + border + alignment ──
+      dataRows.forEach(function(row, ri) {
         var rowIdx = headerRowIdx + 1 + ri;
-        colHeaders.forEach(function(_, ci) {
-          var addr = XLSX.utils.encode_cell({ r: rowIdx, c: ci });
-          if (!ws[addr]) ws[addr] = { v: '', t: 's' };
+        var bg = ri % 2 === 0 ? 'FFFFFF' : 'EEF4FF';
+        for (var ci = 0; ci < totalCols; ci++) {
+          var addr = XLSX.utils.encode_cell({r:rowIdx, c:ci});
+          if (!ws[addr]) ws[addr] = {v:'',t:'s'};
           ws[addr].s = {
-            fill: { fgColor: { rgb: ri % 2 === 0 ? 'FFFFFF' : 'EEF4FF' } },
-            border: {
-              top: { style: 'thin', color: { rgb: 'D0D8E8' } },
-              bottom: { style: 'thin', color: { rgb: 'D0D8E8' } },
-              left: { style: 'thin', color: { rgb: 'D0D8E8' } },
-              right: { style: 'thin', color: { rgb: 'D0D8E8' } }
+            fill:{fgColor:{rgb:bg}},
+            font:{sz:10,color:{rgb: ci===0 ? '3D5580' : '0F1E38'}},
+            alignment:{
+              horizontal: ci === 0 ? 'center' : ci === 2 ? 'center' : ci === 5 ? 'center' : 'left',
+              vertical:'center',
+              wrapText: ci === 6
             },
-            alignment: { vertical: 'center' }
+            border:{
+              top:{style:'thin',color:{rgb:'D0D8E8'}},
+              bottom:{style:'thin',color:{rgb:'D0D8E8'}},
+              left:{style:'thin',color:{rgb:'C8D6EC'}},
+              right:{style:'thin',color:{rgb:'C8D6EC'}}
+            }
           };
-        });
+        }
       });
 
-      // Column widths
+      // ── Baris total di akhir ──
+      var totalRowIdx = headerRowIdx + 1 + dataRows.length;
+      XLSX.utils.sheet_add_aoa(ws, [['TOTAL: ' + dataRows.length + ' data']], {origin: XLSX.utils.encode_cell({r:totalRowIdx,c:0})});
+      var totAddr = XLSX.utils.encode_cell({r:totalRowIdx,c:0});
+      if (ws[totAddr]) ws[totAddr].s = {
+        font:{bold:true,sz:10,color:{rgb:'0A2D6B'}},
+        fill:{fgColor:{rgb:'EEF4FF'}},
+        alignment:{horizontal:'left'}
+      };
+
+      // ── Row heights ──
+      var rowHeights = [];
+      rowHeights[headerRowIdx] = {hpt:30};
+      ws['!rows'] = rowHeights;
+
+      // ── Column widths ──
       ws['!cols'] = [
-        {wch:5},{wch:18},{wch:13},{wch:14},{wch:22},{wch:10},{wch:35}
+        {wch:5},{wch:20},{wch:13},{wch:15},{wch:24},{wch:16},{wch:40}
       ];
 
-      // Freeze header row
-      ws['!freeze'] = { xSplit: 0, ySplit: headerRowIdx + 1, topLeftCell: 'A' + (headerRowIdx + 2), activePane: 'bottomLeft' };
+      // ── Freeze pane ──
+      ws['!freeze'] = {xSplit:0, ySplit:headerRowIdx+1, topLeftCell:'A'+(headerRowIdx+2), activePane:'bottomLeft'};
 
-      // Merge judul utama
+      // ── Merge judul ──
       ws['!merges'] = [
-        { s:{r:4,c:0}, e:{r:4,c:6} },
-        { s:{r:5,c:0}, e:{r:5,c:6} }
+        {s:{r:0,c:0},e:{r:0,c:totalCols-1}},
+        {s:{r:5,c:0},e:{r:5,c:totalCols-1}},
+        {s:{r:totalRowIdx,c:0},e:{r:totalRowIdx,c:totalCols-1}}
       ];
 
-      var lastRow = headerRowIdx + dataRows.length;
-      ws['!ref'] = 'A1:G' + (lastRow + 1);
+      ws['!ref'] = 'A1:G' + (totalRowIdx + 1);
 
-      XLSX.utils.book_append_sheet(wb, ws, 'PEMELIHARAAN');
+      XLSX.utils.book_append_sheet(wb, ws, 'PEMELIHARAAN GARDU');
       XLSX.writeFile(wb, 'Pemeliharaan_Gardu_' + dateFile + '.xlsx');
     } catch(e) {
       alert('Gagal export: ' + e.message);
