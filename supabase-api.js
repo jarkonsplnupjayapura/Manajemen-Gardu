@@ -1042,22 +1042,13 @@ function _mapInspeksiRow(r) {
 // ── TAMBAH PEMELIHARAAN via RPC ───────────────────────────────
 async function _tambahPemeliharaan(p, signal) {
   var data = await rpcCall('fn_tambah_pemeliharaan', {
-    p_token:          p.token,
-    p_no_gardu:       (p.noGardu || '').trim().toUpperCase(),
-    p_tanggal:        p.tanggal        || null,
-    p_petugas:        p.petugas        || null,
-    p_kategori:       p.kategori       || null,
-    p_jenis:          p.jenis          || null,
-    p_kondisi_awal:   p.kondisiAwal    || null,
-    p_kondisi_akhir:  p.kondisiAkhir   || null,
-    p_temuan:         p.temuan         || null,
-    p_tindakan:       p.tindakan       || null,
-    p_bahan_pakai:    p.bahanPakai     ? JSON.stringify(p.bahanPakai) : null,
-    p_rekomendasi:    p.rekomendasi    || null,
-    p_status:         p.status         || 'SELESAI',
-    p_jam_mulai:      p.jamMulai       || null,
-    p_jam_selesai:    p.jamSelesai     || null,
-    p_catatan:        p.catatan        || null
+    p_token:    p.token,
+    p_no_gardu: (p.noGardu || '').trim().toUpperCase(),
+    p_ulp:      p.ulp      || null,
+    p_tanggal:  p.tanggal  || null,
+    p_petugas:  p.petugas  || null,
+    p_kategori: p.kategori || null,
+    p_jenis:    p.jenis    || null
   }, signal);
 
   if (!data || data.status !== 'ok')
@@ -1068,13 +1059,13 @@ async function _tambahPemeliharaan(p, signal) {
 
 // ── GET DAFTAR PEMELIHARAAN via RPC ──────────────────────────
 async function _getDaftarPemeliharaan(p, signal) {
-  // Catatan: p_ulp tidak dikirim ke RPC karena kolom ulp di DB bertipe
-  // ulp_enum dan PostgreSQL tidak bisa cast text = ulp_enum secara langsung.
-  // Filter ULP dilakukan di sisi klien setelah data diterima.
+  // Catatan: p_ulp tidak dikirim ke RPC karena filter ULP dilakukan di DB
+  // berdasarkan role user (superadmin lihat semua, selain itu hanya ULP sendiri).
+  // Filter tambahan (kategori, ulp) dilakukan di sisi klien setelah data diterima.
+  // p_status TIDAK dikirim karena kolom status tidak ada di tabel pemeliharaan.
   var rpcParams = {
     p_token:     p.token,
     p_no_gardu:  p.noGardu  ? (p.noGardu || '').trim().toUpperCase() : null,
-    p_status:    p.status   || null,
     p_tgl_awal:  p.tglAwal  || null,
     p_tgl_akhir: p.tglAkhir || null,
     p_limit:     p.limit    ? parseInt(p.limit)                       : 200,
@@ -1104,22 +1095,13 @@ async function _hapusPemeliharaan(p, signal) {
 // ── EDIT PEMELIHARAAN via RPC ─────────────────────────────────
 async function _editPemeliharaan(p, signal) {
   var data = await rpcCall('fn_edit_pemeliharaan', {
-    p_token:          p.token,
-    p_id:             parseInt(p.id),
-    p_tanggal:        p.tanggal       || null,
-    p_petugas:        p.petugas       || null,
-    p_kategori:       p.kategori      || null,
-    p_jenis:          p.jenis         || null,
-    p_kondisi_awal:   p.kondisiAwal   || null,
-    p_kondisi_akhir:  p.kondisiAkhir  || null,
-    p_temuan:         p.temuan        || null,
-    p_tindakan:       p.tindakan      || null,
-    p_bahan_pakai:    p.bahanPakai    ? JSON.stringify(p.bahanPakai) : null,
-    p_rekomendasi:    p.rekomendasi   || null,
-    p_status:         p.status        || null,
-    p_jam_mulai:      p.jamMulai      || null,
-    p_jam_selesai:    p.jamSelesai    || null,
-    p_catatan:        p.catatan       || null
+    p_token:    p.token,
+    p_id:       parseInt(p.id),
+    p_ulp:      p.ulp      || null,
+    p_tanggal:  p.tanggal  || null,
+    p_petugas:  p.petugas  || null,
+    p_kategori: p.kategori || null,
+    p_jenis:    p.jenis    || null
   }, signal);
 
   if (!data || data.status !== 'ok')

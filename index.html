@@ -1265,6 +1265,7 @@ if (typeof L === 'undefined') {
   <div class="topbar">
     <div class="topbar-logo"><img src="icon-192.png" alt="PLN" onerror="this.parentNode.innerHTML='PLN'"></div>
     <div class="topbar-info"><div class="topbar-sub">UP3 Jayapura</div><div class="topbar-title">Riwayat Pengukuran Gardu</div></div>
+    <button class="topbar-action" onclick="exportPengukuranExcel()" id="btn-export-pengukuran">⬇️ Export</button>
   </div>
   <div class="page-body">
     <!-- Filter Form -->
@@ -1349,33 +1350,71 @@ if (typeof L === 'undefined') {
   <div class="topbar">
     <div class="topbar-logo"><img src="icon-192.png" alt="PLN" onerror="this.parentNode.innerHTML='PLN'"></div>
     <div class="topbar-info"><div class="topbar-sub">UP3 Jayapura</div><div class="topbar-title">Pemeliharaan Gardu</div></div>
-    <button class="topbar-action" onclick="bukaFormPemeliharaan()">+ Input</button>
+    <button class="topbar-action" onclick="exportPemeliharaanExcel()" id="btn-export-pemeliharaan">⬇️ Export</button>
   </div>
   <div class="page-body">
-    <!-- Filter & Search -->
-    <div class="search-wrap" style="margin-bottom:var(--sp-sm);">
-      <span class="search-icon">🔍</span>
-      <input id="pm-search" class="form-input" placeholder="Cari No. Gardu, petugas, jenis..." oninput="filterDaftarPemeliharaan(this.value)">
+    <!-- Filter Form (like Pengukuran) -->
+    <div class="card" style="margin-bottom:var(--sp-sm);">
+      <div class="sec" style="margin-top:0;">🔍 Filter Laporan</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:var(--sp-sm);align-items:end;" class="ukur-filter-grid">
+        <div class="form-group" style="margin:0;grid-column:1/3;">
+          <label class="form-label">No. Gardu (opsional)</label>
+          <input type="text" class="form-input" id="pm-filter-nogardu" placeholder="Cari No. Gardu..." autocapitalize="characters" oninput="this.value=this.value.toUpperCase()">
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Tanggal Mulai</label>
+          <input type="date" class="form-input" id="pm-filter-tgl-awal">
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Tanggal Akhir</label>
+          <input type="date" class="form-input" id="pm-filter-tgl-akhir">
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Kategori</label>
+          <select class="form-select" id="pm-filter-kategori">
+            <option value="">Semua Kategori</option>
+            <option value="PREVENTIF">Preventif</option>
+            <option value="KOREKTIF">Korektif</option>
+            <option value="INSPEKSI">Inspeksi Visual</option>
+            <option value="OVERHAUL">Overhaul</option>
+            <option value="PENGGANTIAN">Penggantian</option>
+            <option value="DARURAT">Darurat</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">ULP</label>
+          <select class="form-select" id="pm-filter-ulp">
+            <option value="">Semua ULP</option>
+            <option value="ULP ABEPURA">Abepura</option>
+            <option value="ULP JAYAPURA">Jayapura</option>
+            <option value="ULP SENTANI">Sentani</option>
+            <option value="ULP SARMI">Sarmi</option>
+            <option value="ULP ARSO">Arso</option>
+            <option value="ULP GENYEM">Genyem</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:var(--sp-sm);grid-column:3/5;align-items:flex-end;">
+          <button class="btn btn-outline" style="flex:1;margin:0;height:42px;" onclick="resetFilterPemeliharaan()">↺ Reset</button>
+          <button class="btn btn-blue" style="flex:2;margin:0;height:42px;" onclick="muatDaftarPemeliharaan(true)">🔍 Tampilkan</button>
+        </div>
+      </div>
     </div>
-    <div class="tag-row" id="pm-filter-row">
-      <span class="tag active" onclick="setPmFilter('')">Semua</span>
-      <span class="tag" onclick="setPmFilter('SELESAI')">✅ Selesai</span>
-      <span class="tag" onclick="setPmFilter('PROSES')">🔄 Proses</span>
-      <span class="tag" onclick="setPmFilter('TUNDA')">⏸️ Tunda</span>
-    </div>
+
     <!-- Rekap singkat -->
     <div id="pm-rekap-bar" style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-xs);margin-bottom:var(--sp-sm);">
       <div class="card" style="padding:10px;text-align:center;margin:0;"><div style="font-size:var(--fs-lg);font-weight:800;color:var(--pln-biru2);" id="pm-count-total">—</div><div class="lbl">Total</div></div>
-      <div class="card" style="padding:10px;text-align:center;margin:0;"><div style="font-size:var(--fs-lg);font-weight:800;color:var(--pln-green);" id="pm-count-selesai">—</div><div class="lbl">Selesai</div></div>
-      <div class="card" style="padding:10px;text-align:center;margin:0;"><div style="font-size:var(--fs-lg);font-weight:800;color:var(--pln-orange);" id="pm-count-proses">—</div><div class="lbl">Proses</div></div>
+      <div class="card" style="padding:10px;text-align:center;margin:0;"><div style="font-size:var(--fs-lg);font-weight:800;color:var(--pln-green);" id="pm-count-preventif">—</div><div class="lbl">Preventif</div></div>
+      <div class="card" style="padding:10px;text-align:center;margin:0;"><div style="font-size:var(--fs-lg);font-weight:800;color:var(--pln-orange);" id="pm-count-korektif">—</div><div class="lbl">Korektif</div></div>
     </div>
-    <div id="pm-list-wrap"><div class="loading"><div class="spinner"></div>Memuat data pemeliharaan...</div></div>
+    <div id="pm-list-wrap">
+      <div class="alert alert-info"><span class="alert-icon">🔧</span><span class="alert-text">Atur filter di atas lalu tekan <b>Tampilkan</b> untuk melihat data pemeliharaan gardu.</span></div>
+    </div>
   </div>
 </div>
 
-<!-- ══ FORM PEMELIHARAAN — Wizard Step-by-Step ═══════════════ -->
+<!-- ══ FORM PEMELIHARAAN — Single Page (7 Kolom) ══════════════ -->
 <div id="form-pemeliharaan-view" style="display:none;position:fixed;inset:0;z-index:200;background:var(--pln-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;">
-  <div style="max-width:900px;margin:0 auto;">
+  <div style="max-width:600px;margin:0 auto;">
     <!-- Topbar -->
     <div class="topbar" style="position:sticky;top:0;z-index:10;">
       <button class="topbar-back" onclick="tutupFormPemeliharaan()">←</button>
@@ -1388,195 +1427,67 @@ if (typeof L === 'undefined') {
       </div>
     </div>
 
-    <!-- Step Progress -->
-    <div class="pm-progress" id="pm-progress">
-      <div class="pm-step active" id="pm-s1"><div class="pm-step-circle">1</div><div class="pm-step-label">Identitas</div></div>
-      <div class="pm-step" id="pm-s2"><div class="pm-step-circle">2</div><div class="pm-step-label">Kategori</div></div>
-      <div class="pm-step" id="pm-s3"><div class="pm-step-circle">3</div><div class="pm-step-label">Kondisi</div></div>
-      <div class="pm-step" id="pm-s4"><div class="pm-step-circle">4</div><div class="pm-step-label">Tindakan</div></div>
-      <div class="pm-step" id="pm-s5"><div class="pm-step-circle">5</div><div class="pm-step-label">Review</div></div>
-    </div>
-
     <!-- Body -->
     <div style="padding:var(--sp-md);padding-bottom:120px;">
 
-      <!-- ─ PANEL 1: Identitas & Waktu ──────────────────────── -->
-      <div class="pm-panel active" id="pm-panel-1">
-        <div class="sec">🏗️ Informasi Gardu</div>
-        <div class="card">
-          <div class="form-group">
-            <label class="form-label">No. Gardu <span class="req">*</span></label>
-            <input type="text" class="form-input" id="pm-nogardu" placeholder="Contoh: GD001" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()">
-            <div id="pm-gardu-info" style="margin-top:6px;font-size:var(--fs-xs);color:var(--pln-text2);display:none;"></div>
-          </div>
-          <div class="grid2">
-            <div class="form-group" style="margin:0;">
-              <label class="form-label">Tanggal <span class="req">*</span></label>
-              <input type="date" class="form-input" id="pm-tanggal">
-            </div>
-            <div class="form-group" style="margin:0;">
-              <label class="form-label">Jam Mulai</label>
-              <input type="time" class="form-input" id="pm-jam-mulai">
-            </div>
-          </div>
-          <div class="form-group" style="margin-top:var(--sp-sm);margin-bottom:0;">
-            <label class="form-label">Jam Selesai</label>
-            <input type="time" class="form-input" id="pm-jam-selesai">
-          </div>
+      <div class="sec">🏗️ Informasi Gardu</div>
+      <div class="card">
+        <div class="form-group">
+          <label class="form-label">No. Gardu <span class="req">*</span></label>
+          <input type="text" class="form-input" id="pm-nogardu" placeholder="Contoh: GD001" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()">
+          <div id="pm-gardu-info" style="margin-top:6px;font-size:var(--fs-xs);color:var(--pln-text2);display:none;"></div>
         </div>
-        <div class="sec">👷 Petugas Pelaksana</div>
-        <div class="card">
-          <div class="form-group">
-            <label class="form-label">Nama Petugas <span class="req">*</span></label>
-            <input type="text" class="form-input" id="pm-petugas" placeholder="Nama petugas yang melaksanakan" autocomplete="name">
-          </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label">Anggota Tim (opsional)</label>
-            <input type="text" class="form-input" id="pm-anggota" placeholder="Pisahkan nama dengan koma">
-          </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Unit (ULP) <span class="req">*</span></label>
+          <input type="text" class="form-input" id="pm-ulp" placeholder="Contoh: ULP JAYAPURA KOTA" autocapitalize="characters" oninput="this.value=this.value.toUpperCase()">
         </div>
       </div>
 
-      <!-- ─ PANEL 2: Kategori & Jenis ───────────────────────── -->
-      <div class="pm-panel" id="pm-panel-2">
-        <div class="sec">📂 Kategori Pemeliharaan</div>
-        <div class="card">
-          <div class="form-group">
-            <label class="form-label">Kategori <span class="req">*</span></label>
-            <select class="form-select" id="pm-kategori" onchange="pmUpdateJenis()">
-              <option value="">— Pilih Kategori —</option>
-              <option value="PREVENTIF">Preventif (Rutin Terjadwal)</option>
-              <option value="KOREKTIF">Korektif (Perbaikan Kerusakan)</option>
-              <option value="INSPEKSI">Inspeksi Visual</option>
-              <option value="OVERHAUL">Overhaul Besar</option>
-              <option value="PENGGANTIAN">Penggantian Komponen</option>
-              <option value="DARURAT">Pemeliharaan Darurat</option>
-            </select>
-          </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label">Jenis Pekerjaan <span class="req">*</span></label>
-            <select class="form-select" id="pm-jenis">
-              <option value="">— Pilih Kategori Terlebih Dahulu —</option>
-            </select>
-          </div>
-        </div>
-        <div class="sec">📊 Status Pelaksanaan</div>
-        <div class="card">
-          <label class="form-label">Status</label>
-          <div class="pm-pill-group" id="pm-status-group">
-            <button type="button" class="pm-pill selected-ok" data-val="SELESAI" onclick="pmSelectPill('pm-status-group',this,'ok')">✅ Selesai</button>
-            <button type="button" class="pm-pill" data-val="PROSES" onclick="pmSelectPill('pm-status-group',this,'warn')">🔄 Masih Proses</button>
-            <button type="button" class="pm-pill" data-val="TUNDA" onclick="pmSelectPill('pm-status-group',this,'bad')">⏸️ Ditunda</button>
-          </div>
+      <div class="sec">📅 Tanggal Pelaksanaan</div>
+      <div class="card">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Tanggal <span class="req">*</span></label>
+          <input type="date" class="form-input" id="pm-tanggal">
         </div>
       </div>
 
-      <!-- ─ PANEL 3: Kondisi ────────────────────────────────── -->
-      <div class="pm-panel" id="pm-panel-3">
-        <div class="sec">🔍 Kondisi Gardu</div>
-        <div class="card">
-          <div class="form-group">
-            <label class="form-label">Kondisi Awal (Sebelum Pemeliharaan)</label>
-            <div class="pm-pill-group" id="pm-kondisi-awal-group">
-              <button type="button" class="pm-pill" data-val="BAIK" onclick="pmSelectPill('pm-kondisi-awal-group',this,'ok')">✅ Baik</button>
-              <button type="button" class="pm-pill" data-val="PERLU PERHATIAN" onclick="pmSelectPill('pm-kondisi-awal-group',this,'warn')">⚠️ Perlu Perhatian</button>
-              <button type="button" class="pm-pill" data-val="RUSAK" onclick="pmSelectPill('pm-kondisi-awal-group',this,'bad')">❌ Rusak</button>
-            </div>
-          </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label">Kondisi Akhir (Setelah Pemeliharaan)</label>
-            <div class="pm-pill-group" id="pm-kondisi-akhir-group">
-              <button type="button" class="pm-pill" data-val="BAIK" onclick="pmSelectPill('pm-kondisi-akhir-group',this,'ok')">✅ Baik</button>
-              <button type="button" class="pm-pill" data-val="PERLU PERHATIAN" onclick="pmSelectPill('pm-kondisi-akhir-group',this,'warn')">⚠️ Perlu Perhatian</button>
-              <button type="button" class="pm-pill" data-val="RUSAK" onclick="pmSelectPill('pm-kondisi-akhir-group',this,'bad')">❌ Rusak</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="sec">📝 Temuan di Lapangan</div>
-        <div class="card">
-          <div class="form-group">
-            <label class="form-label">Temuan / Keluhan</label>
-            <textarea class="form-textarea" id="pm-temuan" placeholder="Jelaskan temuan atau keluhan yang ditemukan di lapangan..." rows="3"></textarea>
-          </div>
-          <!-- Checklist cepat temuan -->
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label">Checklist Cepat (pilih yang ditemukan)</label>
-            <div class="pm-pill-group" id="pm-checklist-group">
-              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Minyak trafo bocor')">🛢️ Minyak bocor</button>
-              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Karat/korosi')">🔩 Karat/korosi</button>
-              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Isolasi rusak')">⚡ Isolasi rusak</button>
-              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Terminal longgar')">🔌 Terminal longgar</button>
-              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Bushing retak')">💥 Bushing retak</button>
-              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Kabel terkelupas')">🔋 Kabel terkelupas</button>
-              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Kelembapan tinggi')">💧 Kelembapan tinggi</button>
-              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Suhu abnormal')">🌡️ Suhu abnormal</button>
-              <button type="button" class="pm-pill" onclick="pmToggleChecklist(this,'Vandalism/pencurian')">⚠️ Vandalism</button>
-            </div>
-          </div>
+      <div class="sec">👷 Petugas Pelaksana</div>
+      <div class="card">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Nama Petugas <span class="req">*</span></label>
+          <input type="text" class="form-input" id="pm-petugas" placeholder="Nama petugas yang melaksanakan" autocomplete="name">
         </div>
       </div>
 
-      <!-- ─ PANEL 4: Tindakan & Bahan ───────────────────────── -->
-      <div class="pm-panel" id="pm-panel-4">
-        <div class="sec">🛠️ Tindakan Perbaikan</div>
-        <div class="card">
-          <div class="form-group">
-            <label class="form-label">Tindakan yang Dilakukan <span class="req">*</span></label>
-            <textarea class="form-textarea" id="pm-tindakan" placeholder="Jelaskan tindakan perbaikan yang dilakukan..." rows="3"></textarea>
-          </div>
-          <!-- Tindakan cepat -->
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label">Tindakan Cepat (klik untuk menambah)</label>
-            <div class="pm-pill-group">
-              <button type="button" class="pm-pill" onclick="pmAppendTindakan('Pembersihan panel')">🧹 Pembersihan panel</button>
-              <button type="button" class="pm-pill" onclick="pmAppendTindakan('Pengencangan terminal')">🔧 Pengencangan terminal</button>
-              <button type="button" class="pm-pill" onclick="pmAppendTindakan('Penggantian sekring')">🔌 Ganti sekring</button>
-              <button type="button" class="pm-pill" onclick="pmAppendTindakan('Pengecekan minyak trafo')">🛢️ Cek minyak trafo</button>
-              <button type="button" class="pm-pill" onclick="pmAppendTindakan('Pengukuran tahanan isolasi')">📏 Ukur tahanan isolasi</button>
-              <button type="button" class="pm-pill" onclick="pmAppendTindakan('Pengecatan ulang')">🎨 Pengecatan ulang</button>
-              <button type="button" class="pm-pill" onclick="pmAppendTindakan('Perbaikan sistem grounding')">⚡ Perbaikan grounding</button>
-            </div>
-          </div>
+      <div class="sec">📂 Kategori &amp; Jenis Pekerjaan</div>
+      <div class="card">
+        <div class="form-group">
+          <label class="form-label">Kategori <span class="req">*</span></label>
+          <select class="form-select" id="pm-kategori" onchange="pmUpdateJenis()">
+            <option value="">— Pilih Kategori —</option>
+            <option value="PREVENTIF">Preventif (Rutin Terjadwal)</option>
+            <option value="KOREKTIF">Korektif (Perbaikan Kerusakan)</option>
+            <option value="INSPEKSI">Inspeksi Visual</option>
+            <option value="OVERHAUL">Overhaul Besar</option>
+            <option value="PENGGANTIAN">Penggantian Komponen</option>
+            <option value="DARURAT">Pemeliharaan Darurat</option>
+          </select>
         </div>
-
-        <div class="sec">📦 Bahan & Material yang Dipakai</div>
-        <div class="card">
-          <div id="pm-bahan-list"></div>
-          <button type="button" class="btn btn-outline" style="margin-top:var(--sp-xs);" onclick="pmTambahBahan()">+ Tambah Bahan/Material</button>
-        </div>
-
-        <div class="sec">📋 Rekomendasi & Catatan</div>
-        <div class="card">
-          <div class="form-group">
-            <label class="form-label">Rekomendasi Tindak Lanjut</label>
-            <textarea class="form-textarea" id="pm-rekomendasi" placeholder="Apa yang perlu dilakukan ke depan..." rows="2"></textarea>
-          </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label">Catatan Tambahan</label>
-            <textarea class="form-textarea" id="pm-catatan" placeholder="Catatan teknis lainnya..." rows="2"></textarea>
-          </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Jenis Pekerjaan <span class="req">*</span></label>
+          <select class="form-select" id="pm-jenis">
+            <option value="">— Pilih Kategori Terlebih Dahulu —</option>
+          </select>
         </div>
       </div>
 
-      <!-- ─ PANEL 5: Review & Submit ────────────────────────── -->
-      <div class="pm-panel" id="pm-panel-5">
-        <div class="sec">✅ Review Sebelum Menyimpan</div>
-        <div class="card" id="pm-review-card">
-          <!-- diisi JS -->
-        </div>
-        <div id="pm-submit-msg" style="display:none;margin-bottom:var(--sp-sm);padding:var(--sp-sm) var(--sp-md);border-radius:var(--radius-sm);font-size:var(--fs-sm);font-weight:600;border:1px solid;"></div>
-      </div>
+      <div id="pm-submit-msg" style="display:none;margin-bottom:var(--sp-sm);padding:var(--sp-sm) var(--sp-md);border-radius:var(--radius-sm);font-size:var(--fs-sm);font-weight:600;border:1px solid;"></div>
 
     </div><!-- /padding body -->
 
-    <!-- Sticky footer navigasi -->
-    <div class="form-footer-sticky" id="pm-footer">
-      <div class="btn-row">
-        <button type="button" class="btn btn-outline" id="pm-btn-back-step" onclick="pmGoStep(-1)" style="display:none;">← Kembali</button>
-        <button type="button" class="btn btn-blue" id="pm-btn-next-step" onclick="pmGoStep(1)">Lanjut →</button>
-      </div>
-      <div style="text-align:center;font-size:var(--fs-xs);color:var(--pln-text3);margin-top:6px;" id="pm-step-hint">Langkah 1 dari 5</div>
+    <!-- Sticky footer -->
+    <div class="form-footer-sticky">
+      <button type="button" class="btn btn-blue" id="pm-btn-simpan" onclick="pmSubmit()">💾 Simpan Data</button>
     </div>
   </div>
 </div>
@@ -3255,7 +3166,7 @@ function bukaTab(id, idx){
   var pb = document.querySelector('#' + id + ' .page-body');
   if (pb) pb.scrollTop = 0;
   if(id==='tab-rekap' && !rekapSudahMuat) muatRekap();
-  if(id==='tab-pemeliharaan') muatDaftarPemeliharaan(false);
+  if(id==='tab-pemeliharaan') { /* data dimuat on-demand saat user tekan Tampilkan */ }
   if(id==='tab-pengukuran') { /* data dimuat on-demand saat user tekan Tampilkan */ }
   if(id==='tab-peta') {
     // Gunakan requestAnimationFrame ganda agar browser selesai paint tab dulu
@@ -7090,22 +7001,22 @@ window.addEventListener('resize', function() {
 // ══ END PETA JS ═══════════════════════════════════════════════════
 
 
-// ══ PEMELIHARAAN — Wizard Form & List JS ══════════════════════════
+// ══ PEMELIHARAAN — Form & List JS (7 Kolom) ══════════════════════════
 
-var _pmCurrentStep = 1;
-var _pmTotalSteps  = 5;
-var _pmFilterStatus = '';
 var _pmAllData = [];
-var _pmChecklistItems = [];
+var _pmFilteredData = [];
+var _pmCurrentPage = 1;
+var _pmPageSize = 25;
+var _pmSudahMuat = false;
 
 // Jenis pekerjaan berdasarkan kategori
 var PM_JENIS = {
-  'PREVENTIF': ['Pemeliharaan Rutin Berkala','Pelumasan Bearing','Pembersihan Panel & Trafo','Pengencangan Sambungan','Pengecekan Relay Proteksi','Pengukuran Tahanan Isolasi','Kalibrasi Peralatan Ukur'],
-  'KOREKTIF':  ['Perbaikan Kabel Rusak','Penggantian Terminal','Perbaikan Isolator','Perbaikan Panel','Perbaikan Sistem Pentanahan','Perbaikan Bushing'],
-  'INSPEKSI':  ['Inspeksi Visual Rutin','Inspeksi Setelah Gangguan','Inspeksi K3','Pengukuran Beban','Termografi Inframerah'],
-  'OVERHAUL':  ['Overhaul Trafo','Overhaul Panel LV','Penggantian Minyak Trafo','Rekondisi Peralatan'],
+  'PREVENTIF':  ['Pemeliharaan Rutin Berkala','Pelumasan Bearing','Pembersihan Panel & Trafo','Pengencangan Sambungan','Pengecekan Relay Proteksi','Pengukuran Tahanan Isolasi','Kalibrasi Peralatan Ukur'],
+  'KOREKTIF':   ['Perbaikan Kabel Rusak','Penggantian Terminal','Perbaikan Isolator','Perbaikan Panel','Perbaikan Sistem Pentanahan','Perbaikan Bushing'],
+  'INSPEKSI':   ['Inspeksi Visual Rutin','Inspeksi Setelah Gangguan','Inspeksi K3','Pengukuran Beban','Termografi Inframerah'],
+  'OVERHAUL':   ['Overhaul Trafo','Overhaul Panel LV','Penggantian Minyak Trafo','Rekondisi Peralatan'],
   'PENGGANTIAN':['Penggantian Trafo','Penggantian Kabel JTR','Penggantian NH Fuse','Penggantian Lightning Arrester','Penggantian Kwh Meter'],
-  'DARURAT':   ['Pemulihan Gangguan','Perbaikan Darurat Kabel Putus','Penanganan Kebakaran/Korsleting','Penggantian Darurat Peralatan']
+  'DARURAT':    ['Pemulihan Gangguan','Perbaikan Darurat Kabel Putus','Penanganan Kebakaran/Korsleting','Penggantian Darurat Peralatan']
 };
 
 function pmUpdateJenis() {
@@ -7119,96 +7030,132 @@ function pmUpdateJenis() {
   });
 }
 
-function pmSelectPill(groupId, btn, styleKey) {
-  var group = document.getElementById(groupId);
-  group.querySelectorAll('.pm-pill').forEach(function(p) {
-    p.className = 'pm-pill';
-  });
-  btn.className = 'pm-pill selected-' + styleKey;
-}
-
-function pmGetPillValue(groupId) {
-  var group = document.getElementById(groupId);
-  var sel = group ? group.querySelector('.pm-pill[class*="selected-"]') : null;
-  return sel ? (sel.getAttribute('data-val') || sel.textContent.trim()) : '';
-}
-
-function pmToggleChecklist(btn, item) {
-  var active = btn.classList.contains('selected-blue');
-  if (active) {
-    btn.className = 'pm-pill';
-    _pmChecklistItems = _pmChecklistItems.filter(function(i){ return i !== item; });
+// ── Buka / Tutup form pemeliharaan ─────────────────────────────
+function bukaFormPemeliharaan(noGarduPrefill) {
+  pmResetForm();
+  if (noGarduPrefill) {
+    var el = document.getElementById('pm-nogardu');
+    if (el) { el.value = noGarduPrefill; el.readOnly = true; }
+    var title = document.getElementById('pm-topbar-title');
+    if (title) title.textContent = noGarduPrefill;
+    // Auto-fill ULP dari garduIndex
+    var gInfo = garduIndex[noGarduPrefill.trim().toUpperCase()];
+    if (gInfo && gInfo['ULP']) {
+      var ulpEl = document.getElementById('pm-ulp');
+      if (ulpEl && !ulpEl.readOnly) ulpEl.value = gInfo['ULP'];
+    }
   } else {
-    btn.className = 'pm-pill selected-blue';
-    if (_pmChecklistItems.indexOf(item) < 0) _pmChecklistItems.push(item);
+    var el2 = document.getElementById('pm-nogardu');
+    if (el2) el2.readOnly = false;
+    var title2 = document.getElementById('pm-topbar-title');
+    if (title2) title2.textContent = 'Input Baru';
   }
-  // append to temuan
-  var ta = document.getElementById('pm-temuan');
-  ta.value = _pmChecklistItems.join('; ');
+  var view = document.getElementById('form-pemeliharaan-view');
+  if (view) { view.style.display = 'block'; view.scrollTo(0, 0); }
 }
 
-function pmAppendTindakan(teks) {
-  var ta = document.getElementById('pm-tindakan');
-  ta.value = (ta.value ? ta.value.trim() + '; ' : '') + teks;
-  ta.focus();
+function tutupFormPemeliharaan() {
+  var view = document.getElementById('form-pemeliharaan-view');
+  if (view) view.style.display = 'none';
 }
 
-function pmTambahBahan() {
-  var list = document.getElementById('pm-bahan-list');
-  var row  = document.createElement('div');
-  row.className = 'pm-bahan-row';
-  row.innerHTML =
-    '<input type="text" class="form-input" placeholder="Nama bahan / material" style="flex:2;min-width:0;">' +
-    '<input type="text" class="form-input" placeholder="Jml" style="flex:1;min-width:0;">' +
-    '<button type="button" class="pm-bahan-remove" onclick="this.parentNode.remove()">✕</button>';
-  list.appendChild(row);
-  row.querySelector('input').focus();
-}
-
-function pmGetBahanPakai() {
-  var rows = document.querySelectorAll('#pm-bahan-list .pm-bahan-row');
-  var result = [];
-  rows.forEach(function(r) {
-    var inputs = r.querySelectorAll('input');
-    var nama = inputs[0] ? inputs[0].value.trim() : '';
-    var qty  = inputs[1] ? inputs[1].value.trim() : '';
-    if (nama) result.push({ nama: nama, qty: qty });
+function pmResetForm() {
+  var el;
+  ['pm-nogardu','pm-ulp','pm-tanggal','pm-petugas'].forEach(function(id) {
+    el = document.getElementById(id);
+    if (el) { el.value = ''; el.readOnly = false; }
   });
-  return result;
-}
+  el = document.getElementById('pm-kategori');
+  if (el) el.selectedIndex = 0;
+  el = document.getElementById('pm-jenis');
+  if (el) { el.innerHTML = '<option value="">— Pilih Kategori Terlebih Dahulu —</option>'; }
+  var gi = document.getElementById('pm-gardu-info');
+  if (gi) gi.style.display = 'none';
+  var msg = document.getElementById('pm-submit-msg');
+  if (msg) msg.style.display = 'none';
 
-function pmGoStep(dir) {
-  if (dir === 1) {
-    // Validasi step sekarang
-    if (_pmCurrentStep === 1) {
-      var noGardu = (document.getElementById('pm-nogardu').value || '').trim();
-      var tanggal = document.getElementById('pm-tanggal').value;
-      var petugas = (document.getElementById('pm-petugas').value || '').trim();
-      if (!noGardu) { pmShowStepErr('No. Gardu wajib diisi.'); return; }
-      if (!tanggal) { pmShowStepErr('Tanggal wajib diisi.'); return; }
-      if (!petugas) { pmShowStepErr('Nama Petugas wajib diisi.'); return; }
-    }
-    if (_pmCurrentStep === 2) {
-      if (!document.getElementById('pm-kategori').value) { pmShowStepErr('Kategori wajib dipilih.'); return; }
-      if (!document.getElementById('pm-jenis').value)    { pmShowStepErr('Jenis pekerjaan wajib dipilih.'); return; }
-    }
-    if (_pmCurrentStep === 4) {
-      var tindakan = (document.getElementById('pm-tindakan').value || '').trim();
-      if (!tindakan) { pmShowStepErr('Tindakan yang dilakukan wajib diisi.'); return; }
-    }
-    if (_pmCurrentStep === 5) {
-      // Submit
-      pmSubmit();
-      return;
-    }
-    if (_pmCurrentStep < _pmTotalSteps) _pmCurrentStep++;
-  } else {
-    if (_pmCurrentStep > 1) _pmCurrentStep--;
+  // Set tanggal default hari ini
+  el = document.getElementById('pm-tanggal');
+  if (el) el.value = new Date().toISOString().split('T')[0];
+
+  // Auto-fill petugas dari sesi
+  var s = getSession();
+  if (s && s.nama) {
+    el = document.getElementById('pm-petugas');
+    if (el && !el.value) el.value = s.nama;
   }
-  pmRenderStep();
+  // Auto-fill ULP dari sesi
+  if (s && s.ulp) {
+    el = document.getElementById('pm-ulp');
+    if (el && !el.value) el.value = s.ulp;
+  }
+
+  var btn = document.getElementById('pm-btn-simpan');
+  if (btn) { btn.disabled = false; btn.textContent = '💾 Simpan Data'; }
 }
 
-function pmShowStepErr(msg) {
+// ── Submit ──────────────────────────────────────────────────────
+async function pmSubmit() {
+  var s = getSession();
+  if (!s) { pmShowErr('Sesi berakhir, silakan login kembali.'); return; }
+
+  var noGardu  = (document.getElementById('pm-nogardu').value  || '').trim().toUpperCase();
+  var ulp      = (document.getElementById('pm-ulp').value      || '').trim();
+  var tanggal  = (document.getElementById('pm-tanggal').value  || '').trim();
+  var petugas  = (document.getElementById('pm-petugas').value  || '').trim();
+  var kategori = (document.getElementById('pm-kategori').value || '').trim();
+  var jenis    = (document.getElementById('pm-jenis').value    || '').trim();
+
+  if (!noGardu)  { pmShowErr('No. Gardu wajib diisi.');        return; }
+  if (!ulp)      { pmShowErr('Unit (ULP) wajib diisi.');       return; }
+  if (!tanggal)  { pmShowErr('Tanggal wajib diisi.');          return; }
+  if (!petugas)  { pmShowErr('Nama Petugas wajib diisi.');     return; }
+  if (!kategori) { pmShowErr('Kategori wajib dipilih.');       return; }
+  if (!jenis)    { pmShowErr('Jenis Pekerjaan wajib dipilih.'); return; }
+
+  var savingEl = document.getElementById('pm-saving-indicator');
+  var btn      = document.getElementById('pm-btn-simpan');
+  if (savingEl) savingEl.style.display = '';
+  if (btn)      { btn.disabled = true; btn.textContent = '⏳ Menyimpan...'; }
+
+  var params = {
+    action:    'tambahPemeliharaan',
+    token:     s.token,
+    noGardu:   noGardu,
+    ulp:       ulp,
+    tanggal:   tanggal,
+    petugas:   petugas,
+    kategori:  kategori,
+    jenis:     jenis
+  };
+
+  apiGet(params, function(res) {
+    if (savingEl) savingEl.style.display = 'none';
+    if (btn)      { btn.disabled = false; btn.textContent = '💾 Simpan Data'; }
+
+    var msgEl = document.getElementById('pm-submit-msg');
+    if (!msgEl) return;
+    msgEl.style.display = 'block';
+
+    if (res.status === 'ok') {
+      msgEl.style.background = '#D1FAE5';
+      msgEl.style.color      = '#065F46';
+      msgEl.style.borderColor= '#A7F3D0';
+      msgEl.textContent = '✅ Data pemeliharaan berhasil disimpan!';
+      setTimeout(function() {
+        tutupFormPemeliharaan();
+        muatDaftarPemeliharaan(true);
+      }, 1800);
+    } else {
+      msgEl.style.background = '#FEE2E2';
+      msgEl.style.color      = '#991B1B';
+      msgEl.style.borderColor= '#FECACA';
+      msgEl.textContent = '❌ ' + (res.message || 'Gagal menyimpan. Coba lagi.');
+    }
+  });
+}
+
+function pmShowErr(msg) {
   var old = document.getElementById('pm-step-err-temp');
   if (old) old.remove();
   var el = document.createElement('div');
@@ -7220,194 +7167,20 @@ function pmShowStepErr(msg) {
   setTimeout(function(){ if(el.parentNode) el.remove(); }, 2500);
 }
 
-function pmRenderStep() {
-  // Update panels
-  for (var i = 1; i <= _pmTotalSteps; i++) {
-    var panel = document.getElementById('pm-panel-' + i);
-    var step  = document.getElementById('pm-s' + i);
-    if (!panel || !step) continue;
-    panel.classList.toggle('active', i === _pmCurrentStep);
-    step.classList.remove('active','done');
-    if (i < _pmCurrentStep) step.classList.add('done');
-    else if (i === _pmCurrentStep) step.classList.add('active');
-  }
-  // Footer
-  var btnBack = document.getElementById('pm-btn-back-step');
-  var btnNext = document.getElementById('pm-btn-next-step');
-  var hint    = document.getElementById('pm-step-hint');
-  if (btnBack) btnBack.style.display = (_pmCurrentStep > 1) ? '' : 'none';
-  if (btnNext) btnNext.textContent = (_pmCurrentStep === _pmTotalSteps) ? '💾 Simpan Data' : 'Lanjut →';
-  if (hint)    hint.textContent = 'Langkah ' + _pmCurrentStep + ' dari ' + _pmTotalSteps;
-  // Build review on step 5
-  if (_pmCurrentStep === _pmTotalSteps) pmBuildReview();
-  // Scroll to top of form body
-  var view = document.getElementById('form-pemeliharaan-view');
-  if (view) view.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function pmBuildReview() {
-  var anggota = (document.getElementById('pm-anggota').value || '').trim();
-  var bahan = pmGetBahanPakai();
-  var rows = [
-    ['No. Gardu',      document.getElementById('pm-nogardu').value],
-    ['Tanggal',        document.getElementById('pm-tanggal').value],
-    ['Jam Mulai',      document.getElementById('pm-jam-mulai').value || '—'],
-    ['Jam Selesai',    document.getElementById('pm-jam-selesai').value || '—'],
-    ['Petugas',        document.getElementById('pm-petugas').value + (anggota ? ' + ' + anggota : '')],
-    ['Kategori',       document.getElementById('pm-kategori').value],
-    ['Jenis',          document.getElementById('pm-jenis').value],
-    ['Status',         pmGetPillValue('pm-status-group') || 'SELESAI'],
-    ['Kondisi Awal',   pmGetPillValue('pm-kondisi-awal-group') || '—'],
-    ['Kondisi Akhir',  pmGetPillValue('pm-kondisi-akhir-group') || '—'],
-    ['Temuan',         document.getElementById('pm-temuan').value || '—'],
-    ['Tindakan',       document.getElementById('pm-tindakan').value],
-    ['Bahan Pakai',    bahan.length ? bahan.map(function(b){ return b.nama + (b.qty ? ' (' + b.qty + ')' : ''); }).join(', ') : '—'],
-    ['Rekomendasi',    document.getElementById('pm-rekomendasi').value || '—'],
-    ['Catatan',        document.getElementById('pm-catatan').value || '—'],
-  ];
-  var html = '';
-  rows.forEach(function(r) {
-    html += '<div class="detail-row"><div class="key">' + esc(r[0]) + '</div><div class="val-r">' + esc(r[1]) + '</div></div>';
-  });
-  var card = document.getElementById('pm-review-card');
-  if (card) card.innerHTML = html;
-  var msg = document.getElementById('pm-submit-msg');
-  if (msg) msg.style.display = 'none';
-}
-
-async function pmSubmit() {
-  var s = getSession();
-  if (!s) { pmShowStepErr('Sesi berakhir, silakan login kembali.'); return; }
-
-  var anggota = (document.getElementById('pm-anggota').value || '').trim();
-  var petugasVal = (document.getElementById('pm-petugas').value || '').trim();
-  if (anggota) petugasVal += ' + ' + anggota;
-
-  var params = {
-    action:       'tambahPemeliharaan',
-    token:        s.token,
-    noGardu:      (document.getElementById('pm-nogardu').value || '').trim().toUpperCase(),
-    tanggal:      document.getElementById('pm-tanggal').value,
-    jamMulai:     document.getElementById('pm-jam-mulai').value || null,
-    jamSelesai:   document.getElementById('pm-jam-selesai').value || null,
-    petugas:      petugasVal,
-    kategori:     document.getElementById('pm-kategori').value,
-    jenis:        document.getElementById('pm-jenis').value,
-    status:       pmGetPillValue('pm-status-group') || 'SELESAI',
-    kondisiAwal:  pmGetPillValue('pm-kondisi-awal-group') || null,
-    kondisiAkhir: pmGetPillValue('pm-kondisi-akhir-group') || null,
-    temuan:       document.getElementById('pm-temuan').value || null,
-    tindakan:     document.getElementById('pm-tindakan').value,
-    bahanPakai:   pmGetBahanPakai(),
-    rekomendasi:  document.getElementById('pm-rekomendasi').value || null,
-    catatan:      document.getElementById('pm-catatan').value || null
-  };
-
-  var savingEl = document.getElementById('pm-saving-indicator');
-  var btnNext  = document.getElementById('pm-btn-next-step');
-  if (savingEl) savingEl.style.display = '';
-  if (btnNext)  btnNext.disabled = true;
-
-  apiGet(params, function(res) {
-    if (savingEl) savingEl.style.display = 'none';
-    if (btnNext)  btnNext.disabled = false;
-
-    var msgEl = document.getElementById('pm-submit-msg');
-    if (!msgEl) return;
-    msgEl.style.display = 'block';
-
-    if (res.status === 'ok') {
-      msgEl.style.background = '#D1FAE5';
-      msgEl.style.color = '#065F46';
-      msgEl.style.borderColor = '#A7F3D0';
-      msgEl.textContent = '✅ Data pemeliharaan berhasil disimpan!';
-      // Reset dan tutup form setelah 1.8s
-      setTimeout(function() {
-        tutupFormPemeliharaan();
-        muatDaftarPemeliharaan(true);
-      }, 1800);
-    } else {
-      msgEl.style.background = '#FEE2E2';
-      msgEl.style.color = '#991B1B';
-      msgEl.style.borderColor = '#FECACA';
-      msgEl.textContent = '❌ ' + (res.message || 'Gagal menyimpan. Coba lagi.');
-    }
-  });
-}
-
-// ── Buka / Tutup form pemeliharaan ─────────────────────────────
-function bukaFormPemeliharaan(noGarduPrefill) {
-  _pmCurrentStep = 1;
-  _pmChecklistItems = [];
-  pmResetForm();
-  if (noGarduPrefill) {
-    var el = document.getElementById('pm-nogardu');
-    if (el) { el.value = noGarduPrefill; el.readOnly = true; }
-    var title = document.getElementById('pm-topbar-title');
-    if (title) title.textContent = noGarduPrefill;
-  } else {
-    var el2 = document.getElementById('pm-nogardu');
-    if (el2) el2.readOnly = false;
-    var title2 = document.getElementById('pm-topbar-title');
-    if (title2) title2.textContent = 'Input Baru';
-  }
-  pmRenderStep();
-  var view = document.getElementById('form-pemeliharaan-view');
-  if (view) { view.style.display = 'block'; view.scrollTo(0,0); }
-}
-
-function tutupFormPemeliharaan() {
-  var view = document.getElementById('form-pemeliharaan-view');
-  if (view) view.style.display = 'none';
-}
-
-function pmResetForm() {
-  // Reset semua field
-  ['pm-nogardu','pm-tanggal','pm-jam-mulai','pm-jam-selesai','pm-petugas','pm-anggota',
-   'pm-temuan','pm-tindakan','pm-rekomendasi','pm-catatan'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-  ['pm-kategori','pm-jenis'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) el.selectedIndex = 0;
-  });
-  // Reset pills
-  ['pm-status-group','pm-kondisi-awal-group','pm-kondisi-akhir-group'].forEach(function(gid) {
-    var g = document.getElementById(gid);
-    if (!g) return;
-    g.querySelectorAll('.pm-pill').forEach(function(p){ p.className='pm-pill'; });
-    // default status = SELESAI
-    if (gid === 'pm-status-group') {
-      var def = g.querySelector('[data-val="SELESAI"]');
-      if (def) def.className = 'pm-pill selected-ok';
-    }
-  });
-  // Reset checklist pills
-  var cg = document.getElementById('pm-checklist-group');
-  if (cg) cg.querySelectorAll('.pm-pill').forEach(function(p){ p.className='pm-pill'; });
-  // Reset bahan
-  var bl = document.getElementById('pm-bahan-list');
-  if (bl) bl.innerHTML = '';
-  // Set tanggal default hari ini
-  var tgl = document.getElementById('pm-tanggal');
-  if (tgl) {
-    var now = new Date();
-    tgl.value = now.toISOString().split('T')[0];
-  }
-  // Auto-fill petugas dari sesi
-  var s = getSession();
-  if (s && s.nama) {
-    var petEl = document.getElementById('pm-petugas');
-    if (petEl && !petEl.value) petEl.value = s.nama;
-  }
-  // Clear gardu info
-  var gi = document.getElementById('pm-gardu-info');
-  if (gi) gi.style.display = 'none';
-}
-
 // ── Muat daftar pemeliharaan ────────────────────────────────────
-var _pmSudahMuat = false;
+function resetFilterPemeliharaan() {
+  ['pm-filter-nogardu','pm-filter-tgl-awal','pm-filter-tgl-akhir'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['pm-filter-kategori','pm-filter-ulp'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.selectedIndex = 0;
+  });
+  var wrap = document.getElementById('pm-list-wrap');
+  if (wrap) wrap.innerHTML = '<div class="alert alert-info"><span class="alert-icon">🔧</span><span class="alert-text">Atur filter di atas lalu tekan <b>Tampilkan</b> untuk melihat data pemeliharaan gardu.</span></div>';
+  _pmSudahMuat = false;
+  _pmAllData = [];
+  ['pm-count-total','pm-count-preventif','pm-count-korektif'].forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent='—'; });
+}
 
 function muatDaftarPemeliharaan(force) {
   if (_pmSudahMuat && !force) return;
@@ -7418,9 +7191,6 @@ function muatDaftarPemeliharaan(force) {
   var wrap = document.getElementById('pm-list-wrap');
   if (wrap) wrap.innerHTML = '<div class="loading"><div class="spinner"></div>Memuat data pemeliharaan...</div>';
 
-  // p_ulp TIDAK dikirim ke RPC — kolom ulp di DB bertipe ulp_enum,
-  // mengirim string biasa menyebabkan error "operator does not exist: text = ulp_enum".
-  // Filter ULP dilakukan di sisi klien setelah data diterima.
   var params = { action: 'getDaftarPemeliharaan', token: s.token };
 
   apiGet(params, function(res) {
@@ -7429,7 +7199,7 @@ function muatDaftarPemeliharaan(force) {
       return;
     }
     var allData = res.data || [];
-    // Filter ULP di sisi klien untuk role selain superadmin
+    // Filter per ULP jika bukan superadmin
     if (s.role !== 'superadmin' && s.ulp) {
       var ulpNorm = String(s.ulp).trim().toUpperCase();
       allData = allData.filter(function(d) {
@@ -7437,96 +7207,160 @@ function muatDaftarPemeliharaan(force) {
       });
     }
     _pmAllData = allData;
+
+    // Apply filters from UI
+    var noGardu    = ((document.getElementById('pm-filter-nogardu')||{}).value||'').trim().toUpperCase();
+    var tglAwal    = (document.getElementById('pm-filter-tgl-awal')||{}).value||'';
+    var tglAkhir   = (document.getElementById('pm-filter-tgl-akhir')||{}).value||'';
+    var kategoriFil= (document.getElementById('pm-filter-kategori')||{}).value||'';
+    var ulpFil     = ((document.getElementById('pm-filter-ulp')||{}).value||'').toUpperCase();
+
+    _pmFilteredData = allData.filter(function(d) {
+      if (noGardu    && !(d.no_gardu||'').toUpperCase().includes(noGardu)) return false;
+      if (tglAwal    && (d.tanggal||'') < tglAwal)  return false;
+      if (tglAkhir   && (d.tanggal||'') > tglAkhir) return false;
+      if (kategoriFil && (d.kategori||'').toUpperCase() !== kategoriFil.toUpperCase()) return false;
+      if (ulpFil     && !(d.ulp||'').toUpperCase().includes(ulpFil.replace('ULP ',''))) return false;
+      return true;
+    });
+
+    _pmCurrentPage = 1;
+
+    var total = _pmAllData.length;
+    var elT = document.getElementById('pm-count-total');
+    var elPrev = document.getElementById('pm-count-preventif');
+    var elKor  = document.getElementById('pm-count-korektif');
+    if (elT) elT.textContent = total;
+    if (elPrev) elPrev.textContent = _pmAllData.filter(function(d){ return (d.kategori||'').toUpperCase()==='PREVENTIF'; }).length;
+    if (elKor)  elKor.textContent  = _pmAllData.filter(function(d){ return (d.kategori||'').toUpperCase()==='KOREKTIF'; }).length;
+
     renderDaftarPemeliharaan();
   });
 }
 
-function filterDaftarPemeliharaan(q) {
-  renderDaftarPemeliharaan(q);
+function pmGoPage(page) {
+  var totalPages = Math.ceil(_pmFilteredData.length / _pmPageSize);
+  if (page < 1 || page > totalPages) return;
+  _pmCurrentPage = page;
+  renderDaftarPemeliharaan();
+  var wrap = document.getElementById('pm-list-wrap');
+  if (wrap) wrap.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
-function setPmFilter(status) {
-  _pmFilterStatus = status;
-  document.querySelectorAll('#pm-filter-row .tag').forEach(function(t) { t.classList.remove('active'); });
-  var tags = document.querySelectorAll('#pm-filter-row .tag');
-  var idx = ['','SELESAI','PROSES','TUNDA'].indexOf(status);
-  if (tags[idx]) tags[idx].classList.add('active');
+function pmSetPageSize(size) {
+  _pmPageSize = size;
+  _pmCurrentPage = 1;
   renderDaftarPemeliharaan();
 }
 
-function renderDaftarPemeliharaan(q) {
+function renderDaftarPemeliharaan() {
   var wrap = document.getElementById('pm-list-wrap');
   if (!wrap) return;
-  var query = (q || document.getElementById('pm-search').value || '').toLowerCase();
-  var data = _pmAllData.filter(function(d) {
-    if (_pmFilterStatus && (d.status || '').toUpperCase() !== _pmFilterStatus) return false;
-    if (!query) return true;
-    return (d.no_gardu || '').toLowerCase().includes(query) ||
-           (d.petugas  || '').toLowerCase().includes(query) ||
-           (d.jenis    || '').toLowerCase().includes(query) ||
-           (d.kategori || '').toLowerCase().includes(query);
-  });
 
-  // Update rekap
-  var total   = _pmAllData.length;
-  var selesai = _pmAllData.filter(function(d){ return (d.status||'').toUpperCase()==='SELESAI'; }).length;
-  var proses  = _pmAllData.filter(function(d){ return (d.status||'').toUpperCase()==='PROSES'; }).length;
-  var elT = document.getElementById('pm-count-total');
-  var elS = document.getElementById('pm-count-selesai');
-  var elP = document.getElementById('pm-count-proses');
-  if (elT) elT.textContent = total;
-  if (elS) elS.textContent = selesai;
-  if (elP) elP.textContent = proses;
+  var data = _pmFilteredData || [];
+  var pageSize   = _pmPageSize;
+  var page       = _pmCurrentPage;
+  var totalPages = Math.ceil(data.length / pageSize);
+  var start      = (page - 1) * pageSize;
+  var end        = Math.min(start + pageSize, data.length);
+  var pageData   = data.slice(start, end);
+
+  var isMobile    = window.innerWidth < 768;
+  var _sPm        = getSession();
+  var _canDeletePm= _sPm && (_sPm.role === 'admin' || _sPm.role === 'superadmin');
+
+  var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-sm);flex-wrap:wrap;gap:6px;">';
+  html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);font-weight:600;">';
+  html += data.length
+    ? 'Menampilkan <b style="color:var(--pln-biru2);">' + (start+1) + '–' + end + '</b> dari <b style="color:var(--pln-biru2);">' + data.length + '</b> data'
+    : 'Tidak ada data';
+  html += '</div>';
+  html += '<div style="display:flex;align-items:center;gap:6px;">';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);">Baris:</span>';
+  html += '<select style="font-size:var(--fs-xs);border:1px solid var(--pln-border);border-radius:6px;padding:3px 6px;background:#fff;" onchange="pmSetPageSize(+this.value)">';
+  [10,25,50,100].forEach(function(s) {
+    html += '<option value="'+s+'"'+(s===pageSize?' selected':'')+'>'+s+'</option>';
+  });
+  html += '</select></div></div>';
 
   if (!data.length) {
-    wrap.innerHTML = '<div class="alert alert-info"><span class="alert-icon">📋</span><span class="alert-text">Belum ada data pemeliharaan.' +
-      (_pmAllData.length === 0 ? ' Tekan <b>+ Input</b> untuk menambah data pertama.' : '') + '</span></div>';
+    html += '<div class="alert alert-info"><span class="alert-icon">📋</span><span class="alert-text">Belum ada data pemeliharaan yang cocok dengan filter.</span></div>';
+    wrap.innerHTML = html;
     return;
   }
 
-  var html = '';
-  var _sPm = getSession();
-  var _canDeletePm = _sPm && (_sPm.role === 'admin' || _sPm.role === 'superadmin');
+  if (isMobile) {
+    // ── Mobile card view ──
+    pageData.forEach(function(d) {
+      var hapusBtn = (_canDeletePm && d.id)
+        ? '<button onclick="hapusPemeliharaanById('+d.id+',\''+esc(d.no_gardu||'')+'\')" style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;font-size:clamp(9px,2.2vw,10.5px);font-weight:700;padding:4px 10px;cursor:pointer;touch-action:manipulation;flex-shrink:0;">🗑️ Hapus</button>'
+        : '';
+      html += '<div class="pm-list-card">'
+        + '<div class="pm-list-header">'
+          + '<div><div style="font-size:var(--fs-xs);font-weight:800;color:var(--pln-biru2);">' + esc(d.no_gardu||'—') + '</div>'
+          + '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:2px;">📅 ' + esc(d.tanggal||'—') + '</div></div>'
+          + '<div style="display:flex;align-items:center;gap:6px;">' + hapusBtn + '</div>'
+        + '</div>'
+        + '<div class="pm-list-body"><div class="grid2" style="margin:0;">'
+          + '<div><div class="lbl">Kategori</div><div class="val-sm">' + esc(d.kategori||'—') + '</div></div>'
+          + '<div><div class="lbl">Jenis</div><div class="val-sm">' + esc(d.jenis||'—') + '</div></div>'
+          + '<div><div class="lbl">Petugas</div><div class="val-sm">' + esc(d.petugas||'—') + '</div></div>'
+          + '<div><div class="lbl">Unit</div><div class="val-sm">' + esc(d.ulp||'—') + '</div></div>'
+        + '</div></div></div>';
+    });
+  } else {
+    // ── Desktop table view ──
+    html += '<div style="background:#fff;border-radius:var(--radius);border:1px solid var(--pln-border);overflow:hidden;box-shadow:var(--shadow);margin-bottom:var(--sp-sm);">';
+    html += '<div style="overflow-x:auto;">';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:var(--fs-xs);">';
+    html += '<thead><tr style="background:var(--pln-biru);color:#fff;">';
+    var headers = ['NO','NO GARDU','UNIT','TANGGAL','PETUGAS','KATEGORI','JENIS PEKERJAAN'];
+    if (_canDeletePm) headers.push('AKSI');
+    headers.forEach(function(h) {
+      html += '<th style="padding:10px 12px;text-align:left;white-space:nowrap;font-weight:700;font-size:11px;letter-spacing:.3px;">'+h+'</th>';
+    });
+    html += '</tr></thead><tbody>';
 
-  data.forEach(function(d) {
-    var statusCls = d.status === 'SELESAI' ? 'pm-status-selesai' : d.status === 'PROSES' ? 'pm-status-proses' : 'pm-status-tunda';
-    var statusLabel = d.status === 'SELESAI' ? '✅ Selesai' : d.status === 'PROSES' ? '🔄 Proses' : '⏸️ Tunda';
-    var hapusBtn = (_canDeletePm && d.id)
-      ? '<button onclick="hapusPemeliharaanById('+d.id+',\''+esc(d.no_gardu||'')+'\')" '+
-          'style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;'+
-          'font-size:clamp(9px,2.2vw,10.5px);font-weight:700;padding:4px 10px;cursor:pointer;'+
-          'touch-action:manipulation;flex-shrink:0;" title="Hapus catatan ini">🗑️ Hapus</button>'
-      : '';
-    html += '<div class="pm-list-card">' +
-      '<div class="pm-list-header">' +
-        '<div>' +
-          '<div style="font-size:var(--fs-xs);font-weight:800;color:var(--pln-biru2);">' + esc(d.no_gardu||'—') + '</div>' +
-          '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:2px;">📅 ' + esc(d.tanggal||'—') + '</div>' +
-        '</div>' +
-        '<div style="display:flex;align-items:center;gap:6px;">' +
-          '<span class="pm-status-pill ' + statusCls + '">' + statusLabel + '</span>' +
-          hapusBtn +
-        '</div>' +
-      '</div>' +
-      '<div class="pm-list-body">' +
-        '<div class="grid2" style="margin:0;">' +
-          '<div><div class="lbl">Kategori</div><div class="val-sm">' + esc(d.kategori||'—') + '</div></div>' +
-          '<div><div class="lbl">Jenis</div><div class="val-sm">' + esc(d.jenis||'—') + '</div></div>' +
-          '<div><div class="lbl">Petugas</div><div class="val-sm">' + esc(d.petugas||'—') + '</div></div>' +
-          '<div><div class="lbl">Kondisi Akhir</div><div class="val-sm">' + esc(d.kondisi_akhir||'—') + '</div></div>' +
-        '</div>' +
-        (d.tindakan ? '<div style="margin-top:6px;font-size:var(--fs-xs);color:var(--pln-text2);border-top:1px solid var(--pln-border);padding-top:6px;">🛠️ ' + esc(d.tindakan.substring(0,120)) + (d.tindakan.length>120?'...':'') + '</div>' : '') +
-      '</div>' +
-    '</div>';
-  });
+    pageData.forEach(function(d, i) {
+      var rowBg = i % 2 === 0 ? '#fff' : '#F8FAFD';
+      html += '<tr style="background:'+rowBg+';transition:background .1s;" onmouseover="this.style.background=\'#EEF4FF\'" onmouseout="this.style.background=\''+rowBg+'\'">';
+      html += '<td style="padding:9px 12px;color:var(--pln-text3);">'+(start+i+1)+'</td>';
+      html += '<td style="padding:9px 12px;font-weight:700;color:var(--pln-biru2);">'+esc(d.no_gardu||'—')+'</td>';
+      html += '<td style="padding:9px 12px;white-space:nowrap;">'+esc(d.ulp||'—')+'</td>';
+      html += '<td style="padding:9px 12px;white-space:nowrap;">'+esc(d.tanggal||'—')+'</td>';
+      html += '<td style="padding:9px 12px;">'+esc(d.petugas||'—')+'</td>';
+      html += '<td style="padding:9px 12px;">'+esc(d.kategori||'—')+'</td>';
+      html += '<td style="padding:9px 12px;">'+esc(d.jenis||'—')+'</td>';
+      if (_canDeletePm) {
+        html += '<td style="padding:9px 12px;">' + (d.id
+          ? '<button onclick="hapusPemeliharaanById('+d.id+',\''+esc(d.no_gardu||'')+'\')" style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;font-size:10px;font-weight:700;padding:4px 10px;cursor:pointer;">🗑️</button>'
+          : '') + '</td>';
+      }
+      html += '</tr>';
+    });
+    html += '</tbody></table></div></div>';
+  }
+
+  // ── Pagination ──
+  if (totalPages > 1) {
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:var(--sp-sm);flex-wrap:wrap;gap:8px;">';
+    html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);">Halaman <b style="color:var(--pln-biru2);">'+page+'</b> dari <b style="color:var(--pln-biru2);">'+totalPages+'</b></div>';
+    html += '<div style="display:flex;gap:4px;align-items:center;">';
+    html += '<button onclick="pmGoPage(1)" '+(page===1?'disabled':'')+' style="padding:5px 10px;border:1px solid var(--pln-border);background:'+(page===1?'#f0f0f0':'#fff')+';border-radius:6px;cursor:'+(page===1?'not-allowed':'pointer')+';font-size:var(--fs-xs);color:var(--pln-text2);">«</button>';
+    html += '<button onclick="pmGoPage('+(page-1)+')" '+(page===1?'disabled':'')+' style="padding:5px 10px;border:1px solid var(--pln-border);background:'+(page===1?'#f0f0f0':'#fff')+';border-radius:6px;cursor:'+(page===1?'not-allowed':'pointer')+';font-size:var(--fs-xs);color:var(--pln-text2);">‹ Prev</button>';
+    var startPg = Math.max(1, page-2), endPg = Math.min(totalPages, page+2);
+    for (var pg = startPg; pg <= endPg; pg++) {
+      html += '<button onclick="pmGoPage('+pg+')" style="padding:5px 10px;border:1px solid '+(pg===page?'var(--pln-biru2)':'var(--pln-border)')+';background:'+(pg===page?'var(--pln-biru2)':'#fff')+';color:'+(pg===page?'#fff':'var(--pln-text2)')+';border-radius:6px;cursor:pointer;font-size:var(--fs-xs);font-weight:'+(pg===page?'700':'400')+';">'+pg+'</button>';
+    }
+    html += '<button onclick="pmGoPage('+(page+1)+')" '+(page===totalPages?'disabled':'')+' style="padding:5px 10px;border:1px solid var(--pln-border);background:'+(page===totalPages?'#f0f0f0':'#fff')+';border-radius:6px;cursor:'+(page===totalPages?'not-allowed':'pointer')+';font-size:var(--fs-xs);color:var(--pln-text2);">Next ›</button>';
+    html += '<button onclick="pmGoPage('+totalPages+')" '+(page===totalPages?'disabled':'')+' style="padding:5px 10px;border:1px solid var(--pln-border);background:'+(page===totalPages?'#f0f0f0':'#fff')+';border-radius:6px;cursor:'+(page===totalPages?'not-allowed':'pointer')+';font-size:var(--fs-xs);color:var(--pln-text2);">»</button>';
+    html += '</div></div>';
+  }
 
   wrap.innerHTML = html;
 }
 
-// ── Override bukaTab agar muatDataPengukuran dipanggil saat tab aktif ──
-// (Pengukuran dimuat on-demand)
-
-// ── Hapus Pemeliharaan by ID ─────────────────────────────────
+// ── Hapus pemeliharaan ──────────────────────────────────────────
 function hapusPemeliharaanById(id, noGardu) {
   if (!confirm('Hapus catatan pemeliharaan gardu ' + noGardu + '?\n\nTindakan ini tidak dapat dibatalkan.')) return;
   var s = getSession();
@@ -7537,7 +7371,6 @@ function hapusPemeliharaanById(id, noGardu) {
       alert('Gagal menghapus: ' + (res.message || 'Error tidak diketahui.'));
       return;
     }
-    // Reload daftar pemeliharaan
     _pmSudahMuat = false;
     muatDaftarPemeliharaan(true);
   });
@@ -7838,7 +7671,148 @@ function bukaFormPemeliharaanDariDetail(noGardu) {
   }, 100);
 }
 
-// ══ END PEMELIHARAAN JS ═══════════════════════════════════════════
+// ══ EXPORT PENGUKURAN GARDU → EXCEL (format FORM_INSPEKSI) ═══════
+
+function exportPengukuranExcel() {
+  var data = _ukurFilteredData || _ukurAllData || [];
+  if (!data.length) { alert('Tidak ada data untuk diekspor. Tampilkan data terlebih dahulu.'); return; }
+
+  var btn = document.getElementById('btn-export-pengukuran');
+  if (btn) { btn.textContent = '⏳ Menyiapkan...'; btn.disabled = true; }
+
+  setTimeout(function() {
+    try {
+      // Build CSV with same columns as FORM_INSPEKSI.xlsx
+      var cols = ['UNITUP','NOGARDU','PENYULANG','ALAMAT','DAYA','FASA','DAYA PAKAI','PROSEN','TDK SEIMBANG','JAM UKUR','TGLUKUR','PETUGAS',
+                  'R TOTAL','S TOTAL','T TOTAL','N TOTAL','R - N','S - N','T - N','R - S','S - T','R - T',
+                  'THD-R','THD-S','THD-T','IPEAK-R','IPEAK-S','IPEAK-T','TPF-R','TPF-S','TPF-T'];
+      var rows = [cols];
+      data.forEach(function(r) {
+        rows.push([
+          r['UNITUP']||r['ULP']||'42110',
+          r['NO_GARDU']||r['NOGARDU']||'',
+          r['PENYULANG']||'',
+          r['ALAMAT']||'',
+          r['DAYA']||r['KAPASITAS_KVA']||'',
+          r['FASA']||'',
+          r['DAYA PAKAI']||'',
+          r['PROSEN']||'',
+          r['TDKSEIMBANG']||r['TDK SEIMBANG']||'',
+          r['JAM UKUR']||'',
+          r['TGLUKUR']||'',
+          r['PETUGAS']||'',
+          r['R TOTAL']||'',r['S TOTAL']||'',r['T TOTAL']||'',r['N TOTAL']||'',
+          r['R - N']||'',r['S - N']||'',r['T - N']||'',
+          r['R - S']||'',r['S - T']||'',r['R - T']||'',
+          r['THD-R']||'',r['THD-S']||'',r['THD-T']||'',
+          r['IPEAK-R']||r['IPEAK_R']||'',r['IPEAK-S']||r['IPEAK_S']||'',r['IPEAK-T']||r['IPEAK_T']||'',
+          r['TPF-R']||'',r['TPF-S']||'',r['TPF-T']||''
+        ]);
+      });
+
+      var now = new Date();
+      var dateStr = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+      var filename = 'Pengukuran_Gardu_'+dateStr+'.csv';
+
+      var csvContent = rows.map(function(row) {
+        return row.map(function(cell) {
+          var v = (cell===null||cell===undefined)?'':String(cell);
+          if (v.includes(',') || v.includes('"') || v.includes('\n')) v = '"' + v.replace(/"/g,'""') + '"';
+          return v;
+        }).join(',');
+      }).join('\r\n');
+
+      var BOM = '\uFEFF';
+      var blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    } catch(e) {
+      alert('Gagal export: ' + e.message);
+    } finally {
+      if (btn) { btn.textContent = '⬇️ Export'; btn.disabled = false; }
+    }
+  }, 100);
+}
+
+// ══ EXPORT PEMELIHARAAN GARDU → EXCEL (format pemeliharaan.xls) ══
+
+function exportPemeliharaanExcel() {
+  var data = _pmFilteredData || _pmAllData || [];
+  if (!data.length) { alert('Tidak ada data untuk diekspor. Tampilkan data terlebih dahulu.'); return; }
+
+  var btn = document.getElementById('btn-export-pemeliharaan');
+  if (btn) { btn.textContent = '⏳ Menyiapkan...'; btn.disabled = true; }
+
+  setTimeout(function() {
+    try {
+      var now = new Date();
+      var tglAwal = (document.getElementById('pm-filter-tgl-awal')||{}).value || '';
+      var tglAkhir = (document.getElementById('pm-filter-tgl-akhir')||{}).value || '';
+      var periodeStr = (tglAwal || tglAkhir)
+        ? ((tglAwal ? _fmtTglExport(tglAwal) : '01/01/2025') + ' - ' + (tglAkhir ? _fmtTglExport(tglAkhir) : _fmtTglExport(now.toISOString().split('T')[0])))
+        : '01/07/2025 - ' + _fmtTglExport(now.toISOString().split('T')[0]);
+
+      var ulpFilter = ((document.getElementById('pm-filter-ulp')||{}).value||'').toUpperCase();
+      var ulpLabel = ulpFilter ? ulpFilter : '--- SEMUA ---';
+
+      var filename = 'Pemeliharaan_Gardu_' + now.getFullYear()
+        + String(now.getMonth()+1).padStart(2,'0')
+        + String(now.getDate()).padStart(2,'0') + '.xls';
+
+      // Build HTML-based XLS matching PLN pemeliharaan format exactly
+      var rows = data.map(function(d, i) {
+        return '<tr>'
+          + '<td>' + (i+1) + '</td>'
+          + '<td class="str">' + _xlsEsc(d.ulp || 'UP3 JAYAPURA') + '</td>'
+          + '<td class="str">' + _xlsEsc(d.tanggal || '') + '</td>'
+          + '<td class="str">' + _xlsEsc(d.no_gardu || '') + '</td>'
+          + '<td class="str">' + _xlsEsc(d.petugas || '') + '</td>'
+          + '<td class="str">' + _xlsEsc(d.kategori || '') + '</td>'
+          + '<td class="str">' + _xlsEsc(d.jenis || '') + '</td>'
+          + '</tr>';
+      }).join('\r\n\t');
+
+      var html = '\t\r\n<html>\r\n<head>\r\n\t<style>\r\n\t\t.str{ mso-number-format:\\@; }\r\n\t\t</style>\r\n</head>\t\t\r\n<body>\r\n'
+        + '<table><tr><td colspan="5">UIW : UIW. P2B</td></tr>'
+        + '<tr><td colspan="10">UP3 : UP3 JAYAPURA</td></tr>'
+        + '<tr><td colspan="10">ULP : ' + _xlsEsc(ulpLabel) + '</td></tr></table>\r\n<br>\r\n'
+        + '<table>\r\n<tr>\r\n<td colspan="7"><center><h2> DAFTAR PEMELIHARAAN GARDU PERIODE : ' + periodeStr + '</h2></center></td>\r\n</tr>\r\n</table>\r\n'
+        + '<table border="1pt">\r\n<thead>\r\n<tr>\r\n'
+        + '\t<th>NO</th>\r\n\t<th>UNIT</th>\r\n\t<th>TANGGAL</th>\r\n\t<th>NOGARDU</th>\r\n\t<th>PETUGAS</th>\r\n\t<th>KATEGORI</th>\r\n\t<th>JENIS</th>\r\n'
+        + '</tr>\r\n</thead>\r\n<tbody>\r\n\t'
+        + rows
+        + '\r\n</tbody>\r\n</table>\r\n</body>\r\n</html>';
+
+      var blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    } catch(e) {
+      alert('Gagal export: ' + e.message);
+    } finally {
+      if (btn) { btn.textContent = '⬇️ Export'; btn.disabled = false; }
+    }
+  }, 100);
+}
+
+function _xlsEsc(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function _fmtTglExport(iso) {
+  // Convert YYYY-MM-DD to DD/MM/YYYY
+  var p = String(iso).split('-');
+  if (p.length === 3) return p[2]+'/'+p[1]+'/'+p[0];
+  return iso;
+}
+
+// ══ END EXPORT FUNCTIONS ══════════════════════════════════════════
+
+
 
 
 
