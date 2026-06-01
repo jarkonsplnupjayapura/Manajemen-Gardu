@@ -13,6 +13,22 @@
 <meta name="sb-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrYXJmaG1heWRxaGNjbHZ1ZXFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMzkwNTgsImV4cCI6MjA5NDkxNTA1OH0.js9CKdBZ-8omTQpwaTfnuvTGStuB1tajjRbdCrP5L6o">
 <!-- DEBUG_MODE: set false di production, true hanya saat development lokal -->
 <script>var DEBUG_MODE = false;</script>
+<script>
+// Fix #20: Registrasi Service Worker untuk PWA offline support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').then(function(reg) {
+      if (typeof DEBUG_MODE !== 'undefined' && DEBUG_MODE) {
+        console.log('[SW] Registered, scope:', reg.scope);
+      }
+    }).catch(function(err) {
+      if (typeof DEBUG_MODE !== 'undefined' && DEBUG_MODE) {
+        console.warn('[SW] Registration failed:', err);
+      }
+    });
+  });
+}
+</script>
 <title>Manajemen Gardu – PLN UP3 Jayapura</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -1829,7 +1845,7 @@ if (typeof L === 'undefined') {
       <div style="font-size:var(--fs-xs);color:var(--pln-text3);">Masukkan PIN Anda untuk melanjutkan</div>
     </div>
     <div style="display:flex;gap:8px;justify-content:center;margin-bottom:var(--sp-md);" id="pin-gardu-dots">
-      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
       <button class="btn btn-outline pin-key" data-target="gardu" data-v="1">1</button>
@@ -1861,8 +1877,8 @@ if (typeof L === 'undefined') {
     <div style="display:flex;flex-direction:column;gap:var(--sp-sm);">
       <div><label class="form-label">Password Akun Anda</label>
         <input id="setpin-password" type="password" class="form-input" placeholder="Masukkan password login"></div>
-      <div><label class="form-label">PIN Baru (min. 6 digit)</label>
-        <input id="setpin-baru" type="password" class="form-input" placeholder="Minimal 6 digit angka" maxlength="8" inputmode="numeric"></div>
+      <div><label class="form-label">PIN Baru (min. 4 digit)</label>
+        <input id="setpin-baru" type="password" class="form-input" placeholder="Minimal 4 digit angka" maxlength="8" inputmode="numeric"></div>
       <div><label class="form-label">Ulangi PIN Baru</label>
         <input id="setpin-konfirmasi" type="password" class="form-input" placeholder="Ulangi PIN baru" maxlength="8" inputmode="numeric"></div>
     </div>
@@ -1909,8 +1925,9 @@ if (typeof L === 'undefined') {
       <div class="form-group"><label class="form-label">Username *</label><input id="uf-username" class="form-input" placeholder="Contoh: petugas_abe1" autocorrect="off" autocapitalize="none"></div>
       <div class="form-group"><label class="form-label">Password * <span style="font-weight:400;opacity:.6;">(kosongkan jika tidak diubah)</span></label>
         <div style="position:relative;">
-          <input id="uf-password" class="form-input" type="password" placeholder="Min 4 karakter" style="padding-right:44px;">
+          <input id="uf-password" class="form-input" type="password" placeholder="Min 8 karakter (huruf+angka)" style="padding-right:44px;">
           <button type="button" id="btn-toggle-uf-pass" onclick="toggleUfPassword()" title="Tampilkan/Sembunyikan password" style="position:absolute;right:0;top:0;height:100%;width:44px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--pln-text3);display:flex;align-items:center;justify-content:center;">👁️</button>
+          <div style="font-size:10.5px;color:var(--pln-text3);margin-top:4px;">Min 8 karakter, mengandung angka. Kosongkan untuk tidak mengubah (saat edit).</div>
         </div>
       </div>
       <div class="form-group"><label class="form-label">Nama Lengkap *</label><input id="uf-nama" class="form-input" placeholder="Nama petugas"></div>
@@ -1966,8 +1983,9 @@ if (typeof L === 'undefined') {
       <div class="form-group" id="uuf-password-wrap">
         <label class="form-label">Password * <span style="font-weight:400;opacity:.6;">(kosongkan jika tidak diubah)</span></label>
         <div style="position:relative;">
-          <input id="uuf-password" class="form-input" type="password" placeholder="Min 4 karakter" style="padding-right:44px;">
+          <input id="uuf-password" class="form-input" type="password" placeholder="Min 8 karakter (huruf+angka)" style="padding-right:44px;">
           <button type="button" id="btn-toggle-uuf-pass" onclick="toggleUufPassword()" title="Tampilkan/Sembunyikan password" style="position:absolute;right:0;top:0;height:100%;width:44px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--pln-text3);display:flex;align-items:center;justify-content:center;">👁️</button>
+          <div style="font-size:10.5px;color:var(--pln-text3);margin-top:4px;">Min 8 karakter, mengandung angka. Kosongkan untuk tidak mengubah (saat edit).</div>
         </div>
       </div>
       <div class="form-group">
@@ -2814,7 +2832,8 @@ function simpanUser() {
 
   if (!uname || !nama) return showMsg('Username dan nama wajib diisi.', true);
   if (!usernameLama && !pass) return showMsg('Password wajib diisi untuk user baru.', true);
-  if (pass && pass.length < 4) return showMsg('Password minimal 4 karakter.', true);
+  if (pass && pass.length < 8) return showMsg('Password minimal 8 karakter.', true);
+  if (pass && !/[0-9]/.test(pass)) return showMsg('Password harus mengandung minimal 1 angka.', true);
   if (role !== 'superadmin' && !ulp) return showMsg('ULP wajib dipilih untuk role ini.', true);
 
   showMsg('Menyimpan ke server...', false);
@@ -2985,7 +3004,8 @@ function simpanUserULP() {
   if (!uname) return showMsg('Username wajib diisi.', true);
   if (!nama)  return showMsg('Nama lengkap wajib diisi.', true);
   if (!usernameLama && !pass) return showMsg('Password wajib diisi untuk user baru.', true);
-  if (pass && pass.length < 4) return showMsg('Password minimal 4 karakter.', true);
+  if (pass && pass.length < 8) return showMsg('Password minimal 8 karakter.', true);
+  if (pass && !/[0-9]/.test(pass)) return showMsg('Password harus mengandung minimal 1 angka.', true);
   // Admin ULP tidak boleh buat superadmin
   if (role === 'superadmin') return showMsg('Anda tidak dapat membuat akun Superadmin.', true);
 
@@ -3324,6 +3344,28 @@ window.onload = function(){
 // Fungsi ini otomatis koreksi berdasarkan rentang nilai wajar:
 //   Latitude  Papua: -1 s/d -9
 //   Longitude Papua: 130 s/d 141
+// ── Validasi range koordinat GPS (Fix #21) ───────────────────
+function validateGpsInput(latStr, lngStr, msgEl) {
+  if (!latStr && !lngStr) return true; // koordinat opsional
+  if ((latStr && !lngStr) || (!latStr && lngStr)) {
+    if (msgEl) { msgEl.style.display='block'; msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B';
+      msgEl.textContent='Latitude dan Longitude harus diisi keduanya atau dikosongkan keduanya.'; }
+    return false;
+  }
+  var lat = parseFloat(latStr), lng = parseFloat(lngStr);
+  if (isNaN(lat) || lat < -90 || lat > 90) {
+    if (msgEl) { msgEl.style.display='block'; msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B';
+      msgEl.textContent='Latitude tidak valid. Harus antara -90 dan 90. Contoh: -2.5916'; }
+    return false;
+  }
+  if (isNaN(lng) || lng < -180 || lng > 180) {
+    if (msgEl) { msgEl.style.display='block'; msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B';
+      msgEl.textContent='Longitude tidak valid. Harus antara -180 dan 180. Contoh: 140.6690'; }
+    return false;
+  }
+  return true;
+}
+
 function normalizeCoord(val, isLat) {
   if (val === '' || val === null || val === undefined) return NaN;
   var s = String(val).trim();
@@ -3436,10 +3478,12 @@ function gotoFilterDaftar(status){
   setFilterStatus(status);
 }
 
-var CACHE_TTL = 30*60*1000, _cache = {};
+var CACHE_TTL = 5*60*1000, _cache = {}; // #22: turunkan dari 30 ke 5 menit
 function cacheSet(k,d){ _cache[k]={data:d,ts:Date.now()}; }
 function cacheGet(k){ var c=_cache[k]; if(!c) return null; if(Date.now()-c.ts>CACHE_TTL){delete _cache[k]; return null;} return c.data; }
 function cacheClear(k){ if(k) delete _cache[k]; else _cache={}; }
+
+function cacheClearAll() { _cache = {}; } // #22: invalidate semua cache saat mutasi data
 
 function muatDaftarGardu(force, ulpFilter){
   // ulpFilter: string ULP eksplisit (opsional). Jika tidak diisi, ambil dari session.
@@ -3800,10 +3844,19 @@ function renderDetailGardu(g, riwayat){
       html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">';
       html += '<span class="badge '+bc+'">'+prosenLabel+'</span>';
       if (_canDeleteInspeksi && _inspeksiId) {
+        html += '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">';
+        // Cache data riwayat untuk digunakan oleh bukaEditInspeksi
+        if (!window._riwayatCache) window._riwayatCache = {};
+        window._riwayatCache[_inspeksiId] = r;
+        html += '<button onclick="event.stopPropagation();bukaEditInspeksiById('+JSON.stringify(_inspeksiId)+')" '+
+          'style="background:var(--pln-biru-pale);color:var(--pln-biru2);border:1px solid var(--pln-border2);border-radius:6px;'+
+          'font-size:clamp(9px,2.2vw,10.5px);font-weight:700;padding:3px 8px;cursor:pointer;white-space:nowrap;'+
+          'touch-action:manipulation;" title="Edit data inspeksi ini">✏️ Edit</button>';
         html += '<button onclick="event.stopPropagation();hapusInspeksiById('+_inspeksiId+',\''+esc(formatTgl(r['TGLUKUR']))+'\')" '+
           'style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;'+
           'font-size:clamp(9px,2.2vw,10.5px);font-weight:700;padding:3px 8px;cursor:pointer;white-space:nowrap;'+
           'touch-action:manipulation;" title="Hapus data inspeksi ini">🗑️ Hapus</button>';
+        html += '</div>';
       }
       html += '</div>';
       html += '</div>';
@@ -4308,6 +4361,20 @@ var SOP_LINKS = {
 };
 function bukaLinkSOP(key) {
   var url = SOP_LINKS[key];
+  // Jika URL belum diisi (masih placeholder), tampilkan pesan informatif
+  if (!url || url.startsWith('ISI_LINK') || url === '') {
+    var modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML = '<div style="background:#fff;border-radius:16px;padding:24px;max-width:340px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.2);">'
+      +'<div style="font-size:32px;text-align:center;margin-bottom:12px;">📄</div>'
+      +'<div style="font-weight:800;font-size:15px;color:#0A2D6B;margin-bottom:8px;text-align:center;">Dokumen SOP Belum Tersedia</div>'
+      +'<div style="font-size:13px;color:#3D5580;line-height:1.5;margin-bottom:16px;">Link dokumen SOP resmi PLN belum dikonfigurasi. Silakan hubungi administrator untuk mengisi URL dokumen di bagian <code style="background:#EEF4FF;padding:2px 5px;border-radius:4px;font-size:11px;">SOP_LINKS</code> dalam kode.</div>'
+      +'<button onclick="this.closest('[style*=fixed]').remove()" style="width:100%;padding:10px;background:#0A2D6B;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;">Tutup</button>'
+      +'</div>';
+    document.body.appendChild(modal);
+    modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
+    return;
+  }
   if (!url || url.indexOf('ISI_LINK') === 0) {
     alert('Link SOP belum diisi.\nSilakan isi URL di bagian SOP_LINKS dalam kode.');
     return;
@@ -4332,6 +4399,7 @@ function tutupDetail(){
 
 // Gardu aktif di form inspeksi
 var _fiGardu = null;        // object gardu yg sedang diinspeksi
+var _fiEditId = null;       // ID inspeksi untuk mode edit (null = mode tambah baru)
 var _fiJurusanCount = 0;   // jumlah jurusan aktif (max 6)
 var _fiManualCalc = false;  // apakah kalkulasi manual diaktifkan
 
@@ -4351,6 +4419,7 @@ function bukaFormInspeksi(noGardu) {
   _fiGardu = g;
   _fiJurusanCount = 0;
   _fiManualCalc = false;
+  _fiEditId = null;
 
   // Isi info gardu (readonly display)
   document.getElementById('fi-topbar-title').textContent = noGardu;
@@ -4423,6 +4492,42 @@ function bukaFormInspeksi(noGardu) {
 function tutupFormInspeksi() {
   document.getElementById('form-inspeksi-view').style.display = 'none';
   _fiGardu = null;
+}
+
+// ── Buka form inspeksi mode edit (via cache riwayat) ─────────
+function bukaEditInspeksiById(inspId) {
+  var r = window._riwayatCache && window._riwayatCache[inspId];
+  if (!r) { alert('Data inspeksi tidak ditemukan di cache. Coba refresh halaman.'); return; }
+  var noGarduVal = (document.getElementById('detail-view-title')||{}).textContent || '';
+  bukaFormInspeksi(noGarduVal.trim());
+  _fiEditId = inspId;
+  var titleEl = document.getElementById('fi-topbar-title');
+  if (titleEl) titleEl.textContent = 'Edit Inspeksi — ' + noGarduVal.trim();
+  var btn = document.getElementById('fi-btn-simpan');
+  if (btn) btn.innerHTML = '💾 Simpan Perubahan';
+  var setV = function(id, v) { var el = document.getElementById(id); if (el && v != null) el.value = String(v); };
+  setV('fi-tgl', r['TGLUKUR']||'');
+  setV('fi-jam', (r['JAM UKUR']||'').slice(0,5));
+  setV('fi-petugas', r['PETUGAS']||'');
+  setV('fi-daya', r['DAYA']||'');
+  setV('fi-fasa', r['FASA']||'3');
+  setV('fi-r-total', r['R TOTAL']||''); setV('fi-s-total', r['S TOTAL']||'');
+  setV('fi-t-total', r['T TOTAL']||''); setV('fi-n-total', r['N TOTAL']||'');
+  setV('fi-v-rn', r['R - N']||'');     setV('fi-v-sn', r['S - N']||'');
+  setV('fi-v-tn', r['T - N']||'');     setV('fi-v-rs', r['R - S']||'');
+  setV('fi-v-st', r['S - T']||'');     setV('fi-v-rt', r['R - T']||'');
+  setV('fi-thd-r', r['THD-R']||'');   setV('fi-thd-s', r['THD-S']||'');
+  setV('fi-thd-t', r['THD-T']||'');
+  setV('fi-ipeak-r', r['IPEAK-R']||''); setV('fi-ipeak-s', r['IPEAK-S']||'');
+  setV('fi-ipeak-t', r['IPEAK-T']||'');
+  setV('fi-tpf-r', r['TPF-R']||'');   setV('fi-tpf-s', r['TPF-S']||'');
+  setV('fi-tpf-t', r['TPF-T']||'');
+  var dp = r['DAYA PAKAI']||''; var ps = r['PROSEN']||''; var ts = r['TDKSEIMBANG']||'';
+  if (dp || ps || ts) {
+    var mf = document.getElementById('fi-manual-fields');
+    if (mf) mf.style.display = 'block';
+    setV('fi-daya-pakai', dp); setV('fi-prosen', ps); setV('fi-tdk-seimbang', ts);
+  }
 }
 
 // ── Toggle manual kalkulasi ───────────────────────────────────
@@ -4706,10 +4811,9 @@ function submitFormInspeksi() {
   btnSimpan.disabled = true;
   btnSimpan.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px;"></div>Menyimpan...';
 
-  var params = {
-    action:      'tambahInspeksi',
+  // Payload pengukuran (dipakai baik mode tambah maupun edit)
+  var _fiPayload = {
     token:       s.token,
-    noGardu:     _fiGardu['NO_GARDU'],
     tglUkur:     document.getElementById('fi-tgl').value,
     jamUkur:     document.getElementById('fi-jam').value + ':00',
     petugas:     document.getElementById('fi-petugas').value.trim(),
@@ -4739,6 +4843,9 @@ function submitFormInspeksi() {
     tpfT:        getV('fi-tpf-t'),
     jurusan:     jurusan.length ? JSON.stringify(jurusan) : null
   };
+  var params = _fiEditId
+    ? Object.assign({ action: 'editInspeksi', id: _fiEditId }, _fiPayload)
+    : Object.assign({ action: 'tambahInspeksi', noGardu: _fiGardu['NO_GARDU'] }, _fiPayload);
 
   apiGet(params, function(res) {
     btnSimpan.disabled = false;
@@ -4750,7 +4857,9 @@ function submitFormInspeksi() {
     }
 
     // Sukses
-    fiSetAlert('Inspeksi berhasil disimpan! ' + (res.message||''), true);
+    var successMsg = _fiEditId ? 'Inspeksi berhasil diperbarui!' : 'Inspeksi berhasil disimpan!';
+    _fiEditId = null;
+    fiSetAlert(successMsg + ' ' + (res.message||''), true);
     btnSimpan.textContent = '✅ Tersimpan';
     btnSimpan.style.background = 'var(--pln-green)';
 
@@ -6468,6 +6577,11 @@ function submitTambahGardu() {
     msgEl.textContent='NO GARDU dan ULP wajib diisi.'; return;
   }
 
+  // Validasi koordinat GPS sebelum lanjut
+  var latTambah = (document.getElementById('f-lat').value||'').trim();
+  var lngTambah = (document.getElementById('f-lng').value||'').trim();
+  if (!validateGpsInput(latTambah, lngTambah, msgEl)) return;
+
   function doTambah(pin) {
     apiGet({
       action:'tambahGardu', token: s.token, pin:pin, noGardu:noGardu, ulp:ulp,
@@ -6486,6 +6600,7 @@ function submitTambahGardu() {
       msgEl.style.display='block';
       if (res.status==='ok'){
         msgEl.style.background='#D1FAE5'; msgEl.style.color='#065F46'; msgEl.textContent=res.message;
+        cacheClearAll(); // #22: invalidasi cache setelah mutasi data
         setTimeout(function(){ document.getElementById('modal-tambah-gardu').style.display='none'; muatDaftarGardu(true); }, 1500);
       } else {
         msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B'; msgEl.textContent=res.message||'Gagal menambahkan gardu.';
@@ -6597,6 +6712,11 @@ function submitEditGardu() {
     }
   }
 
+  // Validasi koordinat GPS
+  var latEdit = (document.getElementById('ef-lat').value||'').trim();
+  var lngEdit = (document.getElementById('ef-lng').value||'').trim();
+  if (!validateGpsInput(latEdit, lngEdit, msgEl)) return;
+
   // ── Konfirmasi sebelum simpan ──
   var noBaruVal = (document.getElementById('ef-nogardu-baru').value||'').trim().toUpperCase();
   var konfirmasiMsg = '⚠️ Konfirmasi Perubahan Data Gardu\n\n' +
@@ -6629,6 +6749,7 @@ function submitEditGardu() {
       msgEl.style.display='block';
       if (res.status==='ok'){
         msgEl.style.background='#D1FAE5'; msgEl.style.color='#065F46'; msgEl.textContent=res.message;
+        cacheClearAll(); // #22: invalidasi cache setelah mutasi data
         setTimeout(function(){ document.getElementById('modal-edit-gardu').style.display='none'; muatDaftarGardu(true); }, 1500);
       } else {
         msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B'; msgEl.textContent=res.message||'Gagal mengedit gardu.';
@@ -6788,7 +6909,7 @@ function submitSetPin() {
   }
 
   if (!pass || !pinBaru || !pinKonfirmasi) { showMsg('Semua field wajib diisi.', false); return; }
-  if (pinBaru.length < 6) { showMsg('PIN minimal 6 digit.', false); return; }
+  if (pinBaru.length < 4) { showMsg('PIN minimal 4 digit.', false); return; }
   if (!/^\d+$/.test(pinBaru)) { showMsg('PIN hanya boleh berisi angka.', false); return; }
   if (pinBaru !== pinKonfirmasi) { showMsg('PIN baru dan konfirmasi tidak sama.', false); return; }
 
@@ -6809,10 +6930,10 @@ document.addEventListener('DOMContentLoaded', function() {
       var v = btn.getAttribute('data-v');
       if (v === 'clear') { pinGarduBuffer = ''; updatePinGarduDots(); return; }
       if (v === 'back')  { pinGarduBuffer = pinGarduBuffer.slice(0,-1); updatePinGarduDots(); return; }
-      if (pinGarduBuffer.length >= 6) return;
+      if (pinGarduBuffer.length >= 4) return;
       pinGarduBuffer += v;
       updatePinGarduDots();
-      if (pinGarduBuffer.length >= 6 && _pinGarduCallback) {
+      if (pinGarduBuffer.length >= 4 && _pinGarduCallback) {
         // Simpan pin dan callback SEKARANG sebelum setTimeout,
         // karena _pinGarduCallback & pinGarduBuffer bisa berubah oleh kode lain.
         // PENTING: JANGAN tutupModalPinGardu() di sini.
@@ -7288,8 +7409,12 @@ function pmUpdateJenis() {
   });
 }
 
+// ── State edit pemeliharaan ────────────────────────────────────
+var _pmEditId = null;
+
 // ── Buka / Tutup form pemeliharaan ─────────────────────────────
 function bukaFormPemeliharaan(noGarduPrefill) {
+  _pmEditId = null;
   pmResetForm();
   if (noGarduPrefill) {
     var el = document.getElementById('pm-nogardu');
@@ -7391,16 +7516,28 @@ async function pmSubmit() {
   if (savingEl) savingEl.style.display = '';
   if (btn)      { btn.disabled = true; btn.textContent = '⏳ Menyimpan...'; }
 
-  var params = {
-    action:    'tambahPemeliharaan',
-    token:     s.token,
-    noGardu:   noGardu,
-    ulp:       ulp,
-    tanggal:   tanggal,
-    petugas:   petugas,
-    kategori:  kategori,
-    jenis:     jenis
-  };
+  // Mode edit: gunakan action editPemeliharaan jika _pmEditId aktif
+  var params = _pmEditId
+    ? {
+        action:    'editPemeliharaan',
+        token:     s.token,
+        id:        _pmEditId,
+        ulp:       ulp,
+        tanggal:   tanggal,
+        petugas:   petugas,
+        kategori:  kategori,
+        jenis:     jenis
+      }
+    : {
+        action:    'tambahPemeliharaan',
+        token:     s.token,
+        noGardu:   noGardu,
+        ulp:       ulp,
+        tanggal:   tanggal,
+        petugas:   petugas,
+        kategori:  kategori,
+        jenis:     jenis
+      };
 
   apiGet(params, function(res) {
     if (savingEl) savingEl.style.display = 'none';
@@ -7414,7 +7551,8 @@ async function pmSubmit() {
       msgEl.style.background = '#D1FAE5';
       msgEl.style.color      = '#065F46';
       msgEl.style.borderColor= '#A7F3D0';
-      msgEl.textContent = '✅ Data pemeliharaan berhasil disimpan!';
+      msgEl.textContent = _pmEditId ? '✅ Data pemeliharaan berhasil diperbarui!' : '✅ Data pemeliharaan berhasil disimpan!';
+      _pmEditId = null;
       setTimeout(function() {
         tutupFormPemeliharaan();
         muatDaftarPemeliharaan(true);
@@ -7471,14 +7609,8 @@ function muatDaftarPemeliharaan(force) {
       if (wrap) wrap.innerHTML = '<div class="alert alert-err"><span class="alert-icon">❌</span><span class="alert-text">Gagal memuat: ' + esc(res.message || 'Error') + '<br><button class="btn btn-outline" style="margin-top:8px;" onclick="muatDaftarPemeliharaan(true)">↻ Coba Lagi</button></span></div>';
       return;
     }
+    // Data sudah difilter per ULP di server (fn_get_pemeliharaan via RLS/role)
     var allData = res.data || [];
-    // Filter per ULP jika bukan superadmin
-    if (s.role !== 'superadmin' && s.ulp) {
-      var ulpNorm = String(s.ulp).trim().toUpperCase();
-      allData = allData.filter(function(d) {
-        return !d.ulp || String(d.ulp).trim().toUpperCase() === ulpNorm;
-      });
-    }
     _pmAllData = allData;
 
     // Apply filters from UI
@@ -7488,12 +7620,12 @@ function muatDaftarPemeliharaan(force) {
     var unitFil = ((document.getElementById('pm-filter-unit')||{}).value||'').toUpperCase();
     var ulpFil  = ((document.getElementById('pm-filter-ulp')||{}).value||'').toUpperCase();
 
+    // Filter lokal: no_gardu dan tanggal (untuk quick filter tanpa re-fetch)
+    // Filter kategori/ulp sudah dikirim ke server via p_kategori/p_ulp
     _pmFilteredData = allData.filter(function(d) {
       if (noGardu && !(d.no_gardu||'').toUpperCase().includes(noGardu)) return false;
       if (tglAwal  && (d.tanggal||'') < tglAwal)  return false;
       if (tglAkhir && (d.tanggal||'') > tglAkhir) return false;
-      if (unitFil  && (d.kategori||'').toUpperCase() !== unitFil) return false;
-      if (ulpFil   && !(d.ulp||'').toUpperCase().includes(ulpFil.replace('ULP ',''))) return false;
       return true;
     });
 
@@ -7565,14 +7697,22 @@ function renderDaftarPemeliharaan() {
   if (isMobile) {
     // ── Mobile card view ──
     pageData.forEach(function(d) {
-      var hapusBtn = (_canDeletePm && d.id)
-        ? '<button onclick="hapusPemeliharaanById('+d.id+',\''+esc(d.no_gardu||'')+'\')" style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;font-size:clamp(9px,2.2vw,10.5px);font-weight:700;padding:4px 10px;cursor:pointer;touch-action:manipulation;flex-shrink:0;">🗑️ Hapus</button>'
-        : '';
+      var hapusBtn = '';
+      var editBtn  = '';
+      if (_canDeletePm && d.id) {
+        editBtn  = '<button onclick="bukaEditPemeliharaan('+d.id+',\''+esc(d.no_gardu||'')+'\',' +
+          '\''+esc(d.tanggal||'')+'\',' +
+          '\''+esc(d.petugas||'')+'\',' +
+          '\''+esc(d.kategori||'')+'\',' +
+          '\''+esc(d.jenis||'')+'\',' +
+          '\''+esc(d.ulp||'')+'\')" style="background:var(--pln-biru-pale);color:var(--pln-biru2);border:1px solid var(--pln-border2);border-radius:6px;font-size:clamp(9px,2.2vw,10.5px);font-weight:700;padding:4px 10px;cursor:pointer;touch-action:manipulation;flex-shrink:0;">✏️ Edit</button>';
+        hapusBtn = '<button onclick="hapusPemeliharaanById('+d.id+',\''+esc(d.no_gardu||'')+'\')" style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;font-size:clamp(9px,2.2vw,10.5px);font-weight:700;padding:4px 10px;cursor:pointer;touch-action:manipulation;flex-shrink:0;">🗑️ Hapus</button>';
+      }
       html += '<div class="pm-list-card">'
         + '<div class="pm-list-header">'
           + '<div><div style="font-size:var(--fs-xs);font-weight:800;color:var(--pln-biru2);">' + esc(d.no_gardu||'—') + '</div>'
           + '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:2px;">📅 ' + esc(d.tanggal||'—') + '</div></div>'
-          + '<div style="display:flex;align-items:center;gap:6px;">' + hapusBtn + '</div>'
+          + '<div style="display:flex;align-items:center;gap:4px;">' + editBtn + hapusBtn + '</div>'
         + '</div>'
         + '<div class="pm-list-body"><div class="grid2" style="margin:0;">'
           + '<div><div class="lbl">Kategori</div><div class="val-sm">' + esc(d.kategori||'—') + '</div></div>'
@@ -7605,9 +7745,19 @@ function renderDaftarPemeliharaan() {
       html += '<td style="padding:9px 12px;">'+esc(d.kategori||'—')+'</td>';
       html += '<td style="padding:9px 12px;">'+esc(d.jenis||'—')+'</td>';
       if (_canDeletePm) {
-        html += '<td style="padding:9px 12px;">' + (d.id
-          ? '<button onclick="hapusPemeliharaanById('+d.id+',\''+esc(d.no_gardu||'')+'\')" style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;font-size:10px;font-weight:700;padding:4px 10px;cursor:pointer;">🗑️</button>'
-          : '') + '</td>';
+        html += '<td style="padding:9px 12px;">';
+        if (d.id) {
+          html += '<div style="display:flex;gap:4px;">';
+          html += '<button onclick="bukaEditPemeliharaan('+d.id+',\''+esc(d.no_gardu||'')+'\',' +
+            '\''+esc(d.tanggal||'')+'\',' +
+            '\''+esc(d.petugas||'')+'\',' +
+            '\''+esc(d.kategori||'')+'\',' +
+            '\''+esc(d.jenis||'')+'\',' +
+            '\''+esc(d.ulp||'')+'\')" style="background:var(--pln-biru-pale);color:var(--pln-biru2);border:1px solid var(--pln-border2);border-radius:6px;font-size:10px;font-weight:700;padding:4px 8px;cursor:pointer;">✏️</button>';
+          html += '<button onclick="hapusPemeliharaanById('+d.id+',\''+esc(d.no_gardu||'')+'\')" style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;font-size:10px;font-weight:700;padding:4px 8px;cursor:pointer;">🗑️</button>';
+          html += '</div>';
+        }
+        html += '</td>';
       }
       html += '</tr>';
     });
@@ -7647,6 +7797,27 @@ function hapusPemeliharaanById(id, noGardu) {
     _pmSudahMuat = false;
     muatDaftarPemeliharaan(true);
   });
+}
+
+// ── Edit pemeliharaan (isi ulang form dari data yang ada) ──────
+function bukaEditPemeliharaan(id, noGardu, tanggal, petugas, kategori, jenis, ulp) {
+  _pmEditId = id;
+  pmResetForm();
+  var el;
+  el = document.getElementById('pm-nogardu'); if (el) { el.value = noGardu; el.readOnly = true; }
+  el = document.getElementById('pm-ulp');     if (el) { el.value = ulp; el.readOnly = true; el.style.background='var(--pln-bg)'; el.style.color='var(--pln-text3)'; }
+  el = document.getElementById('pm-tanggal'); if (el) el.value = tanggal;
+  el = document.getElementById('pm-petugas'); if (el) el.value = petugas;
+  el = document.getElementById('pm-kategori');if (el) { el.value = kategori; pmUpdateJenis(); }
+  setTimeout(function() {
+    el = document.getElementById('pm-jenis'); if (el) el.value = jenis;
+  }, 50);
+  var title = document.getElementById('pm-topbar-title');
+  if (title) title.textContent = 'Edit — ' + noGardu;
+  var btn = document.getElementById('pm-btn-simpan');
+  if (btn) btn.textContent = '💾 Simpan Perubahan';
+  var view = document.getElementById('form-pemeliharaan-view');
+  if (view) { view.style.display = 'block'; view.scrollTo(0, 0); }
 }
 
 // ══ PENGUKURAN GARDU JS ══════════════════════════════════════

@@ -465,10 +465,10 @@ async function _verifyPin(p, signal) {
 
 // ── SET PIN via RPC ──────────────────────────────────────────
 async function _setPin(p, signal) {
-  // Validasi PIN minimal 6 digit dan hanya angka (defence in depth)
+  // Validasi PIN minimal 4 digit dan hanya angka (defence in depth)
   var pinBaru = String(p.pinBaru || '').trim();
-  if (pinBaru.length < 6) {
-    return { status: 'error', message: 'PIN minimal 6 digit.' };
+  if (pinBaru.length < 4) {
+    return { status: 'error', message: 'PIN minimal 4 digit.' };
   }
   if (!/^\d+$/.test(pinBaru)) {
     return { status: 'error', message: 'PIN hanya boleh berisi angka.' };
@@ -616,18 +616,21 @@ async function _getRiwayat(p, signal) {
   return { status: 'ok', data: rows, total: data.total || 0 };
 }
 
-// ── REKAP GARDU SEDERHANA via REST ───────────────────────────
+// ── REKAP GARDU via RPC ──────────────────────────────────────
 async function _getRekapGardu(p, signal) {
-  var url = '/rest/v1/gardu?select=no_gardu,ulp,unitup,penyulang,status_operasional,status_kepemilikan,tipe,kapasitas_kva&order=ulp.asc,no_gardu.asc';
-  if (p && p.ulp) url += '&ulp=eq.' + encodeURIComponent(_normalizeUlpEnum(p.ulp));
+  // Menggunakan RPC fn_get_rekap_gardu agar konsisten dengan fungsi lain
+  // dan agar filter role/ULP diterapkan di sisi server (bukan bypass REST langsung).
+  var data = await rpcCall('fn_get_rekap_gardu', {
+    p_token: p.token,
+    p_ulp:   p.ulp ? _normalizeUlpEnum(p.ulp) : null
+  }, signal);
 
-  var res = await sbFetch(url, { signal: signal });
-  if (!res.ok) return { status: 'error', message: 'Gagal memuat rekap gardu.' };
+  if (!data || data.status !== 'ok')
+    return { status: 'error', message: (data && data.message) || 'Gagal memuat rekap gardu.' };
 
-  var rows = await res.json();
   return {
     status: 'ok',
-    data: rows.map(function(g) {
+    data: (data.data || []).map(function(g) {
       return {
         noGardu:     g.no_gardu || '',
         ulp:         g.ulp || '',
@@ -644,7 +647,10 @@ async function _getRekapGardu(p, signal) {
 
 // ── TAMBAH USER via RPC ──────────────────────────────────────
 async function _tambahUser(p, signal) {
-  var pwHash = await sha256(String(p.password || '').trim());
+  var pwRaw = String(p.password || '').trim();
+  if (pwRaw.length < 8) return { status: 'error', message: 'Password minimal 8 karakter.' };
+  if (!/[0-9]/.test(pwRaw)) return { status: 'error', message: 'Password harus mengandung minimal 1 angka.' };
+  var pwHash = await sha256(pwRaw);
 
   var data = await rpcCall('fn_tambah_user', {
     p_token:         p.token,
@@ -663,9 +669,10 @@ async function _tambahUser(p, signal) {
 
 // ── EDIT USER via RPC ────────────────────────────────────────
 async function _editUser(p, signal) {
-  var pwHash = (p.password && String(p.password).trim().length >= 4)
-    ? await sha256(String(p.password).trim())
-    : null;
+  var _pwRaw = p.password ? String(p.password).trim() : '';
+  if (_pwRaw && _pwRaw.length < 8) return { status: 'error', message: 'Password minimal 8 karakter.' };
+  if (_pwRaw && !/[0-9]/.test(_pwRaw)) return { status: 'error', message: 'Password harus mengandung minimal 1 angka.' };
+  var pwHash = _pwRaw.length >= 8 ? await sha256(_pwRaw) : null;
 
   var data = await rpcCall('fn_edit_user', {
     p_token:         p.token,
@@ -1067,7 +1074,7 @@ function _mapInspeksiRow(r) {
     flat['JUR' + n + '_R - N']   = j.v_r_n   != null ? String(j.v_r_n)    : '';
     flat['JUR' + n + '_S - N']   = j.v_s_n   != null ? String(j.v_s_n)    : '';
     flat['JUR' + n + '_T - N']   = j.v_t_n   != null ? String(j.v_t_n)    : '';
-    flat['JUR' + n + '_R - s']   = j.v_r_t   != null ? String(j.v_r_t)    : '';
+    flat['JUR' + n + '_R - S']   = j.v_r_s   != null ? String(j.v_r_s)    : '';
     flat['JUR' + n + '_R - T']   = j.v_r_t   != null ? String(j.v_r_t)    : '';
     flat['JUR' + n + '_S - T']   = j.v_s_t   != null ? String(j.v_s_t)    : '';
     flat['JUR' + n + '_THD-R']   = j.thd_r   != null ? String(j.thd_r)    : '';
@@ -1104,13 +1111,15 @@ async function _tambahPemeliharaan(p, signal) {
 
 // ── GET DAFTAR PEMELIHARAAN via RPC ──────────────────────────
 async function _getDaftarPemeliharaan(p, signal) {
-  // Catatan: p_ulp tidak dikirim ke RPC karena filter ULP dilakukan di DB
-  // berdasarkan role user (superadmin lihat semua, selain itu hanya ULP sendiri).
-  // Filter tambahan (kategori, ulp) dilakukan di sisi klien setelah data diterima.
+  // Filter ULP dilakukan di DB berdasarkan role user (superadmin lihat semua,
+  // selain itu hanya ULP sendiri). Filter tambahan (kategori, ulp eksplisit)
+  // dikirim ke RPC agar tidak terjadi client-side filtering yang boros bandwidth.
   // p_status TIDAK dikirim karena kolom status tidak ada di tabel pemeliharaan.
   var rpcParams = {
     p_token:     p.token,
     p_no_gardu:  p.noGardu  ? (p.noGardu || '').trim().toUpperCase() : null,
+    p_ulp:       p.ulp      ? _normalizeUlpEnum(p.ulp)               : null,
+    p_kategori:  p.kategori || null,
     p_tgl_awal:  p.tglAwal  || null,
     p_tgl_akhir: p.tglAkhir || null,
     p_limit:     p.limit    ? parseInt(p.limit)                       : 200,
