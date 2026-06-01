@@ -1353,7 +1353,7 @@ if (typeof L === 'undefined') {
     <button class="topbar-action" onclick="exportPemeliharaanExcel()" id="btn-export-pemeliharaan">⬇️ Export</button>
   </div>
   <div class="page-body">
-    <!-- Filter Form (like Pengukuran) -->
+    <!-- Filter Form -->
     <div class="card" style="margin-bottom:var(--sp-sm);">
       <div class="sec" style="margin-top:0;">🔍 Filter Laporan</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:var(--sp-sm);align-items:end;" class="ukur-filter-grid">
@@ -1370,15 +1370,11 @@ if (typeof L === 'undefined') {
           <input type="date" class="form-input" id="pm-filter-tgl-akhir">
         </div>
         <div class="form-group" style="margin:0;">
-          <label class="form-label">Kategori</label>
-          <select class="form-select" id="pm-filter-kategori">
-            <option value="">Semua Kategori</option>
-            <option value="PREVENTIF">Preventif</option>
-            <option value="KOREKTIF">Korektif</option>
-            <option value="INSPEKSI">Inspeksi Visual</option>
-            <option value="OVERHAUL">Overhaul</option>
-            <option value="PENGGANTIAN">Penggantian</option>
-            <option value="DARURAT">Darurat</option>
+          <label class="form-label">Unit</label>
+          <select class="form-select" id="pm-filter-unit">
+            <option value="">Semua Unit</option>
+            <option value="PLN">PLN</option>
+            <option value="NON PLN">NON PLN</option>
           </select>
         </div>
         <div class="form-group" style="margin:0;">
@@ -1403,8 +1399,8 @@ if (typeof L === 'undefined') {
     <!-- Rekap singkat -->
     <div id="pm-rekap-bar" style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-xs);margin-bottom:var(--sp-sm);">
       <div class="card" style="padding:10px;text-align:center;margin:0;"><div style="font-size:var(--fs-lg);font-weight:800;color:var(--pln-biru2);" id="pm-count-total">—</div><div class="lbl">Total</div></div>
-      <div class="card" style="padding:10px;text-align:center;margin:0;"><div style="font-size:var(--fs-lg);font-weight:800;color:var(--pln-green);" id="pm-count-preventif">—</div><div class="lbl">Preventif</div></div>
-      <div class="card" style="padding:10px;text-align:center;margin:0;"><div style="font-size:var(--fs-lg);font-weight:800;color:var(--pln-orange);" id="pm-count-korektif">—</div><div class="lbl">Korektif</div></div>
+      <div class="card" style="padding:10px;text-align:center;margin:0;"><div style="font-size:var(--fs-lg);font-weight:800;color:var(--pln-green);" id="pm-count-pln">—</div><div class="lbl">PLN</div></div>
+      <div class="card" style="padding:10px;text-align:center;margin:0;"><div style="font-size:var(--fs-lg);font-weight:800;color:var(--pln-orange);" id="pm-count-nonpln">—</div><div class="lbl">NON PLN</div></div>
     </div>
     <div id="pm-list-wrap">
       <div class="alert alert-info"><span class="alert-icon">🔧</span><span class="alert-text">Atur filter di atas lalu tekan <b>Tampilkan</b> untuk melihat data pemeliharaan gardu.</span></div>
@@ -1459,24 +1455,20 @@ if (typeof L === 'undefined') {
         </div>
       </div>
 
-      <div class="sec">📂 Kategori &amp; Jenis Pekerjaan</div>
+      <div class="sec">📂 Unit &amp; Jenis Pekerjaan</div>
       <div class="card">
         <div class="form-group">
-          <label class="form-label">Kategori <span class="req">*</span></label>
+          <label class="form-label">Unit <span class="req">*</span></label>
           <select class="form-select" id="pm-kategori" onchange="pmUpdateJenis()">
-            <option value="">— Pilih Kategori —</option>
-            <option value="PREVENTIF">Preventif (Rutin Terjadwal)</option>
-            <option value="KOREKTIF">Korektif (Perbaikan Kerusakan)</option>
-            <option value="INSPEKSI">Inspeksi Visual</option>
-            <option value="OVERHAUL">Overhaul Besar</option>
-            <option value="PENGGANTIAN">Penggantian Komponen</option>
-            <option value="DARURAT">Pemeliharaan Darurat</option>
+            <option value="">— Pilih Unit —</option>
+            <option value="PLN">PLN</option>
+            <option value="NON PLN">NON PLN</option>
           </select>
         </div>
         <div class="form-group" style="margin-bottom:0;">
           <label class="form-label">Jenis Pekerjaan <span class="req">*</span></label>
           <select class="form-select" id="pm-jenis">
-            <option value="">— Pilih Kategori Terlebih Dahulu —</option>
+            <option value="">— Pilih Unit Terlebih Dahulu —</option>
           </select>
         </div>
       </div>
@@ -7009,14 +7001,10 @@ var _pmCurrentPage = 1;
 var _pmPageSize = 25;
 var _pmSudahMuat = false;
 
-// Jenis pekerjaan berdasarkan kategori
+// Jenis pekerjaan berdasarkan unit
 var PM_JENIS = {
-  'PREVENTIF':  ['Pemeliharaan Rutin Berkala','Pelumasan Bearing','Pembersihan Panel & Trafo','Pengencangan Sambungan','Pengecekan Relay Proteksi','Pengukuran Tahanan Isolasi','Kalibrasi Peralatan Ukur'],
-  'KOREKTIF':   ['Perbaikan Kabel Rusak','Penggantian Terminal','Perbaikan Isolator','Perbaikan Panel','Perbaikan Sistem Pentanahan','Perbaikan Bushing'],
-  'INSPEKSI':   ['Inspeksi Visual Rutin','Inspeksi Setelah Gangguan','Inspeksi K3','Pengukuran Beban','Termografi Inframerah'],
-  'OVERHAUL':   ['Overhaul Trafo','Overhaul Panel LV','Penggantian Minyak Trafo','Rekondisi Peralatan'],
-  'PENGGANTIAN':['Penggantian Trafo','Penggantian Kabel JTR','Penggantian NH Fuse','Penggantian Lightning Arrester','Penggantian Kwh Meter'],
-  'DARURAT':    ['Pemulihan Gangguan','Perbaikan Darurat Kabel Putus','Penanganan Kebakaran/Korsleting','Penggantian Darurat Peralatan']
+  'PLN':     ['Pemeliharaan Rutin Berkala','Pelumasan Bearing','Pembersihan Panel & Trafo','Pengencangan Sambungan','Pengecekan Relay Proteksi','Pengukuran Tahanan Isolasi','Kalibrasi Peralatan Ukur','Perbaikan Kabel Rusak','Penggantian Terminal','Perbaikan Isolator','Perbaikan Panel','Perbaikan Sistem Pentanahan','Overhaul Trafo','Penggantian Minyak Trafo','Penggantian Trafo','Penggantian Kabel JTR','Penggantian NH Fuse','Penggantian Lightning Arrester','Penggantian Kwh Meter','Pemulihan Gangguan','Perbaikan Darurat Kabel Putus','Inspeksi Visual Rutin','Termografi Inframerah'],
+  'NON PLN': ['Pemeliharaan Rutin Berkala','Pembersihan Panel & Trafo','Pengencangan Sambungan','Pengecekan Proteksi','Perbaikan Kabel','Penggantian Komponen','Overhaul Trafo','Penggantian Minyak Trafo','Inspeksi Visual','Perbaikan Darurat','Pelayanan Pelanggan PLN']
 };
 
 function pmUpdateJenis() {
@@ -7068,7 +7056,7 @@ function pmResetForm() {
   el = document.getElementById('pm-kategori');
   if (el) el.selectedIndex = 0;
   el = document.getElementById('pm-jenis');
-  if (el) { el.innerHTML = '<option value="">— Pilih Kategori Terlebih Dahulu —</option>'; }
+  if (el) { el.innerHTML = '<option value="">— Pilih Unit Terlebih Dahulu —</option>'; }
   var gi = document.getElementById('pm-gardu-info');
   if (gi) gi.style.display = 'none';
   var msg = document.getElementById('pm-submit-msg');
@@ -7110,7 +7098,7 @@ async function pmSubmit() {
   if (!ulp)      { pmShowErr('Unit (ULP) wajib diisi.');       return; }
   if (!tanggal)  { pmShowErr('Tanggal wajib diisi.');          return; }
   if (!petugas)  { pmShowErr('Nama Petugas wajib diisi.');     return; }
-  if (!kategori) { pmShowErr('Kategori wajib dipilih.');       return; }
+  if (!kategori) { pmShowErr('Unit (PLN/NON PLN) wajib dipilih.');       return; }
   if (!jenis)    { pmShowErr('Jenis Pekerjaan wajib dipilih.'); return; }
 
   var savingEl = document.getElementById('pm-saving-indicator');
@@ -7172,14 +7160,14 @@ function resetFilterPemeliharaan() {
   ['pm-filter-nogardu','pm-filter-tgl-awal','pm-filter-tgl-akhir'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
-  ['pm-filter-kategori','pm-filter-ulp'].forEach(function(id) {
+  ['pm-filter-unit','pm-filter-ulp'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.selectedIndex = 0;
   });
   var wrap = document.getElementById('pm-list-wrap');
   if (wrap) wrap.innerHTML = '<div class="alert alert-info"><span class="alert-icon">🔧</span><span class="alert-text">Atur filter di atas lalu tekan <b>Tampilkan</b> untuk melihat data pemeliharaan gardu.</span></div>';
   _pmSudahMuat = false;
   _pmAllData = [];
-  ['pm-count-total','pm-count-preventif','pm-count-korektif'].forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent='—'; });
+  ['pm-count-total','pm-count-pln','pm-count-nonpln'].forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent='—'; });
 }
 
 function muatDaftarPemeliharaan(force) {
@@ -7209,30 +7197,30 @@ function muatDaftarPemeliharaan(force) {
     _pmAllData = allData;
 
     // Apply filters from UI
-    var noGardu    = ((document.getElementById('pm-filter-nogardu')||{}).value||'').trim().toUpperCase();
-    var tglAwal    = (document.getElementById('pm-filter-tgl-awal')||{}).value||'';
-    var tglAkhir   = (document.getElementById('pm-filter-tgl-akhir')||{}).value||'';
-    var kategoriFil= (document.getElementById('pm-filter-kategori')||{}).value||'';
-    var ulpFil     = ((document.getElementById('pm-filter-ulp')||{}).value||'').toUpperCase();
+    var noGardu = ((document.getElementById('pm-filter-nogardu')||{}).value||'').trim().toUpperCase();
+    var tglAwal = (document.getElementById('pm-filter-tgl-awal')||{}).value||'';
+    var tglAkhir= (document.getElementById('pm-filter-tgl-akhir')||{}).value||'';
+    var unitFil = ((document.getElementById('pm-filter-unit')||{}).value||'').toUpperCase();
+    var ulpFil  = ((document.getElementById('pm-filter-ulp')||{}).value||'').toUpperCase();
 
     _pmFilteredData = allData.filter(function(d) {
-      if (noGardu    && !(d.no_gardu||'').toUpperCase().includes(noGardu)) return false;
-      if (tglAwal    && (d.tanggal||'') < tglAwal)  return false;
-      if (tglAkhir   && (d.tanggal||'') > tglAkhir) return false;
-      if (kategoriFil && (d.kategori||'').toUpperCase() !== kategoriFil.toUpperCase()) return false;
-      if (ulpFil     && !(d.ulp||'').toUpperCase().includes(ulpFil.replace('ULP ',''))) return false;
+      if (noGardu && !(d.no_gardu||'').toUpperCase().includes(noGardu)) return false;
+      if (tglAwal  && (d.tanggal||'') < tglAwal)  return false;
+      if (tglAkhir && (d.tanggal||'') > tglAkhir) return false;
+      if (unitFil  && (d.kategori||'').toUpperCase() !== unitFil) return false;
+      if (ulpFil   && !(d.ulp||'').toUpperCase().includes(ulpFil.replace('ULP ',''))) return false;
       return true;
     });
 
     _pmCurrentPage = 1;
 
     var total = _pmAllData.length;
-    var elT = document.getElementById('pm-count-total');
-    var elPrev = document.getElementById('pm-count-preventif');
-    var elKor  = document.getElementById('pm-count-korektif');
-    if (elT) elT.textContent = total;
-    if (elPrev) elPrev.textContent = _pmAllData.filter(function(d){ return (d.kategori||'').toUpperCase()==='PREVENTIF'; }).length;
-    if (elKor)  elKor.textContent  = _pmAllData.filter(function(d){ return (d.kategori||'').toUpperCase()==='KOREKTIF'; }).length;
+    var elT   = document.getElementById('pm-count-total');
+    var elPln = document.getElementById('pm-count-pln');
+    var elNon = document.getElementById('pm-count-nonpln');
+    if (elT)   elT.textContent   = total;
+    if (elPln) elPln.textContent = allData.filter(function(d){ return (d.kategori||'').toUpperCase()==='PLN'; }).length;
+    if (elNon) elNon.textContent = allData.filter(function(d){ return (d.kategori||'').toUpperCase()==='NON PLN'; }).length;
 
     renderDaftarPemeliharaan();
   });
@@ -7314,7 +7302,7 @@ function renderDaftarPemeliharaan() {
     html += '<div style="overflow-x:auto;">';
     html += '<table style="width:100%;border-collapse:collapse;font-size:var(--fs-xs);">';
     html += '<thead><tr style="background:var(--pln-biru);color:#fff;">';
-    var headers = ['NO','NO GARDU','UNIT','TANGGAL','PETUGAS','KATEGORI','JENIS PEKERJAAN'];
+    var headers = ['NO','NO GARDU','ULP','TANGGAL','PETUGAS','UNIT','JENIS PEKERJAAN'];
     if (_canDeletePm) headers.push('AKSI');
     headers.forEach(function(h) {
       html += '<th style="padding:10px 12px;text-align:left;white-space:nowrap;font-weight:700;font-size:11px;letter-spacing:.3px;">'+h+'</th>';
@@ -7671,7 +7659,7 @@ function bukaFormPemeliharaanDariDetail(noGardu) {
   }, 100);
 }
 
-// ══ EXPORT PENGUKURAN GARDU → EXCEL (format FORM_INSPEKSI) ═══════
+// ══ EXPORT PENGUKURAN GARDU → XLSX (format RIWAYAT INSPEKSI) ═══
 
 function exportPengukuranExcel() {
   var data = _ukurFilteredData || _ukurAllData || [];
@@ -7682,13 +7670,23 @@ function exportPengukuranExcel() {
 
   setTimeout(function() {
     try {
-      // Build CSV with same columns as FORM_INSPEKSI.xlsx
-      var cols = ['UNITUP','NOGARDU','PENYULANG','ALAMAT','DAYA','FASA','DAYA PAKAI','PROSEN','TDK SEIMBANG','JAM UKUR','TGLUKUR','PETUGAS',
-                  'R TOTAL','S TOTAL','T TOTAL','N TOTAL','R - N','S - N','T - N','R - S','S - T','R - T',
-                  'THD-R','THD-S','THD-T','IPEAK-R','IPEAK-S','IPEAK-T','TPF-R','TPF-S','TPF-T'];
-      var rows = [cols];
+      if (typeof XLSX === 'undefined') { alert('Library XLSX belum tersedia. Coba refresh halaman.'); return; }
+
+      var now = new Date();
+      var dateStr = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+
+      // Build rows sesuai format FORM_INSPEKSI.xlsx
+      var headers = ['UNITUP','NOGARDU','PENYULANG','ALAMAT','DAYA','FASA','DAYA PAKAI','PROSEN','TDK SEIMBANG','JAM UKUR','TGLUKUR','PETUGAS',
+                     'R TOTAL','S TOTAL','T TOTAL','N TOTAL','R - N','S - N','T - N','R - S','S - T','R - T',
+                     'THD-R','THD-S','THD-T','IPEAK-R','IPEAK-S','IPEAK-T','TPF-R','TPF-S','TPF-T',
+                     'JURUSAN 1','JUR1_R_TOTAL','JUR1_S_TOTAL','JUR1_T_TOTAL','JUR1_N_TOTAL','JUR1_R-N','JUR1_S-N','JUR1_T-N',
+                     'JUR1_THD-R','JUR1_THD-S','JUR1_THD-T','JUR1_IPEAK-R','JUR1_IPEAK-S','JUR1_IPEAK-T','JUR1_TPF-R','JUR1_TPF-S','JUR1_TPF-T','JUR1_TITIK_UKUR',
+                     'JURUSAN 2'];
+
+      var sheetData = [headers];
+
       data.forEach(function(r) {
-        rows.push([
+        var row = [
           r['UNITUP']||r['ULP']||'42110',
           r['NO_GARDU']||r['NOGARDU']||'',
           r['PENYULANG']||'',
@@ -7706,28 +7704,43 @@ function exportPengukuranExcel() {
           r['R - S']||'',r['S - T']||'',r['R - T']||'',
           r['THD-R']||'',r['THD-S']||'',r['THD-T']||'',
           r['IPEAK-R']||r['IPEAK_R']||'',r['IPEAK-S']||r['IPEAK_S']||'',r['IPEAK-T']||r['IPEAK_T']||'',
-          r['TPF-R']||'',r['TPF-S']||'',r['TPF-T']||''
-        ]);
+          r['TPF-R']||'',r['TPF-S']||'',r['TPF-T']||'',
+          r['JURUSAN 1']||'',
+          r['JUR1_R TOTAL']||'',r['JUR1_S TOTAL']||'',r['JUR1_T TOTAL']||'',r['JUR1_N TOTAL']||'',
+          r['JUR1_R - N']||'',r['JUR1_S - N']||'',r['JUR1_T - N']||'',
+          r['JUR1_THD-R']||'',r['JUR1_THD-S']||'',r['JUR1_THD-T']||'',
+          r['JUR1_IPEAK-R']||'',r['JUR1_IPEAK-S']||'',r['JUR1_IPEAK-T']||'',
+          r['JUR1_TPF-R']||'',r['JUR1_TPF-S']||'',r['JUR1_TPF-T']||'','',
+          r['JURUSAN 2']||''
+        ];
+        sheetData.push(row);
       });
 
-      var now = new Date();
-      var dateStr = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
-      var filename = 'Pengukuran_Gardu_'+dateStr+'.csv';
+      var wb = XLSX.utils.book_new();
+      var ws = XLSX.utils.aoa_to_sheet(sheetData);
 
-      var csvContent = rows.map(function(row) {
-        return row.map(function(cell) {
-          var v = (cell===null||cell===undefined)?'':String(cell);
-          if (v.includes(',') || v.includes('"') || v.includes('\n')) v = '"' + v.replace(/"/g,'""') + '"';
-          return v;
-        }).join(',');
-      }).join('\r\n');
+      // Styling header biru PLN
+      var range = XLSX.utils.decode_range(ws['!ref']);
+      for (var C = range.s.c; C <= range.e.c; C++) {
+        var cellAddr = XLSX.utils.encode_cell({r:0, c:C});
+        if (!ws[cellAddr]) continue;
+        ws[cellAddr].s = {
+          fill: { fgColor: { rgb: '0A2D6B' } },
+          font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 10 },
+          alignment: { horizontal: 'center', wrapText: true },
+          border: { bottom: { style: 'thin', color: { rgb: '000000' } } }
+        };
+      }
 
-      var BOM = '\uFEFF';
-      var blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url; a.download = filename; a.click();
-      URL.revokeObjectURL(url);
+      // Auto column width
+      var colWidths = headers.map(function(h) { return { wch: Math.max(h.length, 10) }; });
+      ws['!cols'] = colWidths;
+
+      // Freeze header row
+      ws['!freeze'] = { xSplit: 0, ySplit: 1, topLeftCell: 'A2', activePane: 'bottomLeft' };
+
+      XLSX.utils.book_append_sheet(wb, ws, 'RIWAYAT INSPEKSI');
+      XLSX.writeFile(wb, 'Pengukuran_Gardu_' + dateStr + '.xlsx');
     } catch(e) {
       alert('Gagal export: ' + e.message);
     } finally {
@@ -7736,7 +7749,7 @@ function exportPengukuranExcel() {
   }, 100);
 }
 
-// ══ EXPORT PEMELIHARAAN GARDU → EXCEL (format pemeliharaan.xls) ══
+// ══ EXPORT PEMELIHARAAN GARDU → XLSX ═══════════════════════════
 
 function exportPemeliharaanExcel() {
   var data = _pmFilteredData || _pmAllData || [];
@@ -7747,49 +7760,117 @@ function exportPemeliharaanExcel() {
 
   setTimeout(function() {
     try {
+      if (typeof XLSX === 'undefined') { alert('Library XLSX belum tersedia. Coba refresh halaman.'); return; }
+
       var now = new Date();
-      var tglAwal = (document.getElementById('pm-filter-tgl-awal')||{}).value || '';
+      var tglAwal  = (document.getElementById('pm-filter-tgl-awal')||{}).value  || '';
       var tglAkhir = (document.getElementById('pm-filter-tgl-akhir')||{}).value || '';
       var periodeStr = (tglAwal || tglAkhir)
-        ? ((tglAwal ? _fmtTglExport(tglAwal) : '01/01/2025') + ' - ' + (tglAkhir ? _fmtTglExport(tglAkhir) : _fmtTglExport(now.toISOString().split('T')[0])))
-        : '01/07/2025 - ' + _fmtTglExport(now.toISOString().split('T')[0]);
+        ? ((tglAwal  ? _fmtTglExport(tglAwal)  : '01/01/2025') + ' s/d ' +
+           (tglAkhir ? _fmtTglExport(tglAkhir) : _fmtTglExport(now.toISOString().split('T')[0])))
+        : '01/07/2025 s/d ' + _fmtTglExport(now.toISOString().split('T')[0]);
 
       var ulpFilter = ((document.getElementById('pm-filter-ulp')||{}).value||'').toUpperCase();
-      var ulpLabel = ulpFilter ? ulpFilter : '--- SEMUA ---';
+      var ulpLabel  = ulpFilter || '--- SEMUA ---';
+      var dateFile  = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
 
-      var filename = 'Pemeliharaan_Gardu_' + now.getFullYear()
-        + String(now.getMonth()+1).padStart(2,'0')
-        + String(now.getDate()).padStart(2,'0') + '.xls';
+      var wb = XLSX.utils.book_new();
+      var ws = {};
 
-      // Build HTML-based XLS matching PLN pemeliharaan format exactly
-      var rows = data.map(function(d, i) {
-        return '<tr>'
-          + '<td>' + (i+1) + '</td>'
-          + '<td class="str">' + _xlsEsc(d.ulp || 'UP3 JAYAPURA') + '</td>'
-          + '<td class="str">' + _xlsEsc(d.tanggal || '') + '</td>'
-          + '<td class="str">' + _xlsEsc(d.no_gardu || '') + '</td>'
-          + '<td class="str">' + _xlsEsc(d.petugas || '') + '</td>'
-          + '<td class="str">' + _xlsEsc(d.kategori || '') + '</td>'
-          + '<td class="str">' + _xlsEsc(d.jenis || '') + '</td>'
-          + '</tr>';
-      }).join('\r\n\t');
+      // ── Baris header institusi (baris 1-3) ──
+      var metaRows = [
+        ['UIW : UIW. P2B'],
+        ['UP3 : UP3 JAYAPURA'],
+        ['ULP : ' + ulpLabel],
+        [],
+        ['DAFTAR PEMELIHARAAN GARDU'],
+        ['PERIODE : ' + periodeStr],
+        []
+      ];
 
-      var html = '\t\r\n<html>\r\n<head>\r\n\t<style>\r\n\t\t.str{ mso-number-format:\\@; }\r\n\t\t</style>\r\n</head>\t\t\r\n<body>\r\n'
-        + '<table><tr><td colspan="5">UIW : UIW. P2B</td></tr>'
-        + '<tr><td colspan="10">UP3 : UP3 JAYAPURA</td></tr>'
-        + '<tr><td colspan="10">ULP : ' + _xlsEsc(ulpLabel) + '</td></tr></table>\r\n<br>\r\n'
-        + '<table>\r\n<tr>\r\n<td colspan="7"><center><h2> DAFTAR PEMELIHARAAN GARDU PERIODE : ' + periodeStr + '</h2></center></td>\r\n</tr>\r\n</table>\r\n'
-        + '<table border="1pt">\r\n<thead>\r\n<tr>\r\n'
-        + '\t<th>NO</th>\r\n\t<th>UNIT</th>\r\n\t<th>TANGGAL</th>\r\n\t<th>NOGARDU</th>\r\n\t<th>PETUGAS</th>\r\n\t<th>KATEGORI</th>\r\n\t<th>JENIS</th>\r\n'
-        + '</tr>\r\n</thead>\r\n<tbody>\r\n\t'
-        + rows
-        + '\r\n</tbody>\r\n</table>\r\n</body>\r\n</html>';
+      // ── Baris header tabel (baris 8) ──
+      var colHeaders = ['NO','ULP','TANGGAL','NO GARDU','PETUGAS','UNIT','JENIS PEKERJAAN'];
 
-      var blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url; a.download = filename; a.click();
-      URL.revokeObjectURL(url);
+      // ── Data rows ──
+      var dataRows = data.map(function(d, i) {
+        return [
+          i + 1,
+          d.ulp        || 'UP3 JAYAPURA',
+          d.tanggal    || '',
+          d.no_gardu   || '',
+          d.petugas    || '',
+          d.kategori   || '',
+          d.jenis      || ''
+        ];
+      });
+
+      var allRows = metaRows.concat([colHeaders]).concat(dataRows);
+      XLSX.utils.sheet_add_aoa(ws, allRows, { origin: 'A1' });
+
+      var headerRowIdx = metaRows.length; // 0-based index dari baris header kolom
+
+      // Style header kolom (biru PLN)
+      colHeaders.forEach(function(_, ci) {
+        var addr = XLSX.utils.encode_cell({ r: headerRowIdx, c: ci });
+        if (!ws[addr]) ws[addr] = { v: colHeaders[ci], t: 's' };
+        ws[addr].s = {
+          fill: { fgColor: { rgb: '0A2D6B' } },
+          font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 10 },
+          alignment: { horizontal: 'center', wrapText: true },
+          border: {
+            top: { style: 'thin', color: { rgb: '000000' } },
+            bottom: { style: 'thin', color: { rgb: '000000' } },
+            left: { style: 'thin', color: { rgb: '000000' } },
+            right: { style: 'thin', color: { rgb: '000000' } }
+          }
+        };
+      });
+
+      // Style judul
+      [0,1,2,4,5].forEach(function(ri) {
+        var addr = XLSX.utils.encode_cell({ r: ri, c: 0 });
+        if (!ws[addr]) return;
+        ws[addr].s = { font: { bold: ri === 4, sz: ri === 4 ? 13 : 10 } };
+      });
+
+      // Style data rows — border tipis, alternating
+      dataRows.forEach(function(_, ri) {
+        var rowIdx = headerRowIdx + 1 + ri;
+        colHeaders.forEach(function(_, ci) {
+          var addr = XLSX.utils.encode_cell({ r: rowIdx, c: ci });
+          if (!ws[addr]) ws[addr] = { v: '', t: 's' };
+          ws[addr].s = {
+            fill: { fgColor: { rgb: ri % 2 === 0 ? 'FFFFFF' : 'EEF4FF' } },
+            border: {
+              top: { style: 'thin', color: { rgb: 'D0D8E8' } },
+              bottom: { style: 'thin', color: { rgb: 'D0D8E8' } },
+              left: { style: 'thin', color: { rgb: 'D0D8E8' } },
+              right: { style: 'thin', color: { rgb: 'D0D8E8' } }
+            },
+            alignment: { vertical: 'center' }
+          };
+        });
+      });
+
+      // Column widths
+      ws['!cols'] = [
+        {wch:5},{wch:18},{wch:13},{wch:14},{wch:22},{wch:10},{wch:35}
+      ];
+
+      // Freeze header row
+      ws['!freeze'] = { xSplit: 0, ySplit: headerRowIdx + 1, topLeftCell: 'A' + (headerRowIdx + 2), activePane: 'bottomLeft' };
+
+      // Merge judul utama
+      ws['!merges'] = [
+        { s:{r:4,c:0}, e:{r:4,c:6} },
+        { s:{r:5,c:0}, e:{r:5,c:6} }
+      ];
+
+      var lastRow = headerRowIdx + dataRows.length;
+      ws['!ref'] = 'A1:G' + (lastRow + 1);
+
+      XLSX.utils.book_append_sheet(wb, ws, 'PEMELIHARAAN');
+      XLSX.writeFile(wb, 'Pemeliharaan_Gardu_' + dateFile + '.xlsx');
     } catch(e) {
       alert('Gagal export: ' + e.message);
     } finally {
@@ -7798,13 +7879,7 @@ function exportPemeliharaanExcel() {
   }, 100);
 }
 
-function _xlsEsc(v) {
-  if (v === null || v === undefined) return '';
-  return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
 function _fmtTglExport(iso) {
-  // Convert YYYY-MM-DD to DD/MM/YYYY
   var p = String(iso).split('-');
   if (p.length === 3) return p[2]+'/'+p[1]+'/'+p[0];
   return iso;
@@ -7818,6 +7893,8 @@ function _fmtTglExport(iso) {
 
 </script>
 
+<!-- SheetJS — untuk export XLSX client-side -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- Supabase API Layer — harus dimuat SETELAH script utama -->
 <script src="supabase-api.js"></script>
 </body>
