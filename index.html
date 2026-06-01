@@ -7693,7 +7693,7 @@ function bukaFormPemeliharaanDariDetail(noGardu) {
   bukaFormPemeliharaan(noGardu ? noGardu.toUpperCase() : null);
 }
 
-// ══ EXPORT PENGUKURAN GARDU → XLSX (format RIWAYAT INSPEKSI) ═══
+// ══ EXPORT PENGUKURAN GARDU → XLSX (ExcelJS, format seragam) ═══════
 
 function exportPengukuranExcel() {
   var data = _ukurFilteredData || _ukurAllData || [];
@@ -7704,48 +7704,224 @@ function exportPengukuranExcel() {
 
   setTimeout(function() {
     try {
-      if (typeof XLSX === 'undefined') { alert('Library XLSX belum tersedia. Coba refresh halaman.'); return; }
+      if (typeof ExcelJS === 'undefined') { alert('ExcelJS belum tersedia. Coba refresh halaman.'); return; }
 
-      var now = new Date();
-      var dateStr = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
-      var dateDisp = String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear();
+      var now       = new Date();
+      var tglCetak  = now.toLocaleDateString('id-ID', {day:'2-digit', month:'long', year:'numeric'});
+      var dateFile  = now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0');
 
-      // ── Meta info header ──
       var tglAwal  = (document.getElementById('ukur-filter-tgl-awal')||{}).value  || '';
       var tglAkhir = (document.getElementById('ukur-filter-tgl-akhir')||{}).value || '';
       var periodeStr = (tglAwal || tglAkhir)
-        ? ((tglAwal ? _fmtTglExport(tglAwal) : '—') + ' s/d ' + (tglAkhir ? _fmtTglExport(tglAkhir) : dateDisp))
+        ? ((tglAwal ? _fmtTglExport(tglAwal) : '—') + ' s/d ' + (tglAkhir ? _fmtTglExport(tglAkhir) : tglCetak))
         : 'Semua Periode';
       var ulpFilter = ((document.getElementById('ukur-filter-ulp')||{}).value||'').toUpperCase();
-      var ulpLabel  = ulpFilter || 'SEMUA ULP';
+      var ulpLabel  = ulpFilter || 'Semua ULP';
 
-      // ── Meta rows ──
-      // Buat array helper agar lebar cell meta = totalCols (diisi setelah colHeaders diketahui)
-      // Kita defer pengisian empty cols ke setelah totalCols tersedia.
-      var _mkRow = function(val, n){ var a=[val]; for(var i=1;i<n;i++) a.push(''); return a; };
-      var metaRows = null; // diisi setelah totalCols
+      // ── Colour palette (sama dengan Format A) ──
+      var C = {
+        plnBlue:  'FF003B7B',
+        plnGold:  'FFF5A300',
+        white:    'FFFFFFFF',
+        grayTxt:  'FF757575',
+        headerBg: 'FF003B7B',
+        altRow:   'FFF5F9FF',
+        redBg:    'FFFDECEA',
+        red:      'FFC62828',
+        orange:   'FFE65100',
+        green:    'FF2E7D32',
+        greenBg:  'FFE8F5E9',
+        orangeBg: 'FFFFF3E0',
+        border:   'FFBDBDBD',
+        darkBorder:'FF003B7B',
+        subHdrBg: 'FFE3F2FD',
+        plnBlue2: 'FF1565C0'
+      };
 
-      var colHeaders = [
-        'NO','NO GARDU','ULP','PENYULANG','ALAMAT','DAYA (kVA)','FASA',
-        'DAYA PAKAI','PROSEN (%)','TDK SEIMBANG (%)','JAM UKUR','TGL UKUR','PETUGAS',
-        'IR TOTAL (A)','IS TOTAL (A)','IT TOTAL (A)','IN TOTAL (A)',
-        'VR-N (V)','VS-N (V)','VT-N (V)',
-        'VR-S (V)','VS-T (V)','VR-T (V)',
-        'THD-R (%)','THD-S (%)','THD-T (%)',
-        'IPEAK-R','IPEAK-S','IPEAK-T',
-        'TPF-R','TPF-S','TPF-T',
-        'JURUSAN 1',
-        'JUR1 IR','JUR1 IS','JUR1 IT','JUR1 IN',
-        'JUR1 VR-N','JUR1 VS-N','JUR1 VT-N',
-        'JUR1 THD-R','JUR1 THD-S','JUR1 THD-T',
-        'JUR1 IPEAK-R','JUR1 IPEAK-S','JUR1 IPEAK-T',
-        'JUR1 TPF-R','JUR1 TPF-S','JUR1 TPF-T',
-        'JUR1 TITIK UKUR','JURUSAN 2'
+      // ── Summary stats ──
+      var total      = data.length;
+      var bebanLebih = data.filter(function(r){ return parseFloat(r['PROSEN']||r['prosen'])>80; }).length;
+      var tidakSeimbang = data.filter(function(r){ return parseFloat(r['TDKSEIMBANG']||r['TDK SEIMBANG'])>20; }).length;
+
+      var ulpMap = {};
+      data.forEach(function(r){
+        var u = r['ULP']||'Tidak Diketahui';
+        if(!ulpMap[u]) ulpMap[u]={total:0,bebanLebih:0};
+        ulpMap[u].total++;
+        if(parseFloat(r['PROSEN']||r['prosen'])>80) ulpMap[u].bebanLebih++;
+      });
+      var ulpKeys = Object.keys(ulpMap).sort();
+
+      var wb = new ExcelJS.Workbook();
+      wb.creator = 'PLN UP3 Jayapura';
+      wb.created = now;
+
+      // ─────────────────────────────────────────────────────────
+      //  SHEET 1 — RINGKASAN
+      // ─────────────────────────────────────────────────────────
+      var ws1 = wb.addWorksheet('Ringkasan', {
+        pageSetup: { paperSize:9, orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0 },
+        properties: { tabColor: { argb: C.plnBlue } }
+      });
+      ws1.columns = [{width:6},{width:30},{width:16},{width:16},{width:16},{width:16},{width:16},{width:14}];
+
+      // Kop surat
+      ws1.mergeCells('A1:H1');
+      var k1 = ws1.getCell('A1');
+      k1.value = 'PT. PLN (PERSERO)  ·  UNIT PELAKSANA PELAYANAN PELANGGAN (UP3) JAYAPURA';
+      k1.style = { font:{bold:true,size:14,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnBlue}}, alignment:{horizontal:'center',vertical:'middle'} };
+      ws1.getRow(1).height = 28;
+
+      ws1.mergeCells('A2:H2');
+      var k2 = ws1.getCell('A2');
+      k2.value = 'LAPORAN RIWAYAT PENGUKURAN GARDU DISTRIBUSI';
+      k2.style = { font:{bold:true,size:12,color:{argb:C.plnBlue},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnGold}}, alignment:{horizontal:'center',vertical:'middle'} };
+      ws1.getRow(2).height = 22;
+
+      // Info periode
+      ws1.getRow(3).height = 5;
+      ws1.getRow(4).height = 18;
+      ws1.mergeCells('A4:C4'); var i4a = ws1.getCell('A4');
+      i4a.value = 'Periode: ' + periodeStr;
+      i4a.style = { font:{bold:true,size:10,name:'Calibri'}, alignment:{vertical:'middle'} };
+      ws1.mergeCells('D4:E4'); var i4b = ws1.getCell('D4');
+      i4b.value = 'ULP: ' + ulpLabel;
+      i4b.style = { font:{bold:true,size:10,name:'Calibri'}, alignment:{vertical:'middle'} };
+      ws1.mergeCells('F4:H4'); var i4c = ws1.getCell('F4');
+      i4c.value = 'Tanggal Cetak: ' + tglCetak;
+      i4c.style = { font:{size:10,name:'Calibri',color:{argb:C.grayTxt}}, alignment:{vertical:'middle',horizontal:'right'} };
+
+      ws1.getRow(5).height = 8;
+
+      // Statistik ringkasan
+      ws1.mergeCells('A6:H6');
+      var sHdr = ws1.getCell('A6');
+      sHdr.value = 'STATISTIK RINGKASAN';
+      sHdr.style = { font:{bold:true,size:11,color:{argb:C.plnBlue},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.subHdrBg}}, alignment:{horizontal:'left',vertical:'middle'}, border:{left:{style:'thick',color:{argb:C.plnGold}}} };
+      ws1.getRow(6).height = 20;
+
+      var statHdrs = ['Total Data','Beban Lebih (>80%)','TDK Seimbang (>20%)','','',''];
+      var r7 = ws1.getRow(7); r7.height = 32;
+      [2,3,4].forEach(function(c,i){
+        var cell = r7.getCell(c);
+        cell.value = statHdrs[i];
+        cell.style = { font:{bold:true,size:9,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnBlue}}, alignment:{horizontal:'center',vertical:'middle',wrapText:true}, border:{top:{style:'medium',color:{argb:C.plnBlue}},bottom:{style:'medium',color:{argb:C.plnBlue}},left:{style:'thin',color:{argb:C.white}},right:{style:'thin',color:{argb:C.white}}} };
+      });
+      var statVals = [total, bebanLebih, tidakSeimbang];
+      var statBgs  = ['FFE3F2FD', C.redBg, C.orangeBg];
+      var statTxts = [C.plnBlue, C.red, C.orange];
+      var r8 = ws1.getRow(8); r8.height = 36;
+      [2,3,4].forEach(function(c,i){
+        var cell = r8.getCell(c);
+        cell.value = statVals[i];
+        cell.style = { font:{bold:true,size:16,color:{argb:statTxts[i]},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:statBgs[i]}}, alignment:{horizontal:'center',vertical:'middle'}, border:{top:{style:'thin',color:{argb:C.border}},bottom:{style:'medium',color:{argb:C.darkBorder}},left:{style:'thin',color:{argb:C.border}},right:{style:'thin',color:{argb:C.border}}} };
+      });
+
+      ws1.getRow(9).height = 10;
+
+      // Progress per ULP
+      ws1.mergeCells('A10:H10');
+      var ulpHdr = ws1.getCell('A10');
+      ulpHdr.value = 'REKAP PER ULP';
+      ulpHdr.style = { font:{bold:true,size:11,color:{argb:C.plnBlue},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.subHdrBg}}, alignment:{horizontal:'left',vertical:'middle'}, border:{left:{style:'thick',color:{argb:C.plnGold}}} };
+      ws1.getRow(10).height = 20;
+
+      var ulpColHdrs = ['No.','Nama ULP','Total Data','Beban Lebih (>80%)','% Beban Lebih'];
+      var r11 = ws1.getRow(11); r11.height = 20;
+      ulpColHdrs.forEach(function(h,i){
+        var cell = r11.getCell(i+1);
+        cell.value = h;
+        cell.style = { font:{bold:true,size:9,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnBlue}}, alignment:{horizontal:'center',vertical:'middle'}, border:{top:{style:'medium',color:{argb:C.darkBorder}},bottom:{style:'medium',color:{argb:C.darkBorder}},left:{style:'thin',color:{argb:C.white}},right:{style:'thin',color:{argb:C.white}}} };
+      });
+      ulpKeys.forEach(function(u,idx){
+        var d = ulpMap[u];
+        var pct = d.total>0 ? (d.bebanLebih/d.total*100).toFixed(1)+'%' : '0%';
+        var rowNum = 12+idx;
+        var rRow = ws1.getRow(rowNum); rRow.height = 18;
+        var isAlt = idx%2===1;
+        var vals = [idx+1, u, d.total, d.bebanLebih, pct];
+        vals.forEach(function(v,ci){
+          var cell = rRow.getCell(ci+1);
+          cell.value = v;
+          cell.style = { font:{size:9,name:'Calibri',bold:ci===1}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:isAlt?C.altRow:C.white}}, alignment:{horizontal:ci<=1?'left':'center',vertical:'middle'}, border:{top:{style:'thin',color:{argb:C.border}},bottom:{style:'thin',color:{argb:C.border}},left:{style:'thin',color:{argb:C.border}},right:{style:'thin',color:{argb:C.border}}} };
+          if(ci===4){ var pn=parseFloat(pct); cell.style.font.color={argb:pn>=50?C.red:pn>=20?C.orange:C.green}; cell.style.font.bold=true; }
+        });
+      });
+
+      // TTD
+      var ttdRow = 12+ulpKeys.length+2;
+      ws1.getRow(ttdRow).height = 12;
+      ws1.mergeCells(ttdRow+1,2,ttdRow+1,4); ws1.getCell(ttdRow+1,2).value='Dibuat Oleh,'; ws1.getCell(ttdRow+1,2).style={font:{bold:true,size:9,name:'Calibri'},alignment:{horizontal:'center'}};
+      ws1.mergeCells(ttdRow+1,5,ttdRow+1,8); ws1.getCell(ttdRow+1,5).value='Mengetahui / Menyetujui,'; ws1.getCell(ttdRow+1,5).style={font:{bold:true,size:9,name:'Calibri'},alignment:{horizontal:'center'}};
+      for(var ti=0;ti<4;ti++) ws1.getRow(ttdRow+2+ti).height=15;
+      ws1.mergeCells(ttdRow+5,2,ttdRow+5,4); ws1.getCell(ttdRow+5,2).value='(...................................)'; ws1.getCell(ttdRow+5,2).style={font:{size:9,name:'Calibri'},alignment:{horizontal:'center'}};
+      ws1.mergeCells(ttdRow+5,5,ttdRow+5,8); ws1.getCell(ttdRow+5,5).value='(...................................)'; ws1.getCell(ttdRow+5,5).style={font:{size:9,name:'Calibri'},alignment:{horizontal:'center'}};
+      ws1.mergeCells(ttdRow+6,2,ttdRow+6,4); ws1.getCell(ttdRow+6,2).value='Nama / NIP / Jabatan'; ws1.getCell(ttdRow+6,2).style={font:{bold:true,size:9,name:'Calibri'},alignment:{horizontal:'center'}};
+      ws1.mergeCells(ttdRow+6,5,ttdRow+6,8); ws1.getCell(ttdRow+6,5).value='Nama / NIP / Jabatan'; ws1.getCell(ttdRow+6,5).style={font:{bold:true,size:9,name:'Calibri'},alignment:{horizontal:'center'}};
+
+      // ─────────────────────────────────────────────────────────
+      //  SHEET 2 — DATA LENGKAP PENGUKURAN
+      // ─────────────────────────────────────────────────────────
+      var ws2 = wb.addWorksheet('Data Lengkap', {
+        pageSetup: { paperSize:9, orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0 },
+        properties: { tabColor: { argb:'FF1565C0' } },
+        views: [{ state:'frozen', ySplit:4 }]
+      });
+      ws2.columns = [
+        {width:5},{width:14},{width:18},{width:16},{width:30},
+        {width:10},{width:6},{width:10},{width:9},{width:11},{width:9},{width:13},{width:22},
+        {width:10},{width:10},{width:10},{width:10},
+        {width:10},{width:10},{width:10},
+        {width:9},{width:9},{width:9},
+        {width:8},{width:8},{width:8},
+        {width:8},{width:8},{width:8},
+        {width:7},{width:7},{width:7}
       ];
 
-      var dataRows = data.map(function(r, i) {
-        return [
-          i + 1,
+      ws2.mergeCells('A1:AF1');
+      ws2.getCell('A1').value = 'PT. PLN (PERSERO) UP3 JAYAPURA — DATA LENGKAP PENGUKURAN GARDU DISTRIBUSI';
+      ws2.getCell('A1').style = { font:{bold:true,size:13,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnBlue}}, alignment:{horizontal:'center',vertical:'middle'} };
+      ws2.getRow(1).height = 26;
+
+      ws2.mergeCells('A2:AF2');
+      ws2.getCell('A2').value = 'Periode: '+periodeStr+' | ULP: '+ulpLabel+' | Dicetak: '+tglCetak;
+      ws2.getCell('A2').style = { font:{size:9,color:{argb:C.grayTxt},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnGold}}, alignment:{horizontal:'center',vertical:'middle'} };
+      ws2.getRow(2).height = 16;
+
+      ws2.getRow(3).height = 6;
+
+      var colHdrs = [
+        'NO','NO GARDU','ULP','PENYULANG','ALAMAT',
+        'DAYA\n(kVA)','FASA','DAYA\nPAKAI','BEBAN\n(%)','TDK\nSEIMBANG\n(%)','JAM\nUKUR','TGL\nUKUR','PETUGAS',
+        'IR\nTOTAL','IS\nTOTAL','IT\nTOTAL','IN\nTOTAL',
+        'VR-N\n(V)','VS-N\n(V)','VT-N\n(V)',
+        'VR-S\n(V)','VS-T\n(V)','VR-T\n(V)',
+        'THD-R\n(%)','THD-S\n(%)','THD-T\n(%)',
+        'IPEAK\n-R','IPEAK\n-S','IPEAK\n-T',
+        'TPF-R','TPF-S','TPF-T'
+      ];
+      var rHdr = ws2.getRow(4); rHdr.height = 44;
+      colHdrs.forEach(function(h,i){
+        var cell = rHdr.getCell(i+1);
+        cell.value = h;
+        cell.style = {
+          font:      { bold:true, size:9, color:{argb:C.white}, name:'Calibri' },
+          fill:      { type:'pattern', pattern:'solid', fgColor:{argb:C.headerBg} },
+          alignment: { horizontal:'center', vertical:'middle', wrapText:true },
+          border:    { top:{style:'medium',color:{argb:C.darkBorder}}, bottom:{style:'medium',color:{argb:C.darkBorder}}, left:{style:'thin',color:{argb:C.white}}, right:{style:'thin',color:{argb:C.white}} }
+        };
+      });
+
+      data.forEach(function(r, idx){
+        var rNum = 5+idx;
+        var rRow = ws2.getRow(rNum); rRow.height = 16;
+        var isAlt   = idx%2===1;
+        var prosen  = parseFloat(r['PROSEN']||r['prosen']||0);
+        var isBeban = prosen>80;
+        var baseBg  = isBeban ? C.redBg : isAlt ? C.altRow : C.white;
+
+        var vals = [
+          idx+1,
           r['NO_GARDU']||r['NOGARDU']||'',
           r['ULP']||'',
           r['PENYULANG']||'',
@@ -7758,157 +7934,105 @@ function exportPengukuranExcel() {
           r['JAM UKUR']||'',
           r['TGLUKUR']||'',
           r['PETUGAS']||'',
-          r['R TOTAL']||'',r['S TOTAL']||'',r['T TOTAL']||'',r['N TOTAL']||'',
-          r['R - N']||'',r['S - N']||'',r['T - N']||'',
-          r['R - S']||'',r['S - T']||'',r['R - T']||'',
-          r['THD-R']||'',r['THD-S']||'',r['THD-T']||'',
-          r['IPEAK-R']||r['IPEAK_R']||'',r['IPEAK-S']||r['IPEAK_S']||'',r['IPEAK-T']||r['IPEAK_T']||'',
-          r['TPF-R']||'',r['TPF-S']||'',r['TPF-T']||'',
-          r['JURUSAN 1']||'',
-          r['JUR1_R TOTAL']||'',r['JUR1_S TOTAL']||'',r['JUR1_T TOTAL']||'',r['JUR1_N TOTAL']||'',
-          r['JUR1_R - N']||'',r['JUR1_S - N']||'',r['JUR1_T - N']||'',
-          r['JUR1_THD-R']||'',r['JUR1_THD-S']||'',r['JUR1_THD-T']||'',
-          r['JUR1_IPEAK-R']||'',r['JUR1_IPEAK-S']||'',r['JUR1_IPEAK-T']||'',
-          r['JUR1_TPF-R']||'',r['JUR1_TPF-S']||'',r['JUR1_TPF-T']||'',
-          '',r['JURUSAN 2']||''
+          r['R TOTAL']||'', r['S TOTAL']||'', r['T TOTAL']||'', r['N TOTAL']||'',
+          r['R - N']||'', r['S - N']||'', r['T - N']||'',
+          r['R - S']||'', r['S - T']||'', r['R - T']||'',
+          r['THD-R']||'', r['THD-S']||'', r['THD-T']||'',
+          r['IPEAK-R']||r['IPEAK_R']||'', r['IPEAK-S']||r['IPEAK_S']||'', r['IPEAK-T']||r['IPEAK_T']||'',
+          r['TPF-R']||'', r['TPF-S']||'', r['TPF-T']||''
         ];
-      });
 
-      var totalCols = colHeaders.length;
-      var lastColLetter = XLSX.utils.encode_col(totalCols - 1);
-
-      // ── Build metaRows setelah totalCols diketahui ──
-      metaRows = [
-        _mkRow('PT PLN (PERSERO) UIW P2B — UP3 JAYAPURA', totalCols),
-        _mkRow('ULP       : ' + ulpLabel, totalCols),
-        _mkRow('PERIODE   : ' + periodeStr, totalCols),
-        _mkRow('Dicetak   : ' + dateDisp + ' oleh Sistem Manajemen Gardu', totalCols),
-        _mkRow('', totalCols),
-        _mkRow('LAPORAN RIWAYAT PENGUKURAN GARDU', totalCols),
-        _mkRow('', totalCols)
-      ];
-
-      var headerRowIdx = metaRows.length; // 0-based = 7
-      var allRows = metaRows.concat([colHeaders]).concat(dataRows);
-      var wb = XLSX.utils.book_new();
-      var ws = XLSX.utils.aoa_to_sheet(allRows);
-
-      // ── Style: Judul institusi (baris 0) ──
-      var titleAddr = XLSX.utils.encode_cell({r:0,c:0});
-      if (ws[titleAddr]) ws[titleAddr].s = {
-        font:{bold:true,sz:13,color:{rgb:'0A2D6B'}},
-        alignment:{horizontal:'left',vertical:'center'}
-      };
-
-      // ── Style: Meta rows 1–3 ──
-      [1,2,3].forEach(function(ri){
-        var a = XLSX.utils.encode_cell({r:ri,c:0});
-        if (ws[a]) ws[a].s = {font:{sz:10,color:{rgb:'3D5580'}},alignment:{horizontal:'left',vertical:'center'}};
-      });
-
-      // ── Style: Judul laporan (baris 5) ──
-      var laporanAddr = XLSX.utils.encode_cell({r:5,c:0});
-      if (ws[laporanAddr]) ws[laporanAddr].s = {
-        font:{bold:true,sz:14,color:{rgb:'0A2D6B'}},
-        alignment:{horizontal:'center',vertical:'center'}
-      };
-
-      // ── Row heights meta ──
-      var rowHMeta = [
-        {hpt:20},{hpt:16},{hpt:16},{hpt:16},{hpt:6},{hpt:22},{hpt:6}
-      ];
-
-      // ── Style: Header kolom ──
-      for (var ci = 0; ci < totalCols; ci++) {
-        var cellAddr = XLSX.utils.encode_cell({r:headerRowIdx, c:ci});
-        if (!ws[cellAddr]) ws[cellAddr] = {v:colHeaders[ci],t:'s'};
-        ws[cellAddr].s = {
-          fill:{fgColor:{rgb:'0A2D6B'}},
-          font:{bold:true,color:{rgb:'FFFFFF'},sz:9},
-          alignment:{horizontal:'center',vertical:'center',wrapText:true},
-          border:{
-            top:{style:'medium',color:{rgb:'000000'}},
-            bottom:{style:'medium',color:{rgb:'000000'}},
-            left:{style:'thin',color:{rgb:'1048A8'}},
-            right:{style:'thin',color:{rgb:'1048A8'}}
-          }
-        };
-      }
-
-      // ── Style: Data rows dengan warna alternating ──
-      var EVEN_BG = 'FFFFFF', ODD_BG = 'EEF4FF';
-      dataRows.forEach(function(row, ri) {
-        var rowIdx = headerRowIdx + 1 + ri;
-        var bg = ri % 2 === 0 ? EVEN_BG : ODD_BG;
-        for (var ci = 0; ci < totalCols; ci++) {
-          var addr = XLSX.utils.encode_cell({r:rowIdx, c:ci});
-          if (!ws[addr]) ws[addr] = {v:'',t:'s'};
-          var isNum = ci === 0 || (ci >= 7 && ci <= 9) || (ci >= 13 && ci <= 31);
-          ws[addr].s = {
-            fill:{fgColor:{rgb:bg}},
-            font:{sz:9,color:{rgb: ci===0 ? '3D5580' : '0F1E38'}},
-            alignment:{
-              horizontal: ci===0 ? 'center' : (isNum ? 'right' : 'left'),
-              vertical:'center'
-            },
-            border:{
-              top:{style:'thin',color:{rgb:'D0D8E8'}},
-              bottom:{style:'thin',color:{rgb:'D0D8E8'}},
-              left:{style:'thin',color:{rgb:'D0D8E8'}},
-              right:{style:'thin',color:{rgb:'D0D8E8'}}
-            }
+        vals.forEach(function(v,ci){
+          var cell = rRow.getCell(ci+1);
+          cell.value = v;
+          var isNumCol = (ci===0)||(ci>=7&&ci<=9)||(ci>=13);
+          var align = ci===0?'center': ci===1?'left': isNumCol?'right':'left';
+          cell.style = {
+            font:      { size:9, name:'Calibri', bold:ci===1 },
+            fill:      { type:'pattern', pattern:'solid', fgColor:{argb:baseBg} },
+            alignment: { horizontal:align, vertical:'middle' },
+            border:    { top:{style:'thin',color:{argb:C.border}}, bottom:{style:'thin',color:{argb:C.border}}, left:{style:'thin',color:{argb:C.border}}, right:{style:'thin',color:{argb:C.border}} }
           };
-        }
+          // Warnai kolom BEBAN (%)
+          if(ci===8 && v!==''){
+            var pb = parseFloat(v);
+            if(!isNaN(pb)) cell.style.font.color = { argb: pb>80?C.red : pb>60?C.orange : C.green };
+            if(pb>80) cell.style.font.bold = true;
+          }
+          // Warnai TDK SEIMBANG
+          if(ci===9 && v!==''){
+            var ps = parseFloat(v);
+            if(!isNaN(ps) && ps>20) { cell.style.font.color={argb:C.orange}; cell.style.font.bold=true; }
+          }
+        });
       });
 
-      // ── Row heights ──
-      var rowHeights = rowHMeta.slice(); // meta rows
-      rowHeights[headerRowIdx] = {hpt: 36};
-      ws['!rows'] = rowHeights;
+      // Baris total
+      var totRow2 = ws2.getRow(5+data.length); totRow2.height=16;
+      var totCell2 = totRow2.getCell(1);
+      totCell2.value = 'TOTAL: '+data.length+' data';
+      ws2.mergeCells(5+data.length,1,5+data.length,colHdrs.length);
+      totCell2.style = { font:{bold:true,size:10,color:{argb:C.plnBlue},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.subHdrBg}}, alignment:{horizontal:'left',vertical:'middle'} };
 
-      // ── Column widths ──
-      ws['!cols'] = [
-        {wch:5},{wch:13},{wch:18},{wch:16},{wch:28},{wch:10},{wch:6},
-        {wch:10},{wch:9},{wch:11},{wch:9},{wch:11},{wch:20},
-        {wch:9},{wch:9},{wch:9},{wch:9},
-        {wch:9},{wch:9},{wch:9},
-        {wch:9},{wch:9},{wch:9},
-        {wch:8},{wch:8},{wch:8},
-        {wch:8},{wch:8},{wch:8},
-        {wch:7},{wch:7},{wch:7},
-        {wch:14},
-        {wch:8},{wch:8},{wch:8},{wch:8},
-        {wch:8},{wch:8},{wch:8},
-        {wch:8},{wch:8},{wch:8},
-        {wch:8},{wch:8},{wch:8},
-        {wch:7},{wch:7},{wch:7},
-        {wch:12},{wch:14}
-      ];
+      // ─────────────────────────────────────────────────────────
+      //  SHEET 3 — GARDU BEBAN LEBIH
+      // ─────────────────────────────────────────────────────────
+      var bebanData = data.filter(function(r){ return parseFloat(r['PROSEN']||r['prosen'])>80; });
+      var ws3 = wb.addWorksheet('Beban Lebih', {
+        pageSetup: { paperSize:9, orientation:'landscape', fitToPage:true, fitToWidth:1 },
+        properties: { tabColor: { argb:'FFCC0000' } },
+        views: [{ state:'frozen', ySplit:5 }]
+      });
+      ws3.columns = [{width:5},{width:14},{width:18},{width:16},{width:30},{width:10},{width:10},{width:9},{width:11},{width:13},{width:22}];
 
-      // ── Freeze pane ──
-      ws['!freeze'] = {xSplit:2, ySplit:headerRowIdx+1, topLeftCell:'C'+(headerRowIdx+2), activePane:'bottomRight'};
+      ws3.mergeCells('A1:K1');
+      ws3.getCell('A1').value = '⚠️  PT. PLN (PERSERO) UP3 JAYAPURA — DAFTAR GARDU BEBAN LEBIH (>80%)';
+      ws3.getCell('A1').style = { font:{bold:true,size:13,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FFCC0000'}}, alignment:{horizontal:'center',vertical:'middle'} };
+      ws3.getRow(1).height = 26;
 
-      // ── Merge judul ──
-      ws['!merges'] = [
-        {s:{r:0,c:0},e:{r:0,c:totalCols-1}},
-        {s:{r:5,c:0},e:{r:5,c:totalCols-1}}
-      ];
+      ws3.mergeCells('A2:K2');
+      ws3.getCell('A2').value = 'Periode: '+periodeStr+' | ULP: '+ulpLabel+' | Dicetak: '+tglCetak;
+      ws3.getCell('A2').style = { font:{size:9,color:{argb:C.grayTxt},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnGold}}, alignment:{horizontal:'center',vertical:'middle'} };
+      ws3.getRow(2).height = 16;
 
-      // ── Baris total ──
-      var lastDataRow = headerRowIdx + dataRows.length;
-      var totalRowIdx2 = lastDataRow + 1;
-      XLSX.utils.sheet_add_aoa(ws, [['TOTAL: ' + dataRows.length + ' data']], {origin: XLSX.utils.encode_cell({r:totalRowIdx2,c:0})});
-      var totAddr2 = XLSX.utils.encode_cell({r:totalRowIdx2,c:0});
-      if (ws[totAddr2]) ws[totAddr2].s = {
-        font:{bold:true,sz:10,color:{rgb:'0A2D6B'}},
-        fill:{fgColor:{rgb:'EEF4FF'}},
-        alignment:{horizontal:'left'}
-      };
+      ws3.mergeCells('A3:K3');
+      ws3.getCell('A3').value = 'Gardu berikut memerlukan tindak lanjut: Beban arus melebihi 80% dari kapasitas';
+      ws3.getCell('A3').style = { font:{bold:true,size:9,color:{argb:'FFB71C1C'},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.redBg}}, alignment:{horizontal:'center',vertical:'middle'} };
+      ws3.getRow(3).height = 18;
 
-      ws['!ref'] = 'A1:' + lastColLetter + (totalRowIdx2 + 1);
+      ws3.getRow(4).height = 6;
 
-      XLSX.utils.book_append_sheet(wb, ws, 'RIWAYAT PENGUKURAN');
-      XLSX.writeFile(wb, 'Pengukuran_Gardu_' + dateStr + '.xlsx');
+      var bHdrs = ['NO','NO GARDU','ULP','PENYULANG','ALAMAT','DAYA\n(kVA)','DAYA\nPAKAI','BEBAN\n(%)','TDK\nSEIMBANG\n(%)','TGL\nUKUR','PETUGAS'];
+      var rBHdr = ws3.getRow(5); rBHdr.height = 44;
+      bHdrs.forEach(function(h,i){
+        var cell = rBHdr.getCell(i+1);
+        cell.value = h;
+        cell.style = { font:{bold:true,size:9,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FFCC0000'}}, alignment:{horizontal:'center',vertical:'middle',wrapText:true}, border:{top:{style:'medium',color:{argb:'FFCC0000'}},bottom:{style:'medium',color:{argb:'FFCC0000'}},left:{style:'thin',color:{argb:C.white}},right:{style:'thin',color:{argb:C.white}}} };
+      });
+
+      bebanData.sort(function(a,b){ return parseFloat(b['PROSEN']||0)-parseFloat(a['PROSEN']||0); }).forEach(function(r,idx){
+        var rNum = 6+idx;
+        var rRow = ws3.getRow(rNum); rRow.height=16;
+        var bg = idx%2===1 ? 'FFFFF5F5' : C.white;
+        var vals = [idx+1, r['NO_GARDU']||r['NOGARDU']||'', r['ULP']||'', r['PENYULANG']||'', r['ALAMAT']||'', r['DAYA']||'', r['DAYA PAKAI']||'', r['PROSEN']||'', r['TDKSEIMBANG']||r['TDK SEIMBANG']||'', r['TGLUKUR']||'', r['PETUGAS']||''];
+        vals.forEach(function(v,ci){
+          var cell = rRow.getCell(ci+1);
+          cell.value = v;
+          cell.style = { font:{size:9,name:'Calibri',bold:ci===1||(ci===7)}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:bg}}, alignment:{horizontal:ci<=1?'left':(ci>=5?'right':'left'),vertical:'middle'}, border:{top:{style:'thin',color:{argb:C.border}},bottom:{style:'thin',color:{argb:C.border}},left:{style:'thin',color:{argb:C.border}},right:{style:'thin',color:{argb:C.border}}} };
+          if(ci===7){ var pb=parseFloat(v); if(!isNaN(pb)) cell.style.font.color={argb:pb>80?C.red:C.orange}; }
+        });
+      });
+
+      // ── Simpan file ──
+      wb.xlsx.writeBuffer().then(function(buf) {
+        var blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        a.href   = url; a.download = 'Pengukuran_Gardu_'+dateFile+'.xlsx';
+        document.body.appendChild(a); a.click();
+        setTimeout(function(){ URL.revokeObjectURL(url); document.body.removeChild(a); }, 300);
+      }).catch(function(e){ alert('Gagal membuat file: '+e.message); });
+
     } catch(e) {
       alert('Gagal export: ' + e.message);
     } finally {
@@ -7917,7 +8041,7 @@ function exportPengukuranExcel() {
   }, 100);
 }
 
-// ══ EXPORT PEMELIHARAAN GARDU → XLSX ═══════════════════════════
+// ══ EXPORT PEMELIHARAAN GARDU → XLSX (ExcelJS, format seragam) ═══════
 
 function exportPemeliharaanExcel() {
   var data = _pmFilteredData || _pmAllData || [];
@@ -7928,153 +8052,238 @@ function exportPemeliharaanExcel() {
 
   setTimeout(function() {
     try {
-      if (typeof XLSX === 'undefined') { alert('Library XLSX belum tersedia. Coba refresh halaman.'); return; }
+      if (typeof ExcelJS === 'undefined') { alert('ExcelJS belum tersedia. Coba refresh halaman.'); return; }
 
-      var now = new Date();
+      var now       = new Date();
+      var tglCetak  = now.toLocaleDateString('id-ID', {day:'2-digit', month:'long', year:'numeric'});
+      var dateFile  = now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0');
+
       var tglAwal  = (document.getElementById('pm-filter-tgl-awal')||{}).value  || '';
       var tglAkhir = (document.getElementById('pm-filter-tgl-akhir')||{}).value || '';
-      var dateDisp = String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+now.getFullYear();
       var periodeStr = (tglAwal || tglAkhir)
-        ? ((tglAwal  ? _fmtTglExport(tglAwal)  : '01/01/2025') + ' s/d ' +
-           (tglAkhir ? _fmtTglExport(tglAkhir) : dateDisp))
-        : '01/07/2025 s/d ' + dateDisp;
-
+        ? ((tglAwal  ? _fmtTglExport(tglAwal)  : '—') + ' s/d ' + (tglAkhir ? _fmtTglExport(tglAkhir) : tglCetak))
+        : 'Semua Periode';
       var ulpFilter = ((document.getElementById('pm-filter-ulp')||{}).value||'').toUpperCase();
-      var ulpLabel  = ulpFilter || 'SEMUA ULP';
-      var dateFile  = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+      var ulpLabel  = ulpFilter || 'Semua ULP';
 
-      var wb = XLSX.utils.book_new();
-      var ws = {};
+      var C = {
+        plnBlue:   'FF003B7B',
+        plnGold:   'FFF5A300',
+        white:     'FFFFFFFF',
+        grayTxt:   'FF757575',
+        headerBg:  'FF003B7B',
+        altRow:    'FFF5F9FF',
+        redBg:     'FFFDECEA',
+        red:       'FFC62828',
+        orange:    'FFE65100',
+        green:     'FF2E7D32',
+        greenBg:   'FFE8F5E9',
+        orangeBg:  'FFFFF3E0',
+        border:    'FFBDBDBD',
+        darkBorder:'FF003B7B',
+        subHdrBg:  'FFE3F2FD',
+        tealBg:    'FFE0F2F1',
+        teal:      'FF00695C'
+      };
 
-      // ── Header kolom ──
-      var colHeaders = ['NO', 'ULP', 'TANGGAL', 'NO GARDU', 'NAMA PETUGAS', 'UNIT (PLN/NON PLN)', 'JENIS PEKERJAAN'];
-      var totalCols = colHeaders.length;
-      var _mkRowPm = function(val, n){ var a=[val]; for(var i=1;i<n;i++) a.push(''); return a; };
+      var total = data.length;
 
-      // ── Meta header rows (baris 0–6) ──
-      var metaRows = [
-        _mkRowPm('PT PLN (PERSERO) UIW P2B — UP3 JAYAPURA', totalCols),
-        _mkRowPm('ULP       : ' + ulpLabel, totalCols),
-        _mkRowPm('Periode   : ' + periodeStr, totalCols),
-        _mkRowPm('Dicetak   : ' + dateDisp + ' oleh Sistem Manajemen Gardu', totalCols),
-        _mkRowPm('', totalCols),
-        _mkRowPm('LAPORAN PEMELIHARAAN GARDU', totalCols),
-        _mkRowPm('', totalCols)
+      // Hitung per jenis pekerjaan dan per ULP
+      var jenisMap = {};
+      var ulpMap   = {};
+      data.forEach(function(d){
+        var j = d.jenis||d.kategori||'Lain-lain';
+        if(!jenisMap[j]) jenisMap[j]=0;
+        jenisMap[j]++;
+        var u = d.ulp||'UP3 JAYAPURA';
+        if(!ulpMap[u]) ulpMap[u]={total:0};
+        ulpMap[u].total++;
+      });
+      var ulpKeys   = Object.keys(ulpMap).sort();
+      var jenisKeys = Object.keys(jenisMap).sort();
+
+      var wb = new ExcelJS.Workbook();
+      wb.creator = 'PLN UP3 Jayapura';
+      wb.created = now;
+
+      // ─────────────────────────────────────────────────────────
+      //  SHEET 1 — RINGKASAN
+      // ─────────────────────────────────────────────────────────
+      var ws1 = wb.addWorksheet('Ringkasan', {
+        pageSetup: { paperSize:9, orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0 },
+        properties: { tabColor: { argb:C.plnBlue } }
+      });
+      ws1.columns = [{width:6},{width:32},{width:16},{width:18},{width:16},{width:16},{width:16},{width:14}];
+
+      ws1.mergeCells('A1:H1');
+      var k1 = ws1.getCell('A1');
+      k1.value = 'PT. PLN (PERSERO)  ·  UNIT PELAKSANA PELAYANAN PELANGGAN (UP3) JAYAPURA';
+      k1.style = { font:{bold:true,size:14,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnBlue}}, alignment:{horizontal:'center',vertical:'middle'} };
+      ws1.getRow(1).height = 28;
+
+      ws1.mergeCells('A2:H2');
+      var k2 = ws1.getCell('A2');
+      k2.value = 'LAPORAN PEMELIHARAAN GARDU DISTRIBUSI';
+      k2.style = { font:{bold:true,size:12,color:{argb:C.plnBlue},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnGold}}, alignment:{horizontal:'center',vertical:'middle'} };
+      ws1.getRow(2).height = 22;
+
+      ws1.getRow(3).height = 5;
+      ws1.getRow(4).height = 18;
+      ws1.mergeCells('A4:C4'); var i4a=ws1.getCell('A4'); i4a.value='Periode: '+periodeStr; i4a.style={font:{bold:true,size:10,name:'Calibri'},alignment:{vertical:'middle'}};
+      ws1.mergeCells('D4:E4'); var i4b=ws1.getCell('D4'); i4b.value='ULP: '+ulpLabel; i4b.style={font:{bold:true,size:10,name:'Calibri'},alignment:{vertical:'middle'}};
+      ws1.mergeCells('F4:H4'); var i4c=ws1.getCell('F4'); i4c.value='Tanggal Cetak: '+tglCetak; i4c.style={font:{size:10,name:'Calibri',color:{argb:C.grayTxt}},alignment:{vertical:'middle',horizontal:'right'}};
+
+      ws1.getRow(5).height = 8;
+
+      ws1.mergeCells('A6:H6');
+      var sHdr = ws1.getCell('A6');
+      sHdr.value = 'STATISTIK RINGKASAN';
+      sHdr.style = { font:{bold:true,size:11,color:{argb:C.plnBlue},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.subHdrBg}}, alignment:{horizontal:'left',vertical:'middle'}, border:{left:{style:'thick',color:{argb:C.plnGold}}} };
+      ws1.getRow(6).height = 20;
+
+      // Stat header & values
+      var r7=ws1.getRow(7); r7.height=32;
+      ['',total,''].forEach(function(v,i){
+        var hLabels = ['','Total Kegiatan',''];
+        var cell = r7.getCell(i+2);
+        cell.value = hLabels[i];
+        cell.style = { font:{bold:true,size:9,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnBlue}}, alignment:{horizontal:'center',vertical:'middle',wrapText:true}, border:{top:{style:'medium',color:{argb:C.plnBlue}},bottom:{style:'medium',color:{argb:C.plnBlue}},left:{style:'thin',color:{argb:C.white}},right:{style:'thin',color:{argb:C.white}}} };
+      });
+      var r8=ws1.getRow(8); r8.height=36;
+      var totCell=r8.getCell(3); totCell.value=total;
+      totCell.style={ font:{bold:true,size:20,color:{argb:C.plnBlue},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.subHdrBg}}, alignment:{horizontal:'center',vertical:'middle'}, border:{top:{style:'thin',color:{argb:C.border}},bottom:{style:'medium',color:{argb:C.darkBorder}},left:{style:'thin',color:{argb:C.border}},right:{style:'thin',color:{argb:C.border}}} };
+
+      ws1.getRow(9).height = 10;
+
+      // Rekap per jenis pekerjaan
+      ws1.mergeCells('A10:H10');
+      var jhdr = ws1.getCell('A10');
+      jhdr.value = 'REKAP PER JENIS PEKERJAAN';
+      jhdr.style = { font:{bold:true,size:11,color:{argb:C.plnBlue},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.subHdrBg}}, alignment:{horizontal:'left',vertical:'middle'}, border:{left:{style:'thick',color:{argb:C.plnGold}}} };
+      ws1.getRow(10).height = 20;
+      var jColHdrs=['No.','Jenis Pekerjaan','Jumlah Kegiatan','Persentase'];
+      var rJ=ws1.getRow(11); rJ.height=20;
+      jColHdrs.forEach(function(h,i){
+        var cell=rJ.getCell(i+1); cell.value=h;
+        cell.style={ font:{bold:true,size:9,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnBlue}}, alignment:{horizontal:'center',vertical:'middle'}, border:{top:{style:'medium',color:{argb:C.darkBorder}},bottom:{style:'medium',color:{argb:C.darkBorder}},left:{style:'thin',color:{argb:C.white}},right:{style:'thin',color:{argb:C.white}}} };
+      });
+      jenisKeys.forEach(function(j,idx){
+        var cnt=jenisMap[j];
+        var pct=total>0?(cnt/total*100).toFixed(1)+'%':'0%';
+        var rRow=ws1.getRow(12+idx); rRow.height=18;
+        [idx+1,j,cnt,pct].forEach(function(v,ci){
+          var cell=rRow.getCell(ci+1); cell.value=v;
+          cell.style={ font:{size:9,name:'Calibri',bold:ci===1}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:idx%2===1?C.altRow:C.white}}, alignment:{horizontal:ci<=1?'left':'center',vertical:'middle'}, border:{top:{style:'thin',color:{argb:C.border}},bottom:{style:'thin',color:{argb:C.border}},left:{style:'thin',color:{argb:C.border}},right:{style:'thin',color:{argb:C.border}}} };
+        });
+      });
+
+      var rAfterJenis = 12+jenisKeys.length+1;
+      ws1.getRow(rAfterJenis).height = 10;
+
+      // Rekap per ULP
+      ws1.mergeCells(rAfterJenis+1,1,rAfterJenis+1,8);
+      var uhdr=ws1.getCell(rAfterJenis+1,1);
+      uhdr.value='REKAP PER ULP';
+      uhdr.style={ font:{bold:true,size:11,color:{argb:C.plnBlue},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.subHdrBg}}, alignment:{horizontal:'left',vertical:'middle'}, border:{left:{style:'thick',color:{argb:C.plnGold}}} };
+      ws1.getRow(rAfterJenis+1).height=20;
+      var uColHdrs=['No.','Nama ULP','Total Kegiatan'];
+      var rU=ws1.getRow(rAfterJenis+2); rU.height=20;
+      uColHdrs.forEach(function(h,i){
+        var cell=rU.getCell(i+1); cell.value=h;
+        cell.style={ font:{bold:true,size:9,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnBlue}}, alignment:{horizontal:'center',vertical:'middle'}, border:{top:{style:'medium',color:{argb:C.darkBorder}},bottom:{style:'medium',color:{argb:C.darkBorder}},left:{style:'thin',color:{argb:C.white}},right:{style:'thin',color:{argb:C.white}}} };
+      });
+      ulpKeys.forEach(function(u,idx){
+        var rRow=ws1.getRow(rAfterJenis+3+idx); rRow.height=18;
+        [idx+1,u,ulpMap[u].total].forEach(function(v,ci){
+          var cell=rRow.getCell(ci+1); cell.value=v;
+          cell.style={ font:{size:9,name:'Calibri',bold:ci===1}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:idx%2===1?C.altRow:C.white}}, alignment:{horizontal:ci<=1?'left':'center',vertical:'middle'}, border:{top:{style:'thin',color:{argb:C.border}},bottom:{style:'thin',color:{argb:C.border}},left:{style:'thin',color:{argb:C.border}},right:{style:'thin',color:{argb:C.border}}} };
+        });
+      });
+
+      // TTD
+      var ttdRow = rAfterJenis+3+ulpKeys.length+2;
+      ws1.getRow(ttdRow).height=12;
+      ws1.mergeCells(ttdRow+1,2,ttdRow+1,4); ws1.getCell(ttdRow+1,2).value='Dibuat Oleh,'; ws1.getCell(ttdRow+1,2).style={font:{bold:true,size:9,name:'Calibri'},alignment:{horizontal:'center'}};
+      ws1.mergeCells(ttdRow+1,5,ttdRow+1,8); ws1.getCell(ttdRow+1,5).value='Mengetahui / Menyetujui,'; ws1.getCell(ttdRow+1,5).style={font:{bold:true,size:9,name:'Calibri'},alignment:{horizontal:'center'}};
+      for(var ti2=0;ti2<4;ti2++) ws1.getRow(ttdRow+2+ti2).height=15;
+      ws1.mergeCells(ttdRow+5,2,ttdRow+5,4); ws1.getCell(ttdRow+5,2).value='(...................................)'; ws1.getCell(ttdRow+5,2).style={font:{size:9,name:'Calibri'},alignment:{horizontal:'center'}};
+      ws1.mergeCells(ttdRow+5,5,ttdRow+5,8); ws1.getCell(ttdRow+5,5).value='(...................................)'; ws1.getCell(ttdRow+5,5).style={font:{size:9,name:'Calibri'},alignment:{horizontal:'center'}};
+      ws1.mergeCells(ttdRow+6,2,ttdRow+6,4); ws1.getCell(ttdRow+6,2).value='Nama / NIP / Jabatan'; ws1.getCell(ttdRow+6,2).style={font:{bold:true,size:9,name:'Calibri'},alignment:{horizontal:'center'}};
+      ws1.mergeCells(ttdRow+6,5,ttdRow+6,8); ws1.getCell(ttdRow+6,5).value='Nama / NIP / Jabatan'; ws1.getCell(ttdRow+6,5).style={font:{bold:true,size:9,name:'Calibri'},alignment:{horizontal:'center'}};
+
+      // ─────────────────────────────────────────────────────────
+      //  SHEET 2 — DATA LENGKAP PEMELIHARAAN
+      // ─────────────────────────────────────────────────────────
+      var ws2 = wb.addWorksheet('Data Lengkap', {
+        pageSetup: { paperSize:9, orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0 },
+        properties: { tabColor: { argb:'FF1565C0' } },
+        views: [{ state:'frozen', ySplit:4 }]
+      });
+      ws2.columns = [
+        {width:5},{width:18},{width:13},{width:15},{width:26},{width:18},{width:50}
       ];
 
-      // ── Data rows ──
-      var dataRows = data.map(function(d, i) {
-        return [
-          i + 1,
-          d.ulp        || 'UP3 JAYAPURA',
-          d.tanggal    || '',
-          d.no_gardu   || '',
-          d.petugas    || '',
-          d.kategori   || '',
-          d.jenis      || ''
+      ws2.mergeCells('A1:G1');
+      ws2.getCell('A1').value = 'PT. PLN (PERSERO) UP3 JAYAPURA — DATA LENGKAP PEMELIHARAAN GARDU DISTRIBUSI';
+      ws2.getCell('A1').style = { font:{bold:true,size:13,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnBlue}}, alignment:{horizontal:'center',vertical:'middle'} };
+      ws2.getRow(1).height = 26;
+
+      ws2.mergeCells('A2:G2');
+      ws2.getCell('A2').value = 'Periode: '+periodeStr+' | ULP: '+ulpLabel+' | Dicetak: '+tglCetak;
+      ws2.getCell('A2').style = { font:{size:9,color:{argb:C.grayTxt},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnGold}}, alignment:{horizontal:'center',vertical:'middle'} };
+      ws2.getRow(2).height = 16;
+
+      ws2.getRow(3).height = 6;
+
+      var pmHdrs = ['NO','ULP','TANGGAL','NO GARDU','NAMA PETUGAS','UNIT\n(PLN/NON PLN)','JENIS PEKERJAAN'];
+      var rPmHdr = ws2.getRow(4); rPmHdr.height = 36;
+      pmHdrs.forEach(function(h,i){
+        var cell = rPmHdr.getCell(i+1); cell.value = h;
+        cell.style = { font:{bold:true,size:10,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.headerBg}}, alignment:{horizontal:'center',vertical:'middle',wrapText:true}, border:{top:{style:'medium',color:{argb:C.darkBorder}},bottom:{style:'medium',color:{argb:C.darkBorder}},left:{style:'thin',color:{argb:C.white}},right:{style:'thin',color:{argb:C.white}}} };
+      });
+
+      data.forEach(function(d, idx){
+        var rNum = 5+idx;
+        var rRow = ws2.getRow(rNum); rRow.height = 16;
+        var isAlt = idx%2===1;
+        var bg = isAlt ? C.altRow : C.white;
+        var vals = [
+          idx+1,
+          d.ulp       || 'UP3 JAYAPURA',
+          d.tanggal   || '',
+          d.no_gardu  || '',
+          d.petugas   || '',
+          d.kategori  || '',
+          d.jenis     || ''
         ];
-      });
-
-      var allRows = metaRows.concat([colHeaders]).concat(dataRows);
-      XLSX.utils.sheet_add_aoa(ws, allRows, { origin: 'A1' });
-
-      var headerRowIdx = metaRows.length; // 0-based
-
-      // ── Style: Judul institusi ──
-      var a0 = XLSX.utils.encode_cell({r:0,c:0});
-      if (ws[a0]) ws[a0].s = {font:{bold:true,sz:13,color:{rgb:'0A2D6B'}},alignment:{horizontal:'left',vertical:'center'}};
-
-      // ── Style: meta rows ──
-      [1,2,3].forEach(function(ri) {
-        var a = XLSX.utils.encode_cell({r:ri,c:0});
-        if (ws[a]) ws[a].s = {font:{sz:10,color:{rgb:'3D5580'}},alignment:{horizontal:'left',vertical:'center'}};
-      });
-
-      // ── Style: Judul Laporan (baris 5) ──
-      var a5 = XLSX.utils.encode_cell({r:5,c:0});
-      if (ws[a5]) ws[a5].s = {
-        font:{bold:true,sz:14,color:{rgb:'0A2D6B'}},
-        alignment:{horizontal:'center',vertical:'center'}
-      };
-
-      // ── Style: Header kolom ──
-      for (var ci = 0; ci < totalCols; ci++) {
-        var addr = XLSX.utils.encode_cell({r:headerRowIdx, c:ci});
-        if (!ws[addr]) ws[addr] = {v:colHeaders[ci],t:'s'};
-        ws[addr].s = {
-          fill:{fgColor:{rgb:'0A2D6B'}},
-          font:{bold:true,color:{rgb:'FFFFFF'},sz:10},
-          alignment:{horizontal:'center',vertical:'center',wrapText:true},
-          border:{
-            top:{style:'medium',color:{rgb:'000000'}},
-            bottom:{style:'medium',color:{rgb:'000000'}},
-            left:{style:'thin',color:{rgb:'1048A8'}},
-            right:{style:'thin',color:{rgb:'1048A8'}}
-          }
-        };
-      }
-
-      // ── Style: Data rows — alternating + border + alignment ──
-      dataRows.forEach(function(row, ri) {
-        var rowIdx = headerRowIdx + 1 + ri;
-        var bg = ri % 2 === 0 ? 'FFFFFF' : 'EEF4FF';
-        for (var ci = 0; ci < totalCols; ci++) {
-          var addr = XLSX.utils.encode_cell({r:rowIdx, c:ci});
-          if (!ws[addr]) ws[addr] = {v:'',t:'s'};
-          ws[addr].s = {
-            fill:{fgColor:{rgb:bg}},
-            font:{sz:10,color:{rgb: ci===0 ? '3D5580' : '0F1E38'}},
-            alignment:{
-              horizontal: ci === 0 ? 'center' : ci === 2 ? 'center' : ci === 5 ? 'center' : 'left',
-              vertical:'center',
-              wrapText: ci === 6
-            },
-            border:{
-              top:{style:'thin',color:{rgb:'D0D8E8'}},
-              bottom:{style:'thin',color:{rgb:'D0D8E8'}},
-              left:{style:'thin',color:{rgb:'C8D6EC'}},
-              right:{style:'thin',color:{rgb:'C8D6EC'}}
-            }
+        vals.forEach(function(v,ci){
+          var cell = rRow.getCell(ci+1); cell.value = v;
+          cell.style = {
+            font:      { size:10, name:'Calibri', bold:ci===3 },
+            fill:      { type:'pattern', pattern:'solid', fgColor:{argb:bg} },
+            alignment: { horizontal:ci===0?'center':ci===2?'center':ci===5?'center':'left', vertical:'middle', wrapText:ci===6 },
+            border:    { top:{style:'thin',color:{argb:C.border}}, bottom:{style:'thin',color:{argb:C.border}}, left:{style:'thin',color:{argb:C.border}}, right:{style:'thin',color:{argb:C.border}} }
           };
-        }
+        });
       });
 
-      // ── Baris total di akhir ──
-      var totalRowIdx = headerRowIdx + 1 + dataRows.length;
-      XLSX.utils.sheet_add_aoa(ws, [_mkRowPm('TOTAL: ' + dataRows.length + ' data', totalCols)], {origin: XLSX.utils.encode_cell({r:totalRowIdx,c:0})});
-      var totAddr = XLSX.utils.encode_cell({r:totalRowIdx,c:0});
-      if (ws[totAddr]) ws[totAddr].s = {
-        font:{bold:true,sz:10,color:{rgb:'0A2D6B'}},
-        fill:{fgColor:{rgb:'EEF4FF'}},
-        alignment:{horizontal:'left'}
-      };
+      // Baris total
+      var totRowPm = ws2.getRow(5+data.length); totRowPm.height=16;
+      var totCellPm = totRowPm.getCell(1);
+      ws2.mergeCells(5+data.length,1,5+data.length,7);
+      totCellPm.value = 'TOTAL: '+data.length+' data';
+      totCellPm.style = { font:{bold:true,size:10,color:{argb:C.plnBlue},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.subHdrBg}}, alignment:{horizontal:'left',vertical:'middle'} };
 
-      // ── Row heights ──
-      var rowHeights = [
-        {hpt:20},{hpt:16},{hpt:16},{hpt:16},{hpt:6},{hpt:22},{hpt:6}
-      ];
-      rowHeights[headerRowIdx] = {hpt:30};
-      ws['!rows'] = rowHeights;
+      // ── Simpan file ──
+      wb.xlsx.writeBuffer().then(function(buf) {
+        var blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        a.href   = url; a.download = 'Pemeliharaan_Gardu_'+dateFile+'.xlsx';
+        document.body.appendChild(a); a.click();
+        setTimeout(function(){ URL.revokeObjectURL(url); document.body.removeChild(a); }, 300);
+      }).catch(function(e){ alert('Gagal membuat file: '+e.message); });
 
-      // ── Column widths ──
-      ws['!cols'] = [
-        {wch:5},{wch:20},{wch:13},{wch:15},{wch:24},{wch:16},{wch:40}
-      ];
-
-      // ── Freeze pane ──
-      ws['!freeze'] = {xSplit:0, ySplit:headerRowIdx+1, topLeftCell:'A'+(headerRowIdx+2), activePane:'bottomLeft'};
-
-      // ── Merge judul ──
-      ws['!merges'] = [
-        {s:{r:0,c:0},e:{r:0,c:totalCols-1}},
-        {s:{r:5,c:0},e:{r:5,c:totalCols-1}},
-        {s:{r:totalRowIdx,c:0},e:{r:totalRowIdx,c:totalCols-1}}
-      ];
-
-      ws['!ref'] = 'A1:' + XLSX.utils.encode_col(totalCols-1) + (totalRowIdx + 1);
-
-      XLSX.utils.book_append_sheet(wb, ws, 'PEMELIHARAAN GARDU');
-      XLSX.writeFile(wb, 'Pemeliharaan_Gardu_' + dateFile + '.xlsx');
     } catch(e) {
       alert('Gagal export: ' + e.message);
     } finally {
