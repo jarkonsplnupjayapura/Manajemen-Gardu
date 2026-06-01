@@ -1068,16 +1068,19 @@ async function _tambahPemeliharaan(p, signal) {
 
 // ── GET DAFTAR PEMELIHARAAN via RPC ──────────────────────────
 async function _getDaftarPemeliharaan(p, signal) {
-  var data = await rpcCall('fn_get_pemeliharaan', {
+  // Catatan: p_ulp tidak dikirim ke RPC karena kolom ulp di DB bertipe
+  // ulp_enum dan PostgreSQL tidak bisa cast text = ulp_enum secara langsung.
+  // Filter ULP dilakukan di sisi klien setelah data diterima.
+  var rpcParams = {
     p_token:     p.token,
     p_no_gardu:  p.noGardu  ? (p.noGardu || '').trim().toUpperCase() : null,
-    p_ulp:       p.ulp      ? _normalizeUlpEnum(p.ulp)               : null,
     p_status:    p.status   || null,
     p_tgl_awal:  p.tglAwal  || null,
     p_tgl_akhir: p.tglAkhir || null,
-    p_limit:     p.limit    ? parseInt(p.limit)                       : 50,
+    p_limit:     p.limit    ? parseInt(p.limit)                       : 200,
     p_offset:    p.offset   ? parseInt(p.offset)                      : 0
-  }, signal);
+  };
+  var data = await rpcCall('fn_get_pemeliharaan', rpcParams, signal);
 
   if (!data || data.status !== 'ok')
     return { status: 'error', message: (data && data.message) || 'Gagal memuat data pemeliharaan.' };

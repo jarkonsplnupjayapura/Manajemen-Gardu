@@ -7418,15 +7418,25 @@ function muatDaftarPemeliharaan(force) {
   var wrap = document.getElementById('pm-list-wrap');
   if (wrap) wrap.innerHTML = '<div class="loading"><div class="spinner"></div>Memuat data pemeliharaan...</div>';
 
+  // p_ulp TIDAK dikirim ke RPC — kolom ulp di DB bertipe ulp_enum,
+  // mengirim string biasa menyebabkan error "operator does not exist: text = ulp_enum".
+  // Filter ULP dilakukan di sisi klien setelah data diterima.
   var params = { action: 'getDaftarPemeliharaan', token: s.token };
-  if (s.role !== 'superadmin' && s.ulp) params.ulp = s.ulp;
 
   apiGet(params, function(res) {
     if (res.status !== 'ok') {
       if (wrap) wrap.innerHTML = '<div class="alert alert-err"><span class="alert-icon">❌</span><span class="alert-text">Gagal memuat: ' + esc(res.message || 'Error') + '<br><button class="btn btn-outline" style="margin-top:8px;" onclick="muatDaftarPemeliharaan(true)">↻ Coba Lagi</button></span></div>';
       return;
     }
-    _pmAllData = res.data || [];
+    var allData = res.data || [];
+    // Filter ULP di sisi klien untuk role selain superadmin
+    if (s.role !== 'superadmin' && s.ulp) {
+      var ulpNorm = String(s.ulp).trim().toUpperCase();
+      allData = allData.filter(function(d) {
+        return !d.ulp || String(d.ulp).trim().toUpperCase() === ulpNorm;
+      });
+    }
+    _pmAllData = allData;
     renderDaftarPemeliharaan();
   });
 }
