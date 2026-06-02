@@ -169,9 +169,12 @@ body{
   animation:pageFadeIn .18s ease;
 }
 @keyframes pageFadeIn{from{opacity:.7;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
-/* Pastikan tab-pengukuran & tab-pemeliharaan selalu mulai dari atas viewport */
+/* Pastikan semua tab mulai dari atas — tidak bergantung window scroll */
 #tab-pengukuran,
-#tab-pemeliharaan {
+#tab-pemeliharaan,
+#tab-daftar,
+#tab-rekap,
+#tab-sop {
   scroll-margin-top: 0;
 }
 .page-body{
@@ -3301,35 +3304,43 @@ var TAB_IDS = ['tab-daftar','tab-peta','tab-rekap','tab-pengukuran','tab-pemelih
 function bukaTab(id, idx){
   document.getElementById('detail-view').style.display = 'none';
   document.getElementById('bottom-nav').style.display = 'flex';
+
+  // ── Sembunyikan semua tab dulu (sebelum scroll reset) ──
   TAB_IDS.forEach(function(tid){ document.getElementById(tid).classList.remove('active'); });
   document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
-  // Reset scroll SEBELUM show tab baru agar tidak ada gap
-  window.scrollTo(0, 0);
+
+  // ── Reset scroll window secara SINKRON sebelum tab baru muncul ──
+  // Ini mencegah blank space / konten tampil di tengah halaman
+  try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
+
+  // ── Tampilkan tab baru ──
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.nav-btn')[idx].classList.add('active');
   currentTab = idx;
-  // Scroll page-body juga ke atas
-  var pb = document.querySelector('#' + id + ' .page-body');
-  if (pb) pb.scrollTop = 0;
-  // Scroll container tab sendiri ke atas
+
+  // ── Scroll elemen tab & page-body ke atas ──
   var tabEl = document.getElementById(id);
   if (tabEl) tabEl.scrollTop = 0;
-  // Double reset setelah render
+  var pb = document.querySelector('#' + id + ' .page-body');
+  if (pb) pb.scrollTop = 0;
+
+  // ── Secondary reset via rAF untuk handle kasus browser async ──
   requestAnimationFrame(function() {
-    window.scrollTo(0, 0);
+    try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
     var t = document.getElementById(id);
     if (t) t.scrollTop = 0;
+    var pb2 = document.querySelector('#' + id + ' .page-body');
+    if (pb2) pb2.scrollTop = 0;
   });
+
   if(id==='tab-rekap' && !rekapSudahMuat) muatRekap();
   if(id==='tab-pemeliharaan') { /* data dimuat on-demand saat user tekan Tampilkan */ }
   if(id==='tab-pengukuran') { /* data dimuat on-demand saat user tekan Tampilkan */ }
   if(id==='tab-peta') {
-    // Gunakan requestAnimationFrame ganda agar browser selesai paint tab dulu
-    // baru Leaflet mengukur container — ini cara paling andal
     requestAnimationFrame(function() {
       requestAnimationFrame(function() {
         muatPetaGardu(false);
@@ -4360,6 +4371,14 @@ function bukaFormInspeksi(noGardu) {
 function tutupFormInspeksi() {
   document.getElementById('form-inspeksi-view').style.display = 'none';
   _fiGardu = null;
+  // Reset scroll setelah tutup form
+  try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  var activeTab = document.querySelector('.page.active');
+  if (activeTab) activeTab.scrollTop = 0;
+  var pb = activeTab ? activeTab.querySelector('.page-body') : null;
+  if (pb) pb.scrollTop = 0;
 }
 
 // ── Toggle manual kalkulasi ───────────────────────────────────
@@ -7415,13 +7434,14 @@ function bukaFormPemeliharaan(noGarduPrefill) {
 function tutupFormPemeliharaan() {
   var view = document.getElementById('form-pemeliharaan-view');
   if (view) view.style.display = 'none';
-  // Reset scroll setelah tutup form fixed
-  window.scrollTo(0, 0);
+  // Reset scroll window & tab aktif ke atas
+  try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
-  // Scroll container tab aktif ke atas
   var activeTab = document.querySelector('.page.active');
   if (activeTab) activeTab.scrollTop = 0;
+  var pb = activeTab ? activeTab.querySelector('.page-body') : null;
+  if (pb) pb.scrollTop = 0;
 }
 
 function pmResetForm() {
