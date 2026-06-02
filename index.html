@@ -7961,7 +7961,7 @@ function muatDataPengukuran(force) {
   if (!s) return;
 
   var wrap = document.getElementById('ukur-list-wrap');
-  if (wrap) wrap.innerHTML = '<div class="loading"><div class="spinner"></div>Memuat data pengukuran...</div>';
+  if (wrap) wrap.innerHTML = '<div class="loading"><div class="spinner"></div>Memuat semua data pengukuran sesuai filter... (mungkin beberapa detik untuk range tanggal yang panjang)</div>';
 
   var noGardu = (document.getElementById('ukur-filter-nogardu') || {}).value || '';
   var tglAwal = (document.getElementById('ukur-filter-tgl-awal') || {}).value || '';
@@ -7978,7 +7978,7 @@ function muatDataPengukuran(force) {
     ulp: ulpFilter || undefined,
     tglAwal: tglAwal || undefined,
     tglAkhir: tglAkhir || undefined,
-    limit: 500
+    // limit tidak di-set → _getRiwayat loop ambil SEMUA data sesuai filter
   };
 
   apiGet(params, function(res) {

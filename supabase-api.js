@@ -70,9 +70,9 @@ async function rpcCall(funcName, params, signal) {
 
 // ── apiCall wrapper ──────────────────────────────────────────
 var _HEAVY_ACTIONS = {
-  getGarduKritis: 1, getExportRekap: 1, getRekap: 1, getDaftarGardu: 1
+  getGarduKritis: 1, getExportRekap: 1, getRekap: 1, getDaftarGardu: 1, getRiwayat: 1
 };
-var _TIMEOUT_MS = { getDaftarGardu: 120000, getGarduKritis: 90000, getExportRekap: 90000, getRekap: 60000 };
+var _TIMEOUT_MS = { getDaftarGardu: 120000, getGarduKritis: 90000, getExportRekap: 90000, getRekap: 60000, getRiwayat: 180000 };
 
 function apiCall(action, params, cb) {
   var controller = new AbortController();
@@ -566,20 +566,58 @@ async function _logoutUser(p, signal) {
 
 // ── RIWAYAT INSPEKSI via RPC ─────────────────────────────────
 async function _getRiwayat(p, signal) {
-  var data = await rpcCall('fn_get_riwayat_inspeksi', {
+  // Jika caller minta offset/limit eksplisit (mis. detail gardu), gunakan single call
+  if (p.offset != null || (p.limit && parseInt(p.limit) <= 50)) {
+    var data = await rpcCall('fn_get_riwayat_inspeksi', {
+      p_no_gardu:  p.noGardu  ? (p.noGardu || '').trim().toUpperCase() : null,
+      p_ulp:       p.ulp      ? _normalizeUlpEnum(p.ulp)               : null,
+      p_tgl_awal:  p.tglAwal  || null,
+      p_tgl_akhir: p.tglAkhir || null,
+      p_limit:     p.limit    ? parseInt(p.limit)                       : 5,
+      p_offset:    p.offset   ? parseInt(p.offset)                      : 0
+    }, signal);
+    if (!data || data.status !== 'ok')
+      return { status: 'error', message: 'Gagal memuat riwayat inspeksi.' };
+    var rows = (data.data || []).map(function(r) { return _mapInspeksiRow(r); });
+    return { status: 'ok', data: rows, total: data.total || 0 };
+  }
+
+  // ── Mode "ambil semua data" — loop pagination ────────────────
+  // Gunakan BATCH_SIZE besar agar jumlah round-trip minimal
+  var BATCH_SIZE  = 1000;
+  var allRows     = [];
+  var offset      = 0;
+  var hasMore     = true;
+  var serverTotal = 0;
+
+  var baseParams = {
     p_no_gardu:  p.noGardu  ? (p.noGardu || '').trim().toUpperCase() : null,
     p_ulp:       p.ulp      ? _normalizeUlpEnum(p.ulp)               : null,
     p_tgl_awal:  p.tglAwal  || null,
     p_tgl_akhir: p.tglAkhir || null,
-    p_limit:     p.limit    ? parseInt(p.limit)                       : 5,
-    p_offset:    p.offset   ? parseInt(p.offset)                      : 0
-  }, signal);
+    p_limit:     BATCH_SIZE
+  };
 
-  if (!data || data.status !== 'ok')
-    return { status: 'error', message: 'Gagal memuat riwayat inspeksi.' };
+  while (hasMore) {
+    var batchParams = Object.assign({}, baseParams, { p_offset: offset });
+    var batchData   = await rpcCall('fn_get_riwayat_inspeksi', batchParams, signal);
 
-  var rows = (data.data || []).map(function(r) { return _mapInspeksiRow(r); });
-  return { status: 'ok', data: rows, total: data.total || 0 };
+    if (!batchData || batchData.status !== 'ok')
+      return { status: 'error', message: 'Gagal memuat riwayat inspeksi.' };
+
+    var batchRows = batchData.data || [];
+    if (offset === 0) serverTotal = batchData.total || 0;
+
+    allRows = allRows.concat(batchRows);
+    offset += BATCH_SIZE;
+
+    // Berhenti jika batch kurang dari BATCH_SIZE (halaman terakhir)
+    // atau sudah mencapai total yang dilaporkan server
+    hasMore = batchRows.length === BATCH_SIZE && allRows.length < (serverTotal || Infinity);
+  }
+
+  var mappedRows = allRows.map(function(r) { return _mapInspeksiRow(r); });
+  return { status: 'ok', data: mappedRows, total: serverTotal || mappedRows.length };
 }
 
 // ── REKAP GARDU SEDERHANA via REST ───────────────────────────
