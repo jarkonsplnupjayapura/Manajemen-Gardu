@@ -4927,10 +4927,41 @@ function simpanEditInspeksi() {
     okEl.style.display = 'block';
     setTimeout(function() {
       document.getElementById('modal-edit-inspeksi').style.display = 'none';
-      var titleEl = document.getElementById('detail-view-title');
-      var noGardu = titleEl ? titleEl.textContent.trim() : '';
-      if (noGardu) bukaDetailGardu(noGardu);
+      // Reload sesuai konteks: jika dari halaman pengukuran, refresh tabel pengukuran
+      if (_editInspeksiKonteks === 'pengukuran') {
+        _editInspeksiKonteks = null;
+        _ukurSudahMuat = false;
+        muatDataPengukuran(true);
+      } else {
+        var titleEl = document.getElementById('detail-view-title');
+        var noGardu = titleEl ? titleEl.textContent.trim() : '';
+        if (noGardu) bukaDetailGardu(noGardu);
+      }
     }, 1200);
+  });
+}
+
+// ── Konteks pemanggil edit inspeksi (detail gardu / pengukuran) ──
+var _editInspeksiKonteks = null;
+
+// ── Edit inspeksi dipanggil dari halaman Pengukuran Gardu ──────
+function bukaEditInspeksiDariPengukuran(id, r) {
+  _editInspeksiKonteks = 'pengukuran';
+  bukaEditInspeksi(id, r);
+}
+
+// ── Hapus inspeksi dipanggil dari halaman Pengukuran Gardu ─────
+function hapusInspeksiDariPengukuran(id, tglLabel) {
+  if (!confirm('Hapus data pengukuran tanggal ' + tglLabel + '?\n\nTindakan ini tidak dapat dibatalkan.')) return;
+  var s = getSession();
+  if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
+  apiGet({ action: 'hapusInspeksi', token: s.token, id: id }, function(res) {
+    if (res.status !== 'ok') {
+      alert('Gagal menghapus: ' + (res.message || 'Error tidak diketahui.'));
+      return;
+    }
+    _ukurSudahMuat = false;
+    muatDataPengukuran(true);
   });
 }
 
@@ -8124,6 +8155,10 @@ function renderTabelPengukuran() {
   });
   html += '</select></div></div>';
 
+  var _sUkur = getSession();
+  var _canEditUkur = _sUkur && (_sUkur.role === 'admin' || _sUkur.role === 'superadmin' || _sUkur.role === 'petugas');
+  var _canDeleteUkur = _sUkur && (_sUkur.role === 'admin' || _sUkur.role === 'superadmin');
+
   if (isMobile) {
     // Mobile: card view
     pageData.forEach(function(r, i) {
@@ -8133,6 +8168,13 @@ function renderTabelPengukuran() {
       var bebanColor = prosen === null ? '#94A3B8' : prosen > 80 ? 'var(--pln-red)' : prosen > 60 ? 'var(--pln-orange)' : 'var(--pln-green)';
       var bebanPct = prosen !== null ? Math.min(100, prosen) : 0;
       var noGardu = r['NO_GARDU'] || r['NOGARDU'] || '—';
+      var _rid = r['_id'];
+      // cek apakah petugas ini yang input (untuk role petugas)
+      var _canEditRow = _canEditUkur && (
+        (_sUkur.role === 'admin' || _sUkur.role === 'superadmin') ||
+        (_sUkur.role === 'petugas' && _sUkur.nama &&
+          String(_sUkur.nama).toLowerCase().trim() === String(r['PETUGAS']||'').toLowerCase().trim())
+      );
       html += '<div class="pm-list-card" onclick="bukaDetailGarduDariPengukuran(\''+esc(noGardu)+'\')">';
       html += '<div class="pm-list-header">';
       html += '<div style="flex:1;min-width:0;">';
@@ -8147,7 +8189,23 @@ function renderTabelPengukuran() {
       html += '<div><div class="lbl">Tdk Seimbang</div><div class="val-sm">'+esc(r['TDKSEIMBANG']||r['TDK SEIMBANG']||'—')+'%</div></div>';
       html += '<div><div class="lbl">Petugas</div><div class="val-sm">'+esc(r['PETUGAS']||'—')+'</div></div>';
       html += '<div><div class="lbl">Fasa</div><div class="val-sm">'+esc(r['FASA']||'—')+'</div></div>';
-      html += '</div></div></div>';
+      html += '</div>';
+      // Tombol Edit / Hapus di card mobile
+      if (_rid && (_canEditRow || _canDeleteUkur)) {
+        html += '<div style="display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--pln-border);">';
+        if (_canEditRow) {
+          html += '<button onclick="event.stopPropagation();bukaEditInspeksiDariPengukuran('+_rid+','+JSON.stringify(r)+')" '+
+            'style="flex:1;background:#EEF4FF;color:var(--pln-biru2);border:1px solid #BFDBFE;border-radius:6px;'+
+            'font-size:var(--fs-xs);font-weight:700;padding:6px 10px;cursor:pointer;touch-action:manipulation;">✏️ Edit</button>';
+        }
+        if (_canDeleteUkur) {
+          html += '<button onclick="event.stopPropagation();hapusInspeksiDariPengukuran('+_rid+',\''+esc(formatTgl(r['TGLUKUR'])||r['TGLUKUR']||'—')+'\')" '+
+            'style="flex:1;background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;'+
+            'font-size:var(--fs-xs);font-weight:700;padding:6px 10px;cursor:pointer;touch-action:manipulation;">🗑️ Hapus</button>';
+        }
+        html += '</div>';
+      }
+      html += '</div></div>';
     });
   } else {
     // Desktop: table view seperti gambar 2 & 3
@@ -8156,7 +8214,9 @@ function renderTabelPengukuran() {
     html += '<table style="width:100%;border-collapse:collapse;font-size:var(--fs-xs);">';
     html += '<thead>';
     html += '<tr style="background:var(--pln-biru);color:#fff;">';
-    ['NO','NO GARDU','DAYA (kVA)','FASA','DAYA PAKAI','PROSEN %','TDK SEIMBANG','JAM UKUR','TGL UKUR','PETUGAS','STATUS'].forEach(function(h) {
+    var _headers = ['NO','NO GARDU','DAYA (kVA)','FASA','DAYA PAKAI','PROSEN %','TDK SEIMBANG','JAM UKUR','TGL UKUR','PETUGAS','STATUS'];
+    if (_canEditUkur || _canDeleteUkur) _headers.push('AKSI');
+    _headers.forEach(function(h) {
       html += '<th style="padding:10px 12px;text-align:left;white-space:nowrap;font-weight:700;font-size:11px;letter-spacing:.3px;">'+h+'</th>';
     });
     html += '</tr></thead><tbody>';
@@ -8168,6 +8228,12 @@ function renderTabelPengukuran() {
       var statusLabel = prosen === null ? '—' : prosen > 80 ? 'Kritis' : prosen > 60 ? 'Perlu Perhatian' : 'Normal';
       var noGardu = r['NO_GARDU'] || r['NOGARDU'] || '—';
       var rowBg = i % 2 === 0 ? '#fff' : '#F8FAFD';
+      var _rid = r['_id'];
+      var _canEditRow = _canEditUkur && (
+        (_sUkur.role === 'admin' || _sUkur.role === 'superadmin') ||
+        (_sUkur.role === 'petugas' && _sUkur.nama &&
+          String(_sUkur.nama).toLowerCase().trim() === String(r['PETUGAS']||'').toLowerCase().trim())
+      );
       html += '<tr style="background:'+rowBg+';cursor:pointer;transition:background .1s;" onclick="bukaDetailGarduDariPengukuran(\''+esc(noGardu)+'\')" onmouseover="this.style.background=\'#EEF4FF\'" onmouseout="this.style.background=\''+rowBg+'\'">';
       html += '<td style="padding:9px 12px;color:var(--pln-text3);">'+(start+i+1)+'</td>';
       html += '<td style="padding:9px 12px;font-weight:700;color:var(--pln-biru2);">'+esc(noGardu)+'</td>';
@@ -8180,6 +8246,21 @@ function renderTabelPengukuran() {
       html += '<td style="padding:9px 12px;white-space:nowrap;">'+esc(formatTgl(r['TGLUKUR'])||r['TGLUKUR']||'—')+'</td>';
       html += '<td style="padding:9px 12px;">'+esc(r['PETUGAS']||'—')+'</td>';
       html += '<td style="padding:9px 12px;"><span style="background:'+statusColor+';color:#fff;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;">'+statusLabel+'</span></td>';
+      if (_canEditUkur || _canDeleteUkur) {
+        html += '<td style="padding:6px 10px;white-space:nowrap;" onclick="event.stopPropagation();">';
+        if (_rid && _canEditRow) {
+          html += '<button onclick="bukaEditInspeksiDariPengukuran('+_rid+','+JSON.stringify(r)+')" '+
+            'style="background:#EEF4FF;color:var(--pln-biru2);border:1px solid #BFDBFE;border-radius:6px;'+
+            'font-size:10px;font-weight:700;padding:3px 8px;cursor:pointer;margin-right:4px;" title="Edit data ini">✏️ Edit</button>';
+        }
+        if (_rid && _canDeleteUkur) {
+          html += '<button onclick="hapusInspeksiDariPengukuran('+_rid+',\''+esc(formatTgl(r['TGLUKUR'])||r['TGLUKUR']||'—')+'\')" '+
+            'style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;'+
+            'font-size:10px;font-weight:700;padding:3px 8px;cursor:pointer;" title="Hapus data ini">🗑️ Hapus</button>';
+        }
+        if (!_rid) html += '<span style="color:var(--pln-text3);font-size:10px;">—</span>';
+        html += '</td>';
+      }
       html += '</tr>';
     });
     html += '</tbody></table></div></div>';
