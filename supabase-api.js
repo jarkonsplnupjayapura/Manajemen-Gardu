@@ -5,29 +5,8 @@
 // ============================================================
 
 // ── KONFIGURASI ──────────────────────────────────────────────
-// CATATAN KEAMANAN: SUPABASE_ANON key dipindahkan ke environment variable
-// atau dikonfigurasi melalui server-side. Jangan pernah hard-code API key
-// sensitif di kode frontend yang bisa dilihat publik melalui DevTools.
-//
-// Cara konfigurasi (pilih salah satu):
-//   1. Inject via server-side template: <script>var _SB_KEY='...';</script>
-//   2. Baca dari meta tag: <meta name="sb-key" content="...">
-//   3. Gunakan backend/edge function sebagai proxy (DIREKOMENDASIKAN)
-//
-// Pastikan Supabase Row Level Security (RLS) AKTIF di semua tabel agar
-// anon key tidak bisa dieksploitasi meski terekspos.
 var SUPABASE_URL  = 'https://ckarfhmaydqhcclvueqn.supabase.co';
-
-// Baca key dari meta tag (cara aman — isi meta tag di server/build process)
-var SUPABASE_ANON = (function() {
-  var metaEl = document.querySelector('meta[name="sb-key"]');
-  if (metaEl && metaEl.getAttribute('content')) return metaEl.getAttribute('content');
-  // Fallback: baca dari window._sbKey yang bisa di-inject server-side
-  if (typeof window._sbKey === 'string' && window._sbKey) return window._sbKey;
-  // PERINGATAN: Jangan isi string di sini. Isi via meta tag atau window._sbKey.
-  console.warn('[Supabase API] PERINGATAN: SUPABASE_ANON key belum dikonfigurasi. Baca PETUNJUK KEAMANAN di supabase-api.js.');
-  return '';
-})();
+var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrYXJmaG1heWRxaGNjbHZ1ZXFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMzkwNTgsImV4cCI6MjA5NDkxNTA1OH0.js9CKdBZ-8omTQpwaTfnuvTGStuB1tajjRbdCrP5L6o';
 
 // ── ULP Enum normalizer ──────────────────────────────────────
 function _normalizeUlpEnum(ulp) {
@@ -178,9 +157,7 @@ async function _getUserFromToken(token) {
     if (!data || data.status !== 'ok') return null;
     return data;
   } catch (e) {
-    if (typeof DEBUG_MODE !== 'undefined' && DEBUG_MODE === true) {
-      console.error('[sbApi] _getUserFromToken error:', e);
-    }
+    console.error('[sbApi] _getUserFromToken error:', e);
     return null;
   }
 }
@@ -343,9 +320,7 @@ async function _getDetailLengkap(p, signal) {
       }
     }
   } catch (e) {
-    if (typeof DEBUG_MODE !== 'undefined' && DEBUG_MODE === true) {
-      console.warn('[sbApi] Gagal memuat riwayat inspeksi:', e);
-    }
+    console.warn('[sbApi] Gagal memuat riwayat inspeksi:', e);
   }
 
   // Map gardu dari v_gardu_lengkap
@@ -465,17 +440,8 @@ async function _verifyPin(p, signal) {
 
 // ── SET PIN via RPC ──────────────────────────────────────────
 async function _setPin(p, signal) {
-  // Validasi PIN minimal 4 digit dan hanya angka (defence in depth)
-  var pinBaru = String(p.pinBaru || '').trim();
-  if (pinBaru.length < 4) {
-    return { status: 'error', message: 'PIN minimal 4 digit.' };
-  }
-  if (!/^\d+$/.test(pinBaru)) {
-    return { status: 'error', message: 'PIN hanya boleh berisi angka.' };
-  }
-
   var pwHash  = await sha256(String(p.password || '').trim());
-  var pinHash = await sha256(pinBaru);
+  var pinHash = await sha256(String(p.pinBaru  || '').trim());
 
   var data = await rpcCall('fn_set_pin_user', {
     p_token:         p.token,
@@ -616,21 +582,18 @@ async function _getRiwayat(p, signal) {
   return { status: 'ok', data: rows, total: data.total || 0 };
 }
 
-// ── REKAP GARDU via RPC ──────────────────────────────────────
+// ── REKAP GARDU SEDERHANA via REST ───────────────────────────
 async function _getRekapGardu(p, signal) {
-  // Menggunakan RPC fn_get_rekap_gardu agar konsisten dengan fungsi lain
-  // dan agar filter role/ULP diterapkan di sisi server (bukan bypass REST langsung).
-  var data = await rpcCall('fn_get_rekap_gardu', {
-    p_token: p.token,
-    p_ulp:   p.ulp ? _normalizeUlpEnum(p.ulp) : null
-  }, signal);
+  var url = '/rest/v1/gardu?select=no_gardu,ulp,unitup,penyulang,status_operasional,status_kepemilikan,tipe,kapasitas_kva&order=ulp.asc,no_gardu.asc';
+  if (p && p.ulp) url += '&ulp=eq.' + encodeURIComponent(_normalizeUlpEnum(p.ulp));
 
-  if (!data || data.status !== 'ok')
-    return { status: 'error', message: (data && data.message) || 'Gagal memuat rekap gardu.' };
+  var res = await sbFetch(url, { signal: signal });
+  if (!res.ok) return { status: 'error', message: 'Gagal memuat rekap gardu.' };
 
+  var rows = await res.json();
   return {
     status: 'ok',
-    data: (data.data || []).map(function(g) {
+    data: rows.map(function(g) {
       return {
         noGardu:     g.no_gardu || '',
         ulp:         g.ulp || '',
@@ -647,10 +610,7 @@ async function _getRekapGardu(p, signal) {
 
 // ── TAMBAH USER via RPC ──────────────────────────────────────
 async function _tambahUser(p, signal) {
-  var pwRaw = String(p.password || '').trim();
-  if (pwRaw.length < 8) return { status: 'error', message: 'Password minimal 8 karakter.' };
-  if (!/[0-9]/.test(pwRaw)) return { status: 'error', message: 'Password harus mengandung minimal 1 angka.' };
-  var pwHash = await sha256(pwRaw);
+  var pwHash = await sha256(String(p.password || '').trim());
 
   var data = await rpcCall('fn_tambah_user', {
     p_token:         p.token,
@@ -669,10 +629,9 @@ async function _tambahUser(p, signal) {
 
 // ── EDIT USER via RPC ────────────────────────────────────────
 async function _editUser(p, signal) {
-  var _pwRaw = p.password ? String(p.password).trim() : '';
-  if (_pwRaw && _pwRaw.length < 8) return { status: 'error', message: 'Password minimal 8 karakter.' };
-  if (_pwRaw && !/[0-9]/.test(_pwRaw)) return { status: 'error', message: 'Password harus mengandung minimal 1 angka.' };
-  var pwHash = _pwRaw.length >= 8 ? await sha256(_pwRaw) : null;
+  var pwHash = (p.password && String(p.password).trim().length >= 4)
+    ? await sha256(String(p.password).trim())
+    : null;
 
   var data = await rpcCall('fn_edit_user', {
     p_token:         p.token,
@@ -691,14 +650,8 @@ async function _editUser(p, signal) {
 
 // ── GANTI PASSWORD via RPC ───────────────────────────────────
 async function _gantiPassword(p, signal) {
-  // Validasi panjang minimum password di layer API (defence in depth)
-  var pwBaru = String(p.passwordBaru || '').trim();
-  if (pwBaru.length < 8) {
-    return { status: 'error', message: 'Password baru minimal 8 karakter.' };
-  }
-
   var oldHash = await sha256(String(p.passwordLama || '').trim());
-  var newHash = await sha256(pwBaru);
+  var newHash = await sha256(String(p.passwordBaru || '').trim());
 
   var data = await rpcCall('fn_ganti_password', {
     p_token:              p.token,
@@ -929,12 +882,7 @@ async function _editInspeksi(p, signal) {
 
 // ── RESET PASSWORD BY ADMIN via RPC ──────────────────────────
 async function _resetPasswordByAdmin(p, signal) {
-  var pwBaru = String(p.passwordBaru || '').trim();
-  if (pwBaru.length < 8) {
-    return { status: 'error', message: 'Password baru minimal 8 karakter.' };
-  }
-
-  var pwHash = await sha256(pwBaru);
+  var pwHash = await sha256(String(p.passwordBaru || '').trim());
 
   var data = await rpcCall('fn_reset_password_by_admin', {
     p_token:           p.token,
@@ -1074,7 +1022,7 @@ function _mapInspeksiRow(r) {
     flat['JUR' + n + '_R - N']   = j.v_r_n   != null ? String(j.v_r_n)    : '';
     flat['JUR' + n + '_S - N']   = j.v_s_n   != null ? String(j.v_s_n)    : '';
     flat['JUR' + n + '_T - N']   = j.v_t_n   != null ? String(j.v_t_n)    : '';
-    flat['JUR' + n + '_R - S']   = j.v_r_s   != null ? String(j.v_r_s)    : '';
+    flat['JUR' + n + '_R - s']   = j.v_r_t   != null ? String(j.v_r_t)    : '';
     flat['JUR' + n + '_R - T']   = j.v_r_t   != null ? String(j.v_r_t)    : '';
     flat['JUR' + n + '_S - T']   = j.v_s_t   != null ? String(j.v_s_t)    : '';
     flat['JUR' + n + '_THD-R']   = j.thd_r   != null ? String(j.thd_r)    : '';
@@ -1111,15 +1059,13 @@ async function _tambahPemeliharaan(p, signal) {
 
 // ── GET DAFTAR PEMELIHARAAN via RPC ──────────────────────────
 async function _getDaftarPemeliharaan(p, signal) {
-  // Filter ULP dilakukan di DB berdasarkan role user (superadmin lihat semua,
-  // selain itu hanya ULP sendiri). Filter tambahan (kategori, ulp eksplisit)
-  // dikirim ke RPC agar tidak terjadi client-side filtering yang boros bandwidth.
+  // Catatan: p_ulp tidak dikirim ke RPC karena filter ULP dilakukan di DB
+  // berdasarkan role user (superadmin lihat semua, selain itu hanya ULP sendiri).
+  // Filter tambahan (kategori, ulp) dilakukan di sisi klien setelah data diterima.
   // p_status TIDAK dikirim karena kolom status tidak ada di tabel pemeliharaan.
   var rpcParams = {
     p_token:     p.token,
     p_no_gardu:  p.noGardu  ? (p.noGardu || '').trim().toUpperCase() : null,
-    p_ulp:       p.ulp      ? _normalizeUlpEnum(p.ulp)               : null,
-    p_kategori:  p.kategori || null,
     p_tgl_awal:  p.tglAwal  || null,
     p_tgl_akhir: p.tglAkhir || null,
     p_limit:     p.limit    ? parseInt(p.limit)                       : 200,
@@ -1173,7 +1119,4 @@ window.apiGet = function(params, cb) {
 };
 
 window._sbApiReady = true;
-// console.log dinonaktifkan di production — aktifkan hanya saat debug lokal
-if (typeof DEBUG_MODE !== 'undefined' && DEBUG_MODE === true) {
-  console.log('[Supabase API v8] Layer aktif. URL:', SUPABASE_URL);
-}
+console.log('[Supabase API v8] Layer aktif. URL:', SUPABASE_URL);
