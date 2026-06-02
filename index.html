@@ -174,24 +174,6 @@ body{
 #tab-pemeliharaan {
   scroll-margin-top: 0;
 }
-/* Ketika aktif: jadikan full-screen scrollable container, bebas dari body scroll */
-#tab-pengukuran.active,
-#tab-pemeliharaan.active {
-  position: fixed;
-  inset: 0;
-  max-width: 100%;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  z-index: 1;
-  background: var(--pln-bg);
-}
-@media(min-width:768px){
-  #tab-pengukuran.active,
-  #tab-pemeliharaan.active {
-    left: 260px;
-    max-width: calc(100% - 260px);
-  }
-}
 .page-body{
   padding:var(--sp-md);
   padding-bottom:calc(var(--nav-h) + var(--sp-lg) + env(safe-area-inset-bottom));
@@ -2582,6 +2564,9 @@ function onLoginSuccess(user) {
   var rekapEl = document.getElementById('rekap-content');
   if (rekapEl) rekapEl.innerHTML = '<div class="loading"><div class="spinner"></div>Memuat rekap...</div>';
 
+  // Pastikan tab-daftar aktif setelah login
+  bukaTab('tab-daftar', 0);
+
   // Cek redirect setelah login dari QR scan
   var urlParams = new URLSearchParams(window.location.search);
   var redirect = urlParams.get('redirect');
@@ -3328,7 +3313,7 @@ function bukaTab(id, idx){
   // Scroll page-body juga ke atas
   var pb = document.querySelector('#' + id + ' .page-body');
   if (pb) pb.scrollTop = 0;
-  // Scroll container tab sendiri ke atas (untuk tab yang position:fixed)
+  // Scroll container tab sendiri ke atas
   var tabEl = document.getElementById(id);
   if (tabEl) tabEl.scrollTop = 0;
   // Double reset setelah render
