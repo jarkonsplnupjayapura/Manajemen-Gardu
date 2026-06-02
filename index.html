@@ -1132,12 +1132,42 @@ if (typeof L === 'undefined') {
   <div class="login-footer">PT. PLN (Persero) UP3 Jayapura</div>
 </div>
 
-<!-- ══ PWA INSTALL BANNER ══ -->
-<div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:999;background:linear-gradient(135deg,var(--pln-biru),var(--pln-biru2));color:#fff;padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));align-items:center;gap:12px;box-shadow:0 -4px 20px rgba(0,59,123,.3);">
-  <div style="font-size:28px;">📱</div>
-  <div style="flex:1"><div style="font-weight:700;font-size:14px;">Pasang sebagai Aplikasi</div><div style="font-size:12px;opacity:.85;">Install di HP untuk akses lebih cepat & offline</div></div>
-  <button onclick="installPWA()" style="background:var(--pln-kuning);color:var(--pln-biru);border:none;border-radius:8px;padding:8px 16px;font-weight:800;font-size:13px;">Install</button>
-  <button onclick="tutupBannerInstall()" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 10px;font-size:16px;">✕</button>
+<!-- ══ PWA INSTALL BANNER (Android / Desktop Chrome / Edge) ══ -->
+<div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#003B7B,#005BBB);color:#fff;padding:14px 16px;padding-bottom:max(14px,env(safe-area-inset-bottom));align-items:center;gap:12px;box-shadow:0 -4px 24px rgba(0,59,123,.45);">
+  <div style="font-size:30px;flex-shrink:0;">📲</div>
+  <div style="flex:1;min-width:0;">
+    <div style="font-weight:700;font-size:14px;line-height:1.3;">Pasang sebagai Aplikasi</div>
+    <div style="font-size:11px;opacity:.85;margin-top:2px;">Akses lebih cepat, bisa dipakai offline, tampil seperti app sungguhan</div>
+  </div>
+  <button onclick="installPWA()" style="background:#FCD116;color:#003B7B;border:none;border-radius:8px;padding:9px 18px;font-weight:800;font-size:13px;white-space:nowrap;flex-shrink:0;">⬇️ Install</button>
+  <button onclick="tutupBannerInstall()" style="background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:8px;padding:9px 11px;font-size:15px;flex-shrink:0;line-height:1;">✕</button>
+</div>
+
+<!-- ══ PWA INSTALL MODAL (iOS Safari — tidak support beforeinstallprompt) ══ -->
+<div id="pwa-ios-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);align-items:flex-end;justify-content:center;">
+  <div style="background:var(--pln-card,#fff);border-radius:20px 20px 0 0;padding:24px 20px;padding-bottom:max(24px,env(safe-area-inset-bottom));width:100%;max-width:480px;box-shadow:0 -8px 40px rgba(0,0,0,.25);">
+    <div style="text-align:center;margin-bottom:18px;">
+      <div style="font-size:40px;margin-bottom:6px;">📲</div>
+      <div style="font-size:17px;font-weight:700;color:var(--pln-biru,#003B7B);">Pasang sebagai Aplikasi</div>
+      <div style="font-size:12px;color:#666;margin-top:4px;">Akses lebih cepat langsung dari layar utama HP Anda</div>
+    </div>
+    <div style="background:#F0F4FA;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;margin-bottom:18px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:22px;flex-shrink:0;">1️⃣</div>
+        <div style="font-size:13px;">Ketuk tombol <b>Bagikan</b> <span style="display:inline-block;background:#E5E7EB;border-radius:5px;padding:2px 7px;font-size:13px;">⬆️</span> di bagian bawah browser Safari</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:22px;flex-shrink:0;">2️⃣</div>
+        <div style="font-size:13px;">Gulir ke bawah lalu pilih <b>"Tambahkan ke Layar Utama"</b> <span style="display:inline-block;background:#E5E7EB;border-radius:5px;padding:2px 7px;font-size:13px;">➕</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:22px;flex-shrink:0;">3️⃣</div>
+        <div style="font-size:13px;">Ketuk <b>Tambahkan</b> di pojok kanan atas — selesai!</div>
+      </div>
+    </div>
+    <button onclick="tutupModalIOS()" style="width:100%;background:#003B7B;color:#fff;border:none;border-radius:10px;padding:13px;font-weight:700;font-size:15px;">Mengerti</button>
+    <button onclick="tutupModalIOS(true)" style="width:100%;background:none;color:#999;border:none;padding:10px;font-size:12px;margin-top:4px;">Jangan tampilkan lagi</button>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════ -->
@@ -1818,20 +1848,64 @@ if (typeof L === 'undefined') {
     <div style="text-align:center;margin-bottom:var(--sp-md);">
       <div style="font-size:36px;">🔐</div>
       <div style="font-size:var(--fs-md);font-weight:700;">Set / Ganti PIN</div>
-      <div style="font-size:var(--fs-xs);color:var(--pln-text3);">PIN disimpan terenkripsi di spreadsheet — digunakan untuk konfirmasi tambah/edit gardu</div>
+      <div style="font-size:var(--fs-xs);color:var(--pln-text3);">PIN (4–8 digit angka) digunakan untuk konfirmasi tambah/edit data gardu</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:var(--sp-sm);">
-      <div><label class="form-label">Password Akun Anda</label>
-        <input id="setpin-password" type="password" class="form-input" placeholder="Masukkan password login"></div>
-      <div><label class="form-label">PIN Baru (min. 4 digit)</label>
-        <input id="setpin-baru" type="password" class="form-input" placeholder="Minimal 4 karakter" maxlength="8" inputmode="numeric"></div>
-      <div><label class="form-label">Ulangi PIN Baru</label>
-        <input id="setpin-konfirmasi" type="password" class="form-input" placeholder="Ulangi PIN baru" maxlength="8" inputmode="numeric"></div>
+      <div>
+        <label class="form-label">Konfirmasi Password Login Anda</label>
+        <div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-bottom:4px;">Masukkan password akun Anda saat ini untuk verifikasi identitas</div>
+        <div style="position:relative;">
+          <input id="setpin-password" type="password" class="form-input" placeholder="Password login Anda" style="padding-right:44px;">
+          <button type="button" onclick="(function(){var i=document.getElementById('setpin-password');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁️':'🙈';}).call(this)" style="position:absolute;right:0;top:0;height:100%;width:44px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--pln-text3);display:flex;align-items:center;justify-content:center;">👁️</button>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">PIN Baru (4–8 digit angka)</label>
+        <input id="setpin-baru" type="tel" class="form-input" placeholder="Contoh: 1234" maxlength="8" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+      </div>
+      <div>
+        <label class="form-label">Ulangi PIN Baru</label>
+        <input id="setpin-konfirmasi" type="tel" class="form-input" placeholder="Ketik ulang PIN baru" maxlength="8" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+      </div>
     </div>
     <div id="setpin-msg" style="display:none;margin-top:var(--sp-sm);padding:var(--sp-sm);border-radius:var(--radius-xs);font-size:var(--fs-sm);"></div>
     <div style="display:flex;gap:var(--sp-sm);margin-top:var(--sp-md);">
       <button class="btn btn-outline" style="flex:1;" onclick="tutupModalSetPin()">Batal</button>
       <button class="btn btn-blue" style="flex:2;" onclick="submitSetPin()">Simpan PIN</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RESET PASSWORD (oleh Admin) -->
+<div id="modal-reset-password" style="display:none;position:fixed;inset:0;z-index:9650;background:rgba(0,0,0,.6);align-items:center;justify-content:center;">
+  <div style="background:var(--pln-card);border-radius:var(--radius);padding:var(--sp-lg);width:100%;max-width:360px;box-shadow:var(--shadow-lg);">
+    <div style="text-align:center;margin-bottom:var(--sp-md);">
+      <div style="font-size:32px;">🔑</div>
+      <div style="font-size:var(--fs-md);font-weight:700;">Reset Password</div>
+      <div style="font-size:var(--fs-xs);color:var(--pln-text3);">Untuk akun: <b id="rp-username-label">—</b></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:var(--sp-sm);">
+      <div>
+        <label class="form-label">Password Baru *</label>
+        <div style="position:relative;">
+          <input id="rp-password" type="password" class="form-input" placeholder="Min 6 karakter" style="padding-right:44px;" oninput="checkPasswordStrength(this.value)">
+          <button type="button" onclick="(function(){var i=document.getElementById('rp-password');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁️':'🙈';}).call(this)" style="position:absolute;right:0;top:0;height:100%;width:44px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--pln-text3);display:flex;align-items:center;justify-content:center;">👁️</button>
+        </div>
+        <div id="rp-strength" style="margin-top:4px;font-size:var(--fs-xs);min-height:16px;"></div>
+        <div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:2px;">Min 6 karakter — boleh huruf kapital, angka, dan simbol</div>
+      </div>
+      <div>
+        <label class="form-label">Konfirmasi Password Baru *</label>
+        <div style="position:relative;">
+          <input id="rp-password-confirm" type="password" class="form-input" placeholder="Ulangi password baru" style="padding-right:44px;">
+          <button type="button" onclick="(function(){var i=document.getElementById('rp-password-confirm');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁️':'🙈';}).call(this)" style="position:absolute;right:0;top:0;height:100%;width:44px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--pln-text3);display:flex;align-items:center;justify-content:center;">👁️</button>
+        </div>
+      </div>
+    </div>
+    <div id="rp-msg" style="display:none;margin-top:var(--sp-sm);padding:var(--sp-sm);border-radius:var(--radius-xs);font-size:var(--fs-sm);"></div>
+    <div style="display:flex;gap:var(--sp-sm);margin-top:var(--sp-md);">
+      <button class="btn btn-outline" style="flex:1;" onclick="tutupModalResetPassword()">Batal</button>
+      <button class="btn btn-blue" style="flex:2;" onclick="submitResetPassword()">💾 Simpan Password</button>
     </div>
   </div>
 </div>
@@ -1871,9 +1945,10 @@ if (typeof L === 'undefined') {
       <div class="form-group"><label class="form-label">Username *</label><input id="uf-username" class="form-input" placeholder="Contoh: petugas_abe1" autocorrect="off" autocapitalize="none"></div>
       <div class="form-group"><label class="form-label">Password * <span style="font-weight:400;opacity:.6;">(kosongkan jika tidak diubah)</span></label>
         <div style="position:relative;">
-          <input id="uf-password" class="form-input" type="password" placeholder="Min 4 karakter" style="padding-right:44px;">
+          <input id="uf-password" class="form-input" type="password" placeholder="Min 6 karakter" style="padding-right:44px;">
           <button type="button" id="btn-toggle-uf-pass" onclick="toggleUfPassword()" title="Tampilkan/Sembunyikan password" style="position:absolute;right:0;top:0;height:100%;width:44px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--pln-text3);display:flex;align-items:center;justify-content:center;">👁️</button>
         </div>
+        <div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:3px;">Min 6 karakter — boleh huruf, angka, dan simbol</div>
       </div>
       <div class="form-group"><label class="form-label">Nama Lengkap *</label><input id="uf-nama" class="form-input" placeholder="Nama petugas"></div>
       <div class="form-group"><label class="form-label">Role *</label>
@@ -1928,9 +2003,10 @@ if (typeof L === 'undefined') {
       <div class="form-group" id="uuf-password-wrap">
         <label class="form-label">Password * <span style="font-weight:400;opacity:.6;">(kosongkan jika tidak diubah)</span></label>
         <div style="position:relative;">
-          <input id="uuf-password" class="form-input" type="password" placeholder="Min 4 karakter" style="padding-right:44px;">
+          <input id="uuf-password" class="form-input" type="password" placeholder="Min 6 karakter" style="padding-right:44px;">
           <button type="button" id="btn-toggle-uuf-pass" onclick="toggleUufPassword()" title="Tampilkan/Sembunyikan password" style="position:absolute;right:0;top:0;height:100%;width:44px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--pln-text3);display:flex;align-items:center;justify-content:center;">👁️</button>
         </div>
+        <div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:3px;">Min 6 karakter — boleh huruf, angka, dan simbol</div>
       </div>
       <div class="form-group">
         <label class="form-label">Nama Lengkap *</label>
@@ -2846,7 +2922,7 @@ function simpanUser() {
 
   if (!uname || !nama) return showMsg('Username dan nama wajib diisi.', true);
   if (!usernameLama && !pass) return showMsg('Password wajib diisi untuk user baru.', true);
-  if (pass && pass.length < 4) return showMsg('Password minimal 4 karakter.', true);
+  if (pass && pass.length < 6) return showMsg('Password minimal 6 karakter.', true);
   if (role !== 'superadmin' && !ulp) return showMsg('ULP wajib dipilih untuk role ini.', true);
 
   showMsg('Menyimpan ke server...', false);
@@ -3017,7 +3093,7 @@ function simpanUserULP() {
   if (!uname) return showMsg('Username wajib diisi.', true);
   if (!nama)  return showMsg('Nama lengkap wajib diisi.', true);
   if (!usernameLama && !pass) return showMsg('Password wajib diisi untuk user baru.', true);
-  if (pass && pass.length < 4) return showMsg('Password minimal 4 karakter.', true);
+  if (pass && pass.length < 6) return showMsg('Password minimal 6 karakter.', true);
   // Admin ULP tidak boleh buat superadmin
   if (role === 'superadmin') return showMsg('Anda tidak dapat membuat akun Superadmin.', true);
 
@@ -3072,19 +3148,65 @@ function toggleUfPassword() {
   if (btn) btn.textContent = inp.type === 'password' ? '👁️' : '🙈';
 }
 
-// ── Reset Password oleh Admin ULP ────────────────────────────
+// ── Reset Password oleh Admin (ULP & Superadmin) ─────────────
+var _rpTargetUsername = '';
+
 function resetPasswordULP(username) {
-  var pw = prompt('Reset password untuk "' + username + '".\n\nMasukkan password baru (min 4 karakter):');
-  if (pw === null) return;
-  pw = pw.trim();
-  if (pw.length < 4) { alert('Password minimal 4 karakter.'); return; }
-  var s = getSession();
-  if (!s) return;
-  apiGet({ action: 'resetPassword', token: s.token, username: username, passwordBaru: pw }, function(res) {
+  _rpTargetUsername = username;
+  document.getElementById('rp-username-label').textContent = username;
+  document.getElementById('rp-password').value = '';
+  document.getElementById('rp-password-confirm').value = '';
+  document.getElementById('rp-msg').style.display = 'none';
+  document.getElementById('rp-strength').textContent = '';
+  document.getElementById('modal-reset-password').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('rp-password').focus(); }, 100);
+}
+
+function tutupModalResetPassword() {
+  document.getElementById('modal-reset-password').style.display = 'none';
+  _rpTargetUsername = '';
+}
+
+function checkPasswordStrength(val) {
+  var el = document.getElementById('rp-strength');
+  if (!val) { el.textContent = ''; return; }
+  var score = 0;
+  if (val.length >= 6) score++;
+  if (val.length >= 10) score++;
+  if (/[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  var labels = ['', '⚠️ Terlalu lemah', '🔶 Lemah', '🟡 Cukup', '🟢 Kuat', '✅ Sangat kuat'];
+  var colors = ['', '#DC2626', '#D97706', '#CA8A04', '#16A34A', '#059669'];
+  el.textContent = labels[score] || '';
+  el.style.color = colors[score] || '';
+}
+
+function submitResetPassword() {
+  var pw      = (document.getElementById('rp-password').value || '').trim();
+  var pwConf  = (document.getElementById('rp-password-confirm').value || '').trim();
+  var msgEl   = document.getElementById('rp-msg');
+  var s       = getSession();
+
+  function showMsg(txt, ok) {
+    msgEl.style.display = 'block';
+    msgEl.style.background = ok ? '#D1FAE5' : '#FEE2E2';
+    msgEl.style.color      = ok ? '#065F46'  : '#991B1B';
+    msgEl.textContent = txt;
+  }
+
+  if (!pw) return showMsg('Password baru wajib diisi.', false);
+  if (pw.length < 6) return showMsg('Password minimal 6 karakter.', false);
+  if (pw !== pwConf) return showMsg('Konfirmasi password tidak sama.', false);
+  if (!_rpTargetUsername) return showMsg('Target user tidak ditemukan.', false);
+
+  showMsg('Menyimpan...', true);
+  apiGet({ action: 'resetPassword', token: s ? s.token : '', username: _rpTargetUsername, passwordBaru: pw }, function(res) {
     if (res.status === 'ok') {
-      alert('✅ Password "' + username + '" berhasil direset.');
+      showMsg('✅ Password "' + _rpTargetUsername + '" berhasil direset.', true);
+      setTimeout(tutupModalResetPassword, 1800);
     } else {
-      alert('Gagal reset password:\n' + (res.message || 'error'));
+      showMsg('❌ ' + (res.message || 'Gagal reset password.'), false);
     }
   });
 }
@@ -6893,7 +7015,8 @@ function submitSetPin() {
   }
 
   if (!pass || !pinBaru || !pinKonfirmasi) { showMsg('Semua field wajib diisi.', false); return; }
-  if (pinBaru.length < 4) { showMsg('PIN minimal 4 karakter.', false); return; }
+  if (!/^\d+$/.test(pinBaru)) { showMsg('PIN hanya boleh berisi angka (0-9).', false); return; }
+  if (pinBaru.length < 4) { showMsg('PIN minimal 4 digit angka.', false); return; }
   if (pinBaru !== pinKonfirmasi) { showMsg('PIN baru dan konfirmasi tidak sama.', false); return; }
 
   apiGet({ action:'setPin', token: s.token, password: pass, pinBaru: pinBaru }, function(res){
@@ -6967,6 +7090,58 @@ function tutupBannerInstall() {
   // Simpan preferensi agar banner tidak muncul lagi di sesi ini
   sessionStorage.setItem('pwa_banner_dismissed', '1');
 }
+// ══ PWA INSTALL — INISIALISASI LENGKAP ════════════════════════
+
+var _pwaInstallPrompt = null;
+
+// ── Android / Chrome / Edge: tangkap event sebelum browser tampilkan prompt ──
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault(); // cegah prompt otomatis browser
+  _pwaInstallPrompt = e;
+
+  // Jangan tampilkan jika user sudah dismiss di sesi ini
+  if (sessionStorage.getItem('pwa_banner_dismissed') === '1') return;
+  // Jangan tampilkan jika sudah terinstall (standalone mode)
+  if (window.matchMedia('(display-mode: standalone)').matches) return;
+
+  var banner = document.getElementById('pwa-install-banner');
+  if (banner) {
+    banner.style.display = 'flex';
+  }
+});
+
+// ── iOS Safari: tidak support beforeinstallprompt, pakai panduan manual ──
+(function() {
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isSafari = /safari/i.test(navigator.userAgent) && !/chrome|crios|fxios/i.test(navigator.userAgent);
+  var isStandalone = window.navigator.standalone === true;
+  var dismissed = localStorage.getItem('pwa_ios_dismissed') === '1';
+
+  if (isIOS && isSafari && !isStandalone && !dismissed) {
+    // Tunda 3 detik agar halaman sudah selesai load dulu
+    setTimeout(function() {
+      var modal = document.getElementById('pwa-ios-modal');
+      if (modal) modal.style.display = 'flex';
+    }, 3000);
+  }
+})();
+
+function tutupModalIOS(jangan) {
+  var modal = document.getElementById('pwa-ios-modal');
+  if (modal) modal.style.display = 'none';
+  if (jangan) localStorage.setItem('pwa_ios_dismissed', '1');
+}
+
+// ── Sembunyikan banner jika sudah berjalan di mode standalone (sudah terinstall) ──
+(function() {
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+    var banner = document.getElementById('pwa-install-banner');
+    var modal  = document.getElementById('pwa-ios-modal');
+    if (banner) banner.style.display = 'none';
+    if (modal)  modal.style.display  = 'none';
+  }
+})();
+
 // ══════════════════════════════════════════════════════════════
 
 function updatePinDots() {

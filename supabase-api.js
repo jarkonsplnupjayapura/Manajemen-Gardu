@@ -629,7 +629,7 @@ async function _tambahUser(p, signal) {
 
 // ── EDIT USER via RPC ────────────────────────────────────────
 async function _editUser(p, signal) {
-  var pwHash = (p.password && String(p.password).trim().length >= 4)
+  var pwHash = (p.password && String(p.password).trim().length >= 6)
     ? await sha256(String(p.password).trim())
     : null;
 
