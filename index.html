@@ -169,6 +169,29 @@ body{
   animation:pageFadeIn .18s ease;
 }
 @keyframes pageFadeIn{from{opacity:.7;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+/* Pastikan tab-pengukuran & tab-pemeliharaan selalu mulai dari atas viewport */
+#tab-pengukuran,
+#tab-pemeliharaan {
+  scroll-margin-top: 0;
+}
+/* Ketika aktif: jadikan full-screen scrollable container, bebas dari body scroll */
+#tab-pengukuran.active,
+#tab-pemeliharaan.active {
+  position: fixed;
+  inset: 0;
+  max-width: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  z-index: 1;
+  background: var(--pln-bg);
+}
+@media(min-width:768px){
+  #tab-pengukuran.active,
+  #tab-pemeliharaan.active {
+    left: 260px;
+    max-width: calc(100% - 260px);
+  }
+}
 .page-body{
   padding:var(--sp-md);
   padding-bottom:calc(var(--nav-h) + var(--sp-lg) + env(safe-area-inset-bottom));
@@ -1803,7 +1826,8 @@ if (typeof L === 'undefined') {
       <button class="btn btn-ghost pin-key" data-target="gardu" data-v="back">⌫</button>
     </div>
     <div id="pin-gardu-error" style="display:none;color:var(--pln-red);text-align:center;margin-top:var(--sp-sm);font-size:var(--fs-sm);"></div>
-    <button class="btn btn-outline" style="margin-top:var(--sp-md);width:100%;" onclick="tutupModalPinGardu()">Batal</button>
+    <button id="btn-belum-pin" class="btn btn-outline" style="display:none;margin-top:var(--sp-sm);width:100%;font-size:var(--fs-xs);color:var(--pln-text3);" onclick="bukaSetPinDariModalPin()">🔐 Belum punya PIN? Set PIN dulu</button>
+    <button class="btn btn-outline" style="margin-top:var(--sp-sm);width:100%;" onclick="tutupModalPinGardu()">Batal</button>
   </div>
 </div>
 
@@ -2208,6 +2232,147 @@ if (typeof L === 'undefined') {
   </div>
 </div>
 
+<!-- ══ MODAL EDIT INSPEKSI ══════════════════════════════════════ -->
+<div id="modal-edit-inspeksi" style="display:none;position:fixed;inset:0;z-index:9300;background:rgba(0,0,0,.6);align-items:flex-end;justify-content:center;">
+  <div style="background:var(--pln-card);border-radius:var(--radius) var(--radius) 0 0;padding:var(--sp-lg);width:100%;max-width:560px;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-md);">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:22px;">✏️</span>
+        <div>
+          <div style="font-size:var(--fs-md);font-weight:700;color:var(--pln-text);">Edit Data Inspeksi</div>
+          <div id="edit-inspeksi-subtitle" style="font-size:var(--fs-xs);color:var(--pln-text3);"></div>
+        </div>
+      </div>
+      <button onclick="document.getElementById('modal-edit-inspeksi').style.display='none'" style="background:var(--pln-bg);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;">✕</button>
+    </div>
+    <div style="height:1px;background:var(--pln-border);margin-bottom:var(--sp-md);"></div>
+    <input type="hidden" id="edit-inspeksi-id">
+    <div class="grid2" style="margin-bottom:var(--sp-sm);">
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">📅 Tanggal Ukur <span class="req">*</span></label>
+        <input type="date" id="ei-tgl" class="form-input">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">🕐 Jam Ukur</label>
+        <input type="time" id="ei-jam" class="form-input">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">👤 Nama Petugas <span class="req">*</span></label>
+      <input type="text" id="ei-petugas" class="form-input" placeholder="Nama petugas pengukur">
+    </div>
+    <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--pln-border);">⚡ Data Beban Utama (Ampere)</div>
+    <div class="grid2" style="margin-bottom:var(--sp-sm);">
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">R Total (A)</label>
+        <input type="number" id="ei-r" class="form-input" placeholder="0.0" step="0.1">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">S Total (A)</label>
+        <input type="number" id="ei-s" class="form-input" placeholder="0.0" step="0.1">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">T Total (A)</label>
+        <input type="number" id="ei-t" class="form-input" placeholder="0.0" step="0.1">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">N Total (A)</label>
+        <input type="number" id="ei-n" class="form-input" placeholder="0.0" step="0.1">
+      </div>
+    </div>
+    <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--pln-border);">🔌 Tegangan Fasa-Netral (Volt)</div>
+    <div class="grid2" style="margin-bottom:var(--sp-sm);">
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">R-N (V)</label>
+        <input type="number" id="ei-vrn" class="form-input" placeholder="220" step="0.1">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">S-N (V)</label>
+        <input type="number" id="ei-vsn" class="form-input" placeholder="220" step="0.1">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">T-N (V)</label>
+        <input type="number" id="ei-vtn" class="form-input" placeholder="220" step="0.1">
+      </div>
+    </div>
+    <div class="grid2" style="margin-bottom:var(--sp-sm);">
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Daya Trafo (kVA)</label>
+        <input type="number" id="ei-daya" class="form-input" placeholder="0" step="1">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Daya Pakai (kW)</label>
+        <input type="number" id="ei-dayapakai" class="form-input" placeholder="0.0" step="0.1">
+      </div>
+    </div>
+    <div id="edit-inspeksi-err" style="display:none;background:var(--pln-red-pale);color:var(--pln-red);border-radius:var(--radius-xs);padding:8px 12px;font-size:var(--fs-xs);margin-bottom:8px;"></div>
+    <div id="edit-inspeksi-ok" style="display:none;background:var(--pln-green-pale);color:var(--pln-green);border-radius:var(--radius-xs);padding:8px 12px;font-size:var(--fs-xs);margin-bottom:8px;"></div>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="document.getElementById('modal-edit-inspeksi').style.display='none'">Batal</button>
+      <button class="btn btn-blue" id="btn-simpan-edit-inspeksi" onclick="simpanEditInspeksi()">💾 Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL EDIT PEMELIHARAAN ══════════════════════════════════ -->
+<div id="modal-edit-pemeliharaan" style="display:none;position:fixed;inset:0;z-index:9300;background:rgba(0,0,0,.6);align-items:flex-end;justify-content:center;">
+  <div style="background:var(--pln-card);border-radius:var(--radius) var(--radius) 0 0;padding:var(--sp-lg);width:100%;max-width:560px;box-shadow:var(--shadow-lg);max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-md);">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:22px;">🔧</span>
+        <div>
+          <div style="font-size:var(--fs-md);font-weight:700;color:var(--pln-text);">Edit Data Pemeliharaan</div>
+          <div id="edit-pm-subtitle" style="font-size:var(--fs-xs);color:var(--pln-text3);"></div>
+        </div>
+      </div>
+      <button onclick="document.getElementById('modal-edit-pemeliharaan').style.display='none'" style="background:var(--pln-bg);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;">✕</button>
+    </div>
+    <div style="height:1px;background:var(--pln-border);margin-bottom:var(--sp-md);"></div>
+    <input type="hidden" id="edit-pm-id">
+    <div class="form-group">
+      <label class="form-label">📅 Tanggal <span class="req">*</span></label>
+      <input type="date" id="ep-tanggal" class="form-input">
+    </div>
+    <div class="form-group">
+      <label class="form-label">👤 Nama Petugas <span class="req">*</span></label>
+      <input type="text" id="ep-petugas" class="form-input" placeholder="Nama petugas">
+    </div>
+    <div class="form-group">
+      <label class="form-label">🏢 Kategori Unit</label>
+      <select id="ep-kategori" class="form-select">
+        <option value="">-- Pilih Kategori --</option>
+        <option value="PLN">PLN</option>
+        <option value="NON PLN">NON PLN</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">🔧 Jenis Pekerjaan <span class="req">*</span></label>
+      <select id="ep-jenis" class="form-select">
+        <option value="">-- Pilih Jenis Pekerjaan --</option>
+        <option value="Penggantian Minyak Trafo">Penggantian Minyak Trafo</option>
+        <option value="Pembersihan Isolator">Pembersihan Isolator</option>
+        <option value="Pengecekan Kondisi Fisik">Pengecekan Kondisi Fisik</option>
+        <option value="Perbaikan Konstruksi">Perbaikan Konstruksi</option>
+        <option value="Penggantian Fuse">Penggantian Fuse</option>
+        <option value="Penggantian Komponen">Penggantian Komponen</option>
+        <option value="Pemerataan Beban">Pemerataan Beban</option>
+        <option value="Instalasi Grounding">Instalasi Grounding</option>
+        <option value="Lainnya">Lainnya</option>
+      </select>
+    </div>
+    <div class="form-group" id="ep-jenis-lainnya-wrap" style="display:none;">
+      <label class="form-label">📝 Uraian Jenis Pekerjaan</label>
+      <input type="text" id="ep-jenis-lainnya" class="form-input" placeholder="Tuliskan jenis pekerjaan...">
+    </div>
+    <div id="edit-pm-err" style="display:none;background:var(--pln-red-pale);color:var(--pln-red);border-radius:var(--radius-xs);padding:8px 12px;font-size:var(--fs-xs);margin-bottom:8px;"></div>
+    <div id="edit-pm-ok" style="display:none;background:var(--pln-green-pale);color:var(--pln-green);border-radius:var(--radius-xs);padding:8px 12px;font-size:var(--fs-xs);margin-bottom:8px;"></div>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="document.getElementById('modal-edit-pemeliharaan').style.display='none'">Batal</button>
+      <button class="btn btn-blue" id="btn-simpan-edit-pm" onclick="simpanEditPemeliharaan()">💾 Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════════════════════
 //  [AUTH v2] SISTEM LOGIN SERVER-SIDE
@@ -2527,6 +2692,9 @@ function _tampilkanModalPinAdmin(s) {
           errEl.textContent = '❌ PIN salah. Coba lagi.';
           errEl.style.display = 'block';
         }
+        // Tampilkan tombol "Belum PIN" agar user yang PIN-nya di-reset bisa set PIN baru
+        var belumPinBtn = document.getElementById('btn-belum-pin');
+        if (belumPinBtn) belumPinBtn.style.display = 'block';
         // _pinGarduCallback sudah di-set ke cekPinAdmin di atas, siap retry
       }
     });
@@ -2538,6 +2706,9 @@ function _tampilkanModalPinAdmin(s) {
   updatePinGarduDots();
   var errEl = document.getElementById('pin-gardu-error');
   if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  // Sembunyikan tombol "Belum PIN" saat modal baru dibuka
+  var belumPinBtn = document.getElementById('btn-belum-pin');
+  if (belumPinBtn) belumPinBtn.style.display = 'none';
   var titleEl = document.getElementById('pin-gardu-title');
   if (titleEl) titleEl.textContent = '🔑 PIN Admin — ' + (s.ulp || 'ULP Anda');
   document.getElementById('modal-pin-gardu').style.display = 'flex';
@@ -3147,16 +3318,27 @@ function bukaTab(id, idx){
   document.getElementById('bottom-nav').style.display = 'flex';
   TAB_IDS.forEach(function(tid){ document.getElementById(tid).classList.remove('active'); });
   document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
-  document.getElementById(id).classList.add('active');
-  document.querySelectorAll('.nav-btn')[idx].classList.add('active');
-  currentTab = idx;
-  // ── Scroll reset ke atas setiap pindah tab ──
+  // Reset scroll SEBELUM show tab baru agar tidak ada gap
   window.scrollTo(0, 0);
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-btn')[idx].classList.add('active');
+  currentTab = idx;
   // Scroll page-body juga ke atas
   var pb = document.querySelector('#' + id + ' .page-body');
   if (pb) pb.scrollTop = 0;
+  // Scroll container tab sendiri ke atas (untuk tab yang position:fixed)
+  var tabEl = document.getElementById(id);
+  if (tabEl) tabEl.scrollTop = 0;
+  // Double reset setelah render
+  requestAnimationFrame(function() {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    var t = document.getElementById(id);
+    if (t) t.scrollTop = 0;
+  });
   if(id==='tab-rekap' && !rekapSudahMuat) muatRekap();
   if(id==='tab-pemeliharaan') { /* data dimuat on-demand saat user tekan Tampilkan */ }
   if(id==='tab-pengukuran') { /* data dimuat on-demand saat user tekan Tampilkan */ }
@@ -3539,6 +3721,11 @@ function renderDetailGardu(g, riwayat){
 
       var _sRiwayat = getSession();
       var _canDeleteInspeksi = _sRiwayat && (_sRiwayat.role === 'admin' || _sRiwayat.role === 'superadmin');
+      var _canEditInspeksi = _sRiwayat && (
+        _sRiwayat.role === 'admin' || _sRiwayat.role === 'superadmin' ||
+        (_sRiwayat.role === 'petugas' && _sRiwayat.nama && r['PETUGAS'] &&
+          String(_sRiwayat.nama).toLowerCase().trim() === String(r['PETUGAS']).toLowerCase().trim())
+      );
       var _inspeksiId = r['_id'];
 
       html += '<div class="riwayat-card">';
@@ -3556,11 +3743,19 @@ function renderDetailGardu(g, riwayat){
       html += '</div>';
       html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">';
       html += '<span class="badge '+bc+'">'+prosenLabel+'</span>';
-      if (_canDeleteInspeksi && _inspeksiId) {
-        html += '<button onclick="event.stopPropagation();hapusInspeksiById('+_inspeksiId+',\''+esc(formatTgl(r['TGLUKUR']))+'\')" '+
-          'style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;'+
+      if (_canEditInspeksi && _inspeksiId) {
+        html += '<div style="display:flex;gap:4px;">';
+        html += '<button onclick="event.stopPropagation();bukaEditInspeksi('+_inspeksiId+','+JSON.stringify(r)+')" '+
+          'style="background:#EEF4FF;color:var(--pln-biru2);border:1px solid #BFDBFE;border-radius:6px;'+
           'font-size:clamp(9px,2.2vw,10.5px);font-weight:700;padding:3px 8px;cursor:pointer;white-space:nowrap;'+
-          'touch-action:manipulation;" title="Hapus data inspeksi ini">🗑️ Hapus</button>';
+          'touch-action:manipulation;" title="Edit data inspeksi ini">✏️ Edit</button>';
+        if (_canDeleteInspeksi) {
+          html += '<button onclick="event.stopPropagation();hapusInspeksiById('+_inspeksiId+',\''+esc(formatTgl(r['TGLUKUR']))+'\')"+
+            'style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;'+
+            'font-size:clamp(9px,2.2vw,10.5px);font-weight:700;padding:3px 8px;cursor:pointer;white-space:nowrap;'+
+            'touch-action:manipulation;" title="Hapus data inspeksi ini">🗑️ Hapus</button>';
+        }
+        html += '</div>';
       }
       html += '</div>';
       html += '</div>';
@@ -4547,6 +4742,152 @@ function hapusInspeksiById(id, tglLabel) {
     if (noGardu) bukaDetailGardu(noGardu);
   });
 }
+
+// ── EDIT INSPEKSI ──────────────────────────────────────────────
+function bukaEditInspeksi(id, r) {
+  var s = getSession();
+  if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
+  document.getElementById('edit-inspeksi-id').value = id;
+  document.getElementById('edit-inspeksi-subtitle').textContent =
+    'Gardu: ' + (r['NO_GARDU'] || r['NOGARDU'] || '—') + '  |  ID: ' + id;
+  // Isi form dengan data existing
+  document.getElementById('ei-tgl').value = r['TGLUKUR'] || '';
+  document.getElementById('ei-jam').value = r['JAM UKUR'] ? String(r['JAM UKUR']).slice(0,5) : '';
+  document.getElementById('ei-petugas').value = r['PETUGAS'] || '';
+  document.getElementById('ei-r').value = r['R TOTAL'] || '';
+  document.getElementById('ei-s').value = r['S TOTAL'] || '';
+  document.getElementById('ei-t').value = r['T TOTAL'] || '';
+  document.getElementById('ei-n').value = r['N TOTAL'] || '';
+  document.getElementById('ei-vrn').value = r['R - N'] || '';
+  document.getElementById('ei-vsn').value = r['S - N'] || '';
+  document.getElementById('ei-vtn').value = r['T - N'] || '';
+  document.getElementById('ei-daya').value = r['DAYA'] || '';
+  document.getElementById('ei-dayapakai').value = r['DAYA PAKAI'] || '';
+  document.getElementById('edit-inspeksi-err').style.display = 'none';
+  document.getElementById('edit-inspeksi-ok').style.display = 'none';
+  document.getElementById('modal-edit-inspeksi').style.display = 'flex';
+}
+
+function simpanEditInspeksi() {
+  var s = getSession();
+  if (!s || !s.token) { alert('Sesi tidak valid.'); return; }
+  var id = document.getElementById('edit-inspeksi-id').value;
+  var tgl = document.getElementById('ei-tgl').value;
+  var petugas = document.getElementById('ei-petugas').value.trim();
+  var errEl = document.getElementById('edit-inspeksi-err');
+  var okEl = document.getElementById('edit-inspeksi-ok');
+  errEl.style.display = 'none'; okEl.style.display = 'none';
+  if (!tgl) { errEl.textContent = '⚠️ Tanggal wajib diisi.'; errEl.style.display = 'block'; return; }
+  if (!petugas) { errEl.textContent = '⚠️ Nama petugas wajib diisi.'; errEl.style.display = 'block'; return; }
+  var btn = document.getElementById('btn-simpan-edit-inspeksi');
+  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+  apiGet({
+    action: 'editInspeksi', token: s.token, id: id,
+    tglUkur: tgl,
+    jamUkur: document.getElementById('ei-jam').value || null,
+    petugas: petugas,
+    rTotal: document.getElementById('ei-r').value || null,
+    sTotal: document.getElementById('ei-s').value || null,
+    tTotal: document.getElementById('ei-t').value || null,
+    nTotal: document.getElementById('ei-n').value || null,
+    vRN: document.getElementById('ei-vrn').value || null,
+    vSN: document.getElementById('ei-vsn').value || null,
+    vTN: document.getElementById('ei-vtn').value || null,
+    daya: document.getElementById('ei-daya').value || null,
+    dayaPakai: document.getElementById('ei-dayapakai').value || null
+  }, function(res) {
+    btn.disabled = false; btn.textContent = '💾 Simpan Perubahan';
+    if (res.status !== 'ok') {
+      errEl.textContent = '❌ ' + (res.message || 'Gagal menyimpan.');
+      errEl.style.display = 'block'; return;
+    }
+    okEl.textContent = '✅ Data berhasil diperbarui!';
+    okEl.style.display = 'block';
+    setTimeout(function() {
+      document.getElementById('modal-edit-inspeksi').style.display = 'none';
+      var titleEl = document.getElementById('detail-view-title');
+      var noGardu = titleEl ? titleEl.textContent.trim() : '';
+      if (noGardu) bukaDetailGardu(noGardu);
+    }, 1200);
+  });
+}
+
+// ── EDIT PEMELIHARAAN ─────────────────────────────────────────
+function bukaEditPemeliharaan(id, d) {
+  var s = getSession();
+  if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
+  document.getElementById('edit-pm-id').value = id;
+  document.getElementById('edit-pm-subtitle').textContent =
+    'Gardu: ' + (d.no_gardu || '—') + '  |  ID: ' + id;
+  document.getElementById('ep-tanggal').value = d.tanggal || '';
+  document.getElementById('ep-petugas').value = d.petugas || '';
+  document.getElementById('ep-kategori').value = d.kategori || '';
+  // Jenis pekerjaan
+  var jenisSel = document.getElementById('ep-jenis');
+  var jenisPilihan = Array.from(jenisSel.options).map(function(o){ return o.value; });
+  if (d.jenis && jenisPilihan.indexOf(d.jenis) >= 0) {
+    jenisSel.value = d.jenis;
+    document.getElementById('ep-jenis-lainnya-wrap').style.display = 'none';
+  } else if (d.jenis) {
+    jenisSel.value = 'Lainnya';
+    document.getElementById('ep-jenis-lainnya').value = d.jenis;
+    document.getElementById('ep-jenis-lainnya-wrap').style.display = 'block';
+  } else {
+    jenisSel.value = '';
+    document.getElementById('ep-jenis-lainnya-wrap').style.display = 'none';
+  }
+  document.getElementById('edit-pm-err').style.display = 'none';
+  document.getElementById('edit-pm-ok').style.display = 'none';
+  document.getElementById('modal-edit-pemeliharaan').style.display = 'flex';
+}
+
+// Show/hide field "Lainnya" on jenis select change
+document.addEventListener('DOMContentLoaded', function() {
+  var jenisSel = document.getElementById('ep-jenis');
+  if (jenisSel) jenisSel.addEventListener('change', function() {
+    document.getElementById('ep-jenis-lainnya-wrap').style.display =
+      this.value === 'Lainnya' ? 'block' : 'none';
+  });
+});
+
+function simpanEditPemeliharaan() {
+  var s = getSession();
+  if (!s || !s.token) { alert('Sesi tidak valid.'); return; }
+  var id = document.getElementById('edit-pm-id').value;
+  var tanggal = document.getElementById('ep-tanggal').value;
+  var petugas = document.getElementById('ep-petugas').value.trim();
+  var kategori = document.getElementById('ep-kategori').value;
+  var jenisSel = document.getElementById('ep-jenis').value;
+  var jenis = jenisSel === 'Lainnya'
+    ? document.getElementById('ep-jenis-lainnya').value.trim()
+    : jenisSel;
+  var errEl = document.getElementById('edit-pm-err');
+  var okEl = document.getElementById('edit-pm-ok');
+  errEl.style.display = 'none'; okEl.style.display = 'none';
+  if (!tanggal) { errEl.textContent = '⚠️ Tanggal wajib diisi.'; errEl.style.display = 'block'; return; }
+  if (!petugas) { errEl.textContent = '⚠️ Nama petugas wajib diisi.'; errEl.style.display = 'block'; return; }
+  if (!jenis) { errEl.textContent = '⚠️ Jenis pekerjaan wajib diisi.'; errEl.style.display = 'block'; return; }
+  var btn = document.getElementById('btn-simpan-edit-pm');
+  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+  apiGet({
+    action: 'editPemeliharaan', token: s.token, id: id,
+    tanggal: tanggal, petugas: petugas, kategori: kategori, jenis: jenis
+  }, function(res) {
+    btn.disabled = false; btn.textContent = '💾 Simpan Perubahan';
+    if (res.status !== 'ok') {
+      errEl.textContent = '❌ ' + (res.message || 'Gagal menyimpan.');
+      errEl.style.display = 'block'; return;
+    }
+    okEl.textContent = '✅ Data pemeliharaan berhasil diperbarui!';
+    okEl.style.display = 'block';
+    setTimeout(function() {
+      document.getElementById('modal-edit-pemeliharaan').style.display = 'none';
+      _pmSudahMuat = false;
+      muatDaftarPemeliharaan(true);
+    }, 1200);
+  });
+}
+
 
 
 function bukaModalExport() {
@@ -6511,6 +6852,13 @@ function tutupModalPinGardu() {
   _pinGarduCallback = null;
 }
 
+// Dipanggil dari tombol "Belum PIN" di modal-pin-gardu
+// Tutup modal PIN → langsung buka modal Set PIN
+function bukaSetPinDariModalPin() {
+  tutupModalPinGardu();
+  bukaModalSetPin();
+}
+
 function updatePinGarduDots() {
   var dots = document.querySelectorAll('#pin-gardu-dots .pin-dot');
   dots.forEach(function(d, i){ d.classList.toggle('filled', i < pinGarduBuffer.length); });
@@ -7082,6 +7430,13 @@ function bukaFormPemeliharaan(noGarduPrefill) {
 function tutupFormPemeliharaan() {
   var view = document.getElementById('form-pemeliharaan-view');
   if (view) view.style.display = 'none';
+  // Reset scroll setelah tutup form fixed
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  // Scroll container tab aktif ke atas
+  var activeTab = document.querySelector('.page.active');
+  if (activeTab) activeTab.scrollTop = 0;
 }
 
 function pmResetForm() {
@@ -7297,6 +7652,10 @@ function renderDaftarPemeliharaan() {
   var isMobile    = window.innerWidth < 768;
   var _sPm        = getSession();
   var _canDeletePm= _sPm && (_sPm.role === 'admin' || _sPm.role === 'superadmin');
+  var _canEditPm = _sPm && (
+    _sPm.role === 'admin' || _sPm.role === 'superadmin' ||
+    (_sPm.role === 'petugas' && _sPm.nama)
+  );
 
   var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-sm);flex-wrap:wrap;gap:6px;">';
   html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);font-weight:600;">';
@@ -7321,6 +7680,9 @@ function renderDaftarPemeliharaan() {
   if (isMobile) {
     // ── Mobile card view ──
     pageData.forEach(function(d) {
+      var editBtn = (_canEditPm && d.id)
+        ? '<button onclick="bukaEditPemeliharaan('+d.id+','+JSON.stringify(d)+')" style="background:#EEF4FF;color:var(--pln-biru2);border:1px solid #BFDBFE;border-radius:6px;font-size:clamp(9px,2.2vw,10.5px);font-weight:700;padding:4px 10px;cursor:pointer;touch-action:manipulation;flex-shrink:0;">✏️ Edit</button>'
+        : '';
       var hapusBtn = (_canDeletePm && d.id)
         ? '<button onclick="hapusPemeliharaanById('+d.id+',\''+esc(d.no_gardu||'')+'\')" style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;font-size:clamp(9px,2.2vw,10.5px);font-weight:700;padding:4px 10px;cursor:pointer;touch-action:manipulation;flex-shrink:0;">🗑️ Hapus</button>'
         : '';
@@ -7344,7 +7706,7 @@ function renderDaftarPemeliharaan() {
     html += '<table style="width:100%;border-collapse:collapse;font-size:var(--fs-xs);">';
     html += '<thead><tr style="background:var(--pln-biru);color:#fff;">';
     var headers = ['NO','NO GARDU','ULP','TANGGAL','PETUGAS','UNIT','JENIS PEKERJAAN'];
-    if (_canDeletePm) headers.push('AKSI');
+    if (_canEditPm || _canDeletePm) headers.push('AKSI');
     headers.forEach(function(h) {
       html += '<th style="padding:10px 12px;text-align:left;white-space:nowrap;font-weight:700;font-size:11px;letter-spacing:.3px;">'+h+'</th>';
     });
@@ -7360,10 +7722,15 @@ function renderDaftarPemeliharaan() {
       html += '<td style="padding:9px 12px;">'+esc(d.petugas||'—')+'</td>';
       html += '<td style="padding:9px 12px;">'+esc(d.kategori||'—')+'</td>';
       html += '<td style="padding:9px 12px;">'+esc(d.jenis||'—')+'</td>';
-      if (_canDeletePm) {
-        html += '<td style="padding:9px 12px;">' + (d.id
-          ? '<button onclick="hapusPemeliharaanById('+d.id+',\''+esc(d.no_gardu||'')+'\')" style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;font-size:10px;font-weight:700;padding:4px 10px;cursor:pointer;">🗑️</button>'
-          : '') + '</td>';
+      if (_canEditPm || _canDeletePm) {
+        html += '<td style="padding:9px 12px;">';
+        if (d.id) {
+          html += '<div style="display:flex;gap:4px;">';
+          if (_canEditPm) html += '<button onclick="bukaEditPemeliharaan('+d.id+','+JSON.stringify(d)+')" style="background:#EEF4FF;color:var(--pln-biru2);border:1px solid #BFDBFE;border-radius:6px;font-size:10px;font-weight:700;padding:4px 8px;cursor:pointer;">✏️</button>';
+          if (_canDeletePm) html += '<button onclick="hapusPemeliharaanById('+d.id+',\''+esc(d.no_gardu||'')+'\')" style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;font-size:10px;font-weight:700;padding:4px 8px;cursor:pointer;">🗑️</button>';
+          html += '</div>';
+        }
+        html += '</td>';
       }
       html += '</tr>';
     });
