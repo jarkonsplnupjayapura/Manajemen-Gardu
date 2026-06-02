@@ -3735,7 +3735,7 @@ function renderDetailGardu(g, riwayat){
           'font-size:clamp(9px,2.2vw,10.5px);font-weight:700;padding:3px 8px;cursor:pointer;white-space:nowrap;'+
           'touch-action:manipulation;" title="Edit data inspeksi ini">✏️ Edit</button>';
         if (_canDeleteInspeksi) {
-          html += '<button onclick="event.stopPropagation();hapusInspeksiById('+_inspeksiId+',\''+esc(formatTgl(r['TGLUKUR']))+'\')"+
+          html += '<button onclick="event.stopPropagation();hapusInspeksiById('+_inspeksiId+',\''+esc(formatTgl(r['TGLUKUR']))+'\')" '+
             'style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;'+
             'font-size:clamp(9px,2.2vw,10.5px);font-weight:700;padding:3px 8px;cursor:pointer;white-space:nowrap;'+
             'touch-action:manipulation;" title="Hapus data inspeksi ini">🗑️ Hapus</button>';
