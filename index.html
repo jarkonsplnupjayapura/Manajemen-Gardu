@@ -2290,78 +2290,119 @@ if (typeof L === 'undefined') {
 </div>
 
 <!-- ══ MODAL EDIT INSPEKSI ══════════════════════════════════════ -->
-<div id="modal-edit-inspeksi" style="display:none;position:fixed;inset:0;z-index:9300;background:rgba(0,0,0,.6);align-items:flex-end;justify-content:center;">
-  <div style="background:var(--pln-card);border-radius:var(--radius) var(--radius) 0 0;padding:var(--sp-lg);width:100%;max-width:560px;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto;">
+<div id="modal-edit-inspeksi" style="display:none;position:fixed;inset:0;z-index:9300;background:rgba(0,0,0,.6);align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px 0;">
+  <div style="background:var(--pln-card);border-radius:var(--radius);padding:var(--sp-lg);width:100%;max-width:600px;box-shadow:var(--shadow-lg);margin:auto;">
+    <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-md);">
       <div style="display:flex;align-items:center;gap:10px;">
         <span style="font-size:22px;">✏️</span>
         <div>
-          <div style="font-size:var(--fs-md);font-weight:700;color:var(--pln-text);">Edit Data Inspeksi</div>
+          <div style="font-size:var(--fs-md);font-weight:700;color:var(--pln-text);">Edit Data Pengukuran</div>
           <div id="edit-inspeksi-subtitle" style="font-size:var(--fs-xs);color:var(--pln-text3);"></div>
         </div>
       </div>
-      <button onclick="document.getElementById('modal-edit-inspeksi').style.display='none'" style="background:var(--pln-bg);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;">✕</button>
+      <button onclick="document.getElementById('modal-edit-inspeksi').style.display='none'" style="background:var(--pln-bg);border:none;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:18px;flex-shrink:0;">✕</button>
     </div>
     <div style="height:1px;background:var(--pln-border);margin-bottom:var(--sp-md);"></div>
     <input type="hidden" id="edit-inspeksi-id">
+
+    <!-- Waktu & Petugas -->
+    <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:var(--pln-biru-pale);border-radius:6px;">📋 Informasi Dasar</div>
     <div class="grid2" style="margin-bottom:var(--sp-sm);">
       <div class="form-group" style="margin:0;">
         <label class="form-label">📅 Tanggal Ukur <span class="req">*</span></label>
         <input type="date" id="ei-tgl" class="form-input">
       </div>
       <div class="form-group" style="margin:0;">
-        <label class="form-label">🕐 Jam Ukur</label>
+        <label class="form-label">🕐 Jam Ukur <span class="req">*</span></label>
         <input type="time" id="ei-jam" class="form-input">
       </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">👤 Nama Petugas <span class="req">*</span></label>
-      <input type="text" id="ei-petugas" class="form-input" placeholder="Nama petugas pengukur">
-    </div>
-    <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--pln-border);">⚡ Data Beban Utama (Ampere)</div>
-    <div class="grid2" style="margin-bottom:var(--sp-sm);">
+    <div class="grid2" style="margin-bottom:var(--sp-md);">
       <div class="form-group" style="margin:0;">
-        <label class="form-label">R Total (A)</label>
-        <input type="number" id="ei-r" class="form-input" placeholder="0.0" step="0.1">
+        <label class="form-label">👤 Nama Petugas <span class="req">*</span></label>
+        <input type="text" id="ei-petugas" class="form-input" placeholder="Nama petugas pengukur">
       </div>
       <div class="form-group" style="margin:0;">
-        <label class="form-label">S Total (A)</label>
-        <input type="number" id="ei-s" class="form-input" placeholder="0.0" step="0.1">
-      </div>
-      <div class="form-group" style="margin:0;">
-        <label class="form-label">T Total (A)</label>
-        <input type="number" id="ei-t" class="form-input" placeholder="0.0" step="0.1">
-      </div>
-      <div class="form-group" style="margin:0;">
-        <label class="form-label">N Total (A)</label>
-        <input type="number" id="ei-n" class="form-input" placeholder="0.0" step="0.1">
+        <label class="form-label">⚡ Fasa</label>
+        <select id="ei-fasa" class="form-select">
+          <option value="">— Pilih —</option>
+          <option value="1">1 Fasa</option>
+          <option value="3">3 Fasa</option>
+        </select>
       </div>
     </div>
-    <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--pln-border);">🔌 Tegangan Fasa-Netral (Volt)</div>
-    <div class="grid2" style="margin-bottom:var(--sp-sm);">
-      <div class="form-group" style="margin:0;">
-        <label class="form-label">R-N (V)</label>
-        <input type="number" id="ei-vrn" class="form-input" placeholder="220" step="0.1">
-      </div>
-      <div class="form-group" style="margin:0;">
-        <label class="form-label">S-N (V)</label>
-        <input type="number" id="ei-vsn" class="form-input" placeholder="220" step="0.1">
-      </div>
-      <div class="form-group" style="margin:0;">
-        <label class="form-label">T-N (V)</label>
-        <input type="number" id="ei-vtn" class="form-input" placeholder="220" step="0.1">
-      </div>
-    </div>
-    <div class="grid2" style="margin-bottom:var(--sp-sm);">
+
+    <!-- Daya -->
+    <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:var(--pln-biru-pale);border-radius:6px;">🔋 Daya</div>
+    <div class="grid2" style="margin-bottom:var(--sp-md);">
       <div class="form-group" style="margin:0;">
         <label class="form-label">Daya Trafo (kVA)</label>
-        <input type="number" id="ei-daya" class="form-input" placeholder="0" step="1">
+        <input type="number" id="ei-daya" class="form-input" placeholder="0" step="any" min="0">
       </div>
       <div class="form-group" style="margin:0;">
         <label class="form-label">Daya Pakai (kW)</label>
-        <input type="number" id="ei-dayapakai" class="form-input" placeholder="0.0" step="0.1">
+        <input type="number" id="ei-dayapakai" class="form-input" placeholder="0.0" step="any" min="0">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Prosen Beban (%)</label>
+        <input type="number" id="ei-prosen" class="form-input" placeholder="0.0" step="any" min="0" max="200">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Tdk Seimbang (%)</label>
+        <input type="number" id="ei-tdkseimbang" class="form-input" placeholder="0.0" step="any" min="0">
       </div>
     </div>
+
+    <!-- Arus -->
+    <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:var(--pln-biru-pale);border-radius:6px;">⚡ Arus Fasa (Ampere)</div>
+    <div class="grid2" style="margin-bottom:var(--sp-md);">
+      <div class="form-group" style="margin:0;"><label class="form-label">R Total (A)</label><input type="number" id="ei-r" class="form-input" placeholder="0.0" step="any" min="0"></div>
+      <div class="form-group" style="margin:0;"><label class="form-label">S Total (A)</label><input type="number" id="ei-s" class="form-input" placeholder="0.0" step="any" min="0"></div>
+      <div class="form-group" style="margin:0;"><label class="form-label">T Total (A)</label><input type="number" id="ei-t" class="form-input" placeholder="0.0" step="any" min="0"></div>
+      <div class="form-group" style="margin:0;"><label class="form-label">N Total (A)</label><input type="number" id="ei-n" class="form-input" placeholder="0.0" step="any" min="0"></div>
+    </div>
+
+    <!-- Tegangan Fasa-Netral -->
+    <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:var(--pln-biru-pale);border-radius:6px;">🔌 Tegangan Fasa–Netral (Volt)</div>
+    <div class="grid2" style="margin-bottom:var(--sp-md);">
+      <div class="form-group" style="margin:0;"><label class="form-label">R–N (V)</label><input type="number" id="ei-vrn" class="form-input" placeholder="220" step="any" min="0"></div>
+      <div class="form-group" style="margin:0;"><label class="form-label">S–N (V)</label><input type="number" id="ei-vsn" class="form-input" placeholder="220" step="any" min="0"></div>
+      <div class="form-group" style="margin:0;"><label class="form-label">T–N (V)</label><input type="number" id="ei-vtn" class="form-input" placeholder="220" step="any" min="0"></div>
+    </div>
+
+    <!-- Tegangan Antar Fasa -->
+    <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:var(--pln-biru-pale);border-radius:6px;">🔌 Tegangan Antar Fasa (Volt)</div>
+    <div class="grid2" style="margin-bottom:var(--sp-md);">
+      <div class="form-group" style="margin:0;"><label class="form-label">R–S (V)</label><input type="number" id="ei-vrs" class="form-input" placeholder="380" step="any" min="0"></div>
+      <div class="form-group" style="margin:0;"><label class="form-label">S–T (V)</label><input type="number" id="ei-vst" class="form-input" placeholder="380" step="any" min="0"></div>
+      <div class="form-group" style="margin:0;"><label class="form-label">R–T (V)</label><input type="number" id="ei-vrt" class="form-input" placeholder="380" step="any" min="0"></div>
+    </div>
+
+    <!-- THD -->
+    <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:var(--pln-biru-pale);border-radius:6px;">〰️ THD (%)</div>
+    <div class="grid2" style="margin-bottom:var(--sp-md);">
+      <div class="form-group" style="margin:0;"><label class="form-label">THD–R (%)</label><input type="number" id="ei-thdr" class="form-input" placeholder="0.0" step="any" min="0"></div>
+      <div class="form-group" style="margin:0;"><label class="form-label">THD–S (%)</label><input type="number" id="ei-thds" class="form-input" placeholder="0.0" step="any" min="0"></div>
+      <div class="form-group" style="margin:0;"><label class="form-label">THD–T (%)</label><input type="number" id="ei-thdt" class="form-input" placeholder="0.0" step="any" min="0"></div>
+    </div>
+
+    <!-- I-Peak -->
+    <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:var(--pln-biru-pale);border-radius:6px;">⚡ I-Peak (A)</div>
+    <div class="grid2" style="margin-bottom:var(--sp-md);">
+      <div class="form-group" style="margin:0;"><label class="form-label">I-Peak R (A)</label><input type="number" id="ei-ipeakr" class="form-input" placeholder="0.0" step="any" min="0"></div>
+      <div class="form-group" style="margin:0;"><label class="form-label">I-Peak S (A)</label><input type="number" id="ei-ipeaks" class="form-input" placeholder="0.0" step="any" min="0"></div>
+      <div class="form-group" style="margin:0;"><label class="form-label">I-Peak T (A)</label><input type="number" id="ei-ipeakt" class="form-input" placeholder="0.0" step="any" min="0"></div>
+    </div>
+
+    <!-- TPF -->
+    <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:var(--pln-biru-pale);border-radius:6px;">🔋 True Power Factor</div>
+    <div class="grid2" style="margin-bottom:var(--sp-md);">
+      <div class="form-group" style="margin:0;"><label class="form-label">TPF–R</label><input type="number" id="ei-tpfr" class="form-input" placeholder="0.0" step="any" min="0" max="1.2"></div>
+      <div class="form-group" style="margin:0;"><label class="form-label">TPF–S</label><input type="number" id="ei-tpfs" class="form-input" placeholder="0.0" step="any" min="0" max="1.2"></div>
+      <div class="form-group" style="margin:0;"><label class="form-label">TPF–T</label><input type="number" id="ei-tpft" class="form-input" placeholder="0.0" step="any" min="0" max="1.2"></div>
+    </div>
+
     <div id="edit-inspeksi-err" style="display:none;background:var(--pln-red-pale);color:var(--pln-red);border-radius:var(--radius-xs);padding:8px 12px;font-size:var(--fs-xs);margin-bottom:8px;"></div>
     <div id="edit-inspeksi-ok" style="display:none;background:var(--pln-green-pale);color:var(--pln-green);border-radius:var(--radius-xs);padding:8px 12px;font-size:var(--fs-xs);margin-bottom:8px;"></div>
     <div class="btn-row">
@@ -4872,22 +4913,56 @@ function bukaEditInspeksi(id, r) {
   document.getElementById('edit-inspeksi-id').value = id;
   document.getElementById('edit-inspeksi-subtitle').textContent =
     'Gardu: ' + (r['NO_GARDU'] || r['NOGARDU'] || '—') + '  |  ID: ' + id;
-  // Isi form dengan data existing
-  document.getElementById('ei-tgl').value = r['TGLUKUR'] || '';
-  document.getElementById('ei-jam').value = r['JAM UKUR'] ? String(r['JAM UKUR']).slice(0,5) : '';
+
+  // Informasi dasar
+  document.getElementById('ei-tgl').value     = r['TGLUKUR'] || '';
+  document.getElementById('ei-jam').value     = r['JAM UKUR'] ? String(r['JAM UKUR']).slice(0,5) : '';
   document.getElementById('ei-petugas').value = r['PETUGAS'] || '';
+  document.getElementById('ei-fasa').value    = r['FASA'] || '';
+
+  // Daya
+  document.getElementById('ei-daya').value        = r['DAYA'] || '';
+  document.getElementById('ei-dayapakai').value    = r['DAYA PAKAI'] || '';
+  document.getElementById('ei-prosen').value       = r['PROSEN'] || '';
+  document.getElementById('ei-tdkseimbang').value  = r['TDKSEIMBANG'] || r['TDK SEIMBANG'] || '';
+
+  // Arus
   document.getElementById('ei-r').value = r['R TOTAL'] || '';
   document.getElementById('ei-s').value = r['S TOTAL'] || '';
   document.getElementById('ei-t').value = r['T TOTAL'] || '';
   document.getElementById('ei-n').value = r['N TOTAL'] || '';
+
+  // Tegangan Fasa-Netral
   document.getElementById('ei-vrn').value = r['R - N'] || '';
   document.getElementById('ei-vsn').value = r['S - N'] || '';
   document.getElementById('ei-vtn').value = r['T - N'] || '';
-  document.getElementById('ei-daya').value = r['DAYA'] || '';
-  document.getElementById('ei-dayapakai').value = r['DAYA PAKAI'] || '';
+
+  // Tegangan Antar Fasa
+  document.getElementById('ei-vrs').value = r['R - S'] || '';
+  document.getElementById('ei-vst').value = r['S - T'] || '';
+  document.getElementById('ei-vrt').value = r['R - T'] || '';
+
+  // THD
+  document.getElementById('ei-thdr').value = r['THD-R'] || '';
+  document.getElementById('ei-thds').value = r['THD-S'] || '';
+  document.getElementById('ei-thdt').value = r['THD-T'] || '';
+
+  // I-Peak
+  document.getElementById('ei-ipeakr').value = r['IPEAK-R'] || '';
+  document.getElementById('ei-ipeaks').value = r['IPEAK-S'] || '';
+  document.getElementById('ei-ipeakt').value = r['IPEAK-T'] || '';
+
+  // TPF
+  document.getElementById('ei-tpfr').value = r['TPF-R'] || '';
+  document.getElementById('ei-tpfs').value = r['TPF-S'] || '';
+  document.getElementById('ei-tpft').value = r['TPF-T'] || '';
+
   document.getElementById('edit-inspeksi-err').style.display = 'none';
-  document.getElementById('edit-inspeksi-ok').style.display = 'none';
+  document.getElementById('edit-inspeksi-ok').style.display  = 'none';
   document.getElementById('modal-edit-inspeksi').style.display = 'flex';
+  // Scroll ke atas modal
+  var modal = document.getElementById('modal-edit-inspeksi');
+  if (modal) modal.scrollTop = 0;
 }
 
 function simpanEditInspeksi() {
@@ -4903,20 +4978,38 @@ function simpanEditInspeksi() {
   if (!petugas) { errEl.textContent = '⚠️ Nama petugas wajib diisi.'; errEl.style.display = 'block'; return; }
   var btn = document.getElementById('btn-simpan-edit-inspeksi');
   btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+  var gv = function(id) { var el = document.getElementById(id); return el && el.value !== '' ? el.value : null; };
   apiGet({
-    action: 'editInspeksi', token: s.token, id: id,
-    tglUkur: tgl,
-    jamUkur: document.getElementById('ei-jam').value || null,
-    petugas: petugas,
-    rTotal: document.getElementById('ei-r').value || null,
-    sTotal: document.getElementById('ei-s').value || null,
-    tTotal: document.getElementById('ei-t').value || null,
-    nTotal: document.getElementById('ei-n').value || null,
-    vRN: document.getElementById('ei-vrn').value || null,
-    vSN: document.getElementById('ei-vsn').value || null,
-    vTN: document.getElementById('ei-vtn').value || null,
-    daya: document.getElementById('ei-daya').value || null,
-    dayaPakai: document.getElementById('ei-dayapakai').value || null
+    action:       'editInspeksi',
+    token:        s.token,
+    id:           id,
+    tglUkur:      tgl,
+    jamUkur:      gv('ei-jam'),
+    petugas:      petugas,
+    fasa:         gv('ei-fasa'),
+    daya:         gv('ei-daya'),
+    dayaPakai:    gv('ei-dayapakai'),
+    prosen:       gv('ei-prosen'),
+    tdkSeimbang:  gv('ei-tdkseimbang'),
+    rTotal:       gv('ei-r'),
+    sTotal:       gv('ei-s'),
+    tTotal:       gv('ei-t'),
+    nTotal:       gv('ei-n'),
+    vRN:          gv('ei-vrn'),
+    vSN:          gv('ei-vsn'),
+    vTN:          gv('ei-vtn'),
+    vRS:          gv('ei-vrs'),
+    vST:          gv('ei-vst'),
+    vRT:          gv('ei-vrt'),
+    thdR:         gv('ei-thdr'),
+    thdS:         gv('ei-thds'),
+    thdT:         gv('ei-thdt'),
+    ipeakR:       gv('ei-ipeakr'),
+    ipeakS:       gv('ei-ipeaks'),
+    ipeakT:       gv('ei-ipeakt'),
+    tpfR:         gv('ei-tpfr'),
+    tpfS:         gv('ei-tpfs'),
+    tpfT:         gv('ei-tpft')
   }, function(res) {
     btn.disabled = false; btn.textContent = '💾 Simpan Perubahan';
     if (res.status !== 'ok') {
