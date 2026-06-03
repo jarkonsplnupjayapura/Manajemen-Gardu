@@ -1137,7 +1137,7 @@ if (typeof L === 'undefined') {
     <div style="font-weight:700;font-size:14px;line-height:1.3;">Pasang sebagai Aplikasi</div>
     <div style="font-size:11px;opacity:.85;margin-top:2px;">Akses lebih cepat, bisa dipakai offline, tampil seperti app sungguhan</div>
   </div>
-  <button onclick="installPWA()" style="background:#FCD116;color:#003B7B;border:none;border-radius:8px;padding:9px 18px;font-weight:800;font-size:13px;white-space:nowrap;flex-shrink:0;">⬇️ Install</button>
+  <button onclick="installPWA()" style="background:#059669;color:#003B7B;border:none;border-radius:8px;padding:9px 18px;font-weight:800;font-size:13px;white-space:nowrap;flex-shrink:0;">⬇️ Install</button>
   <button onclick="tutupBannerInstall()" style="background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:8px;padding:9px 11px;font-size:15px;flex-shrink:0;line-height:1;">✕</button>
 </div>
 
@@ -1237,7 +1237,7 @@ if (typeof L === 'undefined') {
   <div class="page-body">
     <div class="alert alert-info">📋 Standar Operasional Prosedur inspeksi dan pemeliharaan gardu PLN UP3 Jayapura.</div>
     <div class="sec">Pemeliharaan Gardu</div>
-    <div class="sop-card" onclick="bukaLinkSOP('LINK_SOP_PEMELIHARAAN_GARDU')"><div class="sop-icon">📄</div><div class="sop-info"><div class="sop-title">SOP Pemeliharaan Gardu</div><div class="sop-sub">Prosedur pemeliharaan rutin gardu trafo distribusi</div></div><div class="sop-arrow">›</div></div>
+    <div class="sop-card" onclick="bukaLinkSOP('LINK_SOP_PEMELIHARAAN_GARDU')"><div class="sop-icon">📄</div><div class="sop-info"><div class="sop-title">SOP Pemeliharaan Gardu</div><div class="sop-sub">Prosedur pemeliharaan rutin gardu</div></div><div class="sop-arrow">›</div></div>
     <div class="sec">Keselamatan Kerja</div>
     <div class="sop-card" onclick="bukaLinkSOP('LINK_SOP_K3')"><div class="sop-icon">⛑️</div><div class="sop-info"><div class="sop-title">SOP K3 Pekerjaan Tegangan Menengah</div><div class="sop-sub">Prosedur keselamatan kerja di area tegangan menengah</div></div><div class="sop-arrow">›</div></div>
   </div>
@@ -1583,7 +1583,7 @@ if (typeof L === 'undefined') {
         <!-- Daya & Fasa -->
         <div class="grid2">
           <div class="form-group" style="margin:0;">
-            <label class="form-label">Daya Trafo (kVA)</label>
+            <label class="form-label">Daya (kVA)</label>
             <input type="number" class="form-input" id="fi-daya" placeholder="Otomatis dari gardu" inputmode="decimal" min="0" step="any" readonly style="background:var(--pln-bg);color:var(--pln-text3);">
           </div>
           <div class="form-group" style="margin:0;">
@@ -2381,7 +2381,7 @@ if (typeof L === 'undefined') {
     <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:var(--pln-biru-pale);border-radius:6px;">🔋 Daya</div>
     <div class="grid2" style="margin-bottom:var(--sp-md);">
       <div class="form-group" style="margin:0;">
-        <label class="form-label">Daya Trafo (kVA)</label>
+        <label class="form-label">Daya (kVA)</label>
         <input type="number" id="ei-daya" class="form-input" placeholder="0" step="any" min="0">
       </div>
       <div class="form-group" style="margin:0;">
@@ -3981,7 +3981,7 @@ function renderDetailGardu(g, riwayat){
       html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:2px;">👤 '+esc(r['PETUGAS']||'—')+'</div>';
       html += '<div style="margin-top:6px;">';
       html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">';
-      html += '<span style="font-size:clamp(8px,2vw,10px);color:var(--pln-text3);font-weight:600;">BEBAN TRAFO</span>';
+      html += '<span style="font-size:clamp(8px,2vw,10px);color:var(--pln-text3);font-weight:600;">BEBAN</span>';
       html += '<span style="font-size:clamp(10px,2.5vw,12px);font-weight:800;color:'+bebanColor+';">'+prosenLabel+'</span>';
       html += '</div>';
       html += '<div class="beban-bar"><div class="beban-bar-fill" style="width:'+bebanPct+'%;background:'+bebanColor+';"></div></div>';
@@ -4023,7 +4023,7 @@ function renderDetailGardu(g, riwayat){
         } else if (imbalPct > 5) {
           imbClass='imbalance-warn'; imbIcon='🟡';
           imbLabel='Ketidakseimbangan PERINGATAN ('+imbalPct.toFixed(1)+'%) — Zona waspada IEC 50160';
-          imbRec='<b>Referensi: IEC 50160:2010</b> — Ketidakseimbangan fasa >5% memasuki zona peringatan (batas ideal &lt;2%, batas waspada 5%). Efisiensi trafo menurun dan belitan menerima tegangan tidak simetris. Rencanakan pemerataan beban antar jurusan pada inspeksi berikutnya sebelum melampaui batas kritis 10%.';
+          imbRec='<b>Referensi: IEC 50160:2010</b> — Ketidakseimbangan fasa >5% memasuki zona peringatan (batas ideal &lt;2%, batas waspada 5%). Efisiensi gardu menurun dan belitan menerima tegangan tidak simetris. Rencanakan pemerataan beban antar jurusan pada inspeksi berikutnya sebelum melampaui batas kritis 10%.';
         } else {
           imbClass='imbalance-ok'; imbIcon='🟢';
           imbLabel='Fasa Seimbang ('+imbalPct.toFixed(1)+'%) — Sesuai IEC 50160';
@@ -4071,7 +4071,7 @@ function renderDetailGardu(g, riwayat){
 
       html += '<div class="ukur-section-title">⚡ Info Umum</div>';
       html += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin-bottom:8px;">';
-      html += ukurCell2('Daya Trafo', dayaKva, 'kVA');
+      html += ukurCell2('Daya', dayaKva, 'kVA');
       html += ukurCell2('Daya Pakai', dayaPakai, 'kVA');
       html += ukurCell2('Fasa', fasa, '');
       html += ukurCell2('Tdk Seimbang', tidakSeimbang, '%');
@@ -4154,7 +4154,7 @@ function renderDetailGardu(g, riwayat){
 
       var jurDef = [
         { n:1, jur:'JURUSAN 1', titik:'TITIK UKUR JUR 1', r:'JUR1_R TOTAL', s:'JUR1_S TOTAL', t:'JUR1_T TOTAL', nt:'JUR1_N TOTAL', rn:'JUR1_R - N', sn:'JUR1_S - N', tn:'JUR1_T - N', thdR:'JUR1_THD-R', thdS:'JUR1_THD-S', thdT:'JUR1_THD-T', iR:'JUR1_IPEAK-R', iS:'JUR1_IPEAK-S', iT:'JUR1_IPEAK-T', tR:'JUR1_TPF-R', tS:'JUR1_TPF-S', tT:'JUR1_TPF-T' },
-        { n:2, jur:'JURUSAN 2', titik:'TITIK UKUR JUR 2', r:'JUR2_R TOTAL', s:'JUR2_S TOTAL', t:'JUR2_T TOTAL', nt:'JUR2_N TOTAL', rn:'JUR2_R - s', sn:'JUR2_R - T', tn:'JUR2_S - T', thdR:'JUR2_THD-R', thdS:'JUR2_THD-S', thdT:'JUR2_THD-T', iR:'JUR2_IPEAK-R', iS:'JUR2_IPEAK-S', iT:'JUR2_IPEAK-T', tR:'JUR2_TPF-R', tS:'JUR2_TPF-S', tT:'JUR2_TPF-T' },
+        { n:2, jur:'JURUSAN 2', titik:'TITIK UKUR JUR 2', r:'JUR2_R TOTAL', s:'JUR2_S TOTAL', t:'JUR2_T TOTAL', nt:'JUR2_N TOTAL', rn:'JUR2_R - N', sn:'JUR2_S - N', tn:'JUR2_T - N', thdR:'JUR2_THD-R', thdS:'JUR2_THD-S', thdT:'JUR2_THD-T', iR:'JUR2_IPEAK-R', iS:'JUR2_IPEAK-S', iT:'JUR2_IPEAK-T', tR:'JUR2_TPF-R', tS:'JUR2_TPF-S', tT:'JUR2_TPF-T' },
         { n:3, jur:'JURUSAN 3', titik:'TITIK UKUR JUR 3', r:'JUR3_R TOTAL', s:'JUR3_S TOTAL', t:'JUR3_T TOTAL', nt:'JUR3_N TOTAL', rn:'JUR3_R - N', sn:'JUR3_S - N', tn:'JUR3_T - N', thdR:'JUR3_THD-R', thdS:'JUR3_THD-S', thdT:'JUR3_THD-T', iR:'JUR3_IPEAK-R', iS:'JUR3_IPEAK-S', iT:'JUR3_IPEAK-T', tR:'JUR3_TPF-R', tS:'JUR3_TPF-S', tT:'JUR3_TPF-T' },
         { n:4, jur:'JURUSAN 4', titik:'TITIK UKUR JUR 4', r:'JUR4_R TOTAL', s:'JUR4_S TOTAL', t:'JUR4_T TOTAL', nt:'JUR4_N TOTAL', rn:'JUR4_R - N', sn:'JUR4_S - N', tn:'JUR4_T - N', thdR:'JUR4_THD-R', thdS:'JUR4_THD-S', thdT:'JUR4_THD-T', iR:'JUR4_IPEAK-R', iS:'JUR4_IPEAK-S', iT:'JUR4_IPEAK-T', tR:'JUR4_TPF-R', tS:'JUR4_TPF-S', tT:'JUR4_TPF-T' },
         { n:5, jur:'JURUSAN 5', titik:'TITIK UKUR JUR 5', r:'JUR5_R TOTAL', s:'JUR5_S TOTAL', t:'JUR5_T TOTAL', nt:'JUR5_N TOTAL', rn:'JUR5_R - N', sn:'JUR5_S - N', tn:'JUR5_T - N', thdR:'JUR5_THD-R', thdS:'JUR5_THD-S', thdT:'JUR5_THD-T', iR:'JUR5_IPEAK-R', iS:'JUR5_IPEAK-S', iT:'JUR5_IPEAK-T', tR:'JUR5_TPF-R', tS:'JUR5_TPF-S', tT:'JUR5_TPF-T' },
@@ -4422,12 +4422,12 @@ function renderTrenBeban(data, wrap) {
   var html = '';
   html += '<div class="tren-chart-header">';
   var trenTitleLabel = _trenLimit > 0 ? _trenLimit+' Ukur Terakhir' : 'Semua Data ('+n+' ukur)';
-  html += '<span class="tren-chart-title">📈 Tren Beban Trafo ('+trenTitleLabel+')</span>';
+  html += '<span class="tren-chart-title">📈 Tren Beban Gardu ('+trenTitleLabel+')</span>';
   html += '<span class="tren-chart-badge" style="'+badgeClass+'">'+latestP.toFixed(1)+'% · '+trendLabel+'</span>';
   html += '</div>';
   html += '<div class="tren-chart-svg-wrap">'+svgStr+'</div>';
   html += '<div class="tren-chart-legend">';
-  html += '<div class="tren-legend-item"><div class="tren-legend-dot" style="background:#1048A8;"></div>Beban trafo</div>';
+  html += '<div class="tren-legend-item"><div class="tren-legend-dot" style="background:#1048A8;"></div>Beban gardu</div>';
   html += '<div class="tren-legend-item"><div class="tren-legend-dot" style="background:#C0392B;border-radius:2px;border:1px dashed #C0392B;"></div>&gt;80% PLN</div>';
   html += '<div class="tren-legend-item"><div class="tren-legend-dot" style="background:#7F1D1D;border-radius:2px;border:1px dashed #7F1D1D;"></div>100% IEC</div>';
   html += '<div style="margin-left:auto;display:flex;align-items:center;gap:8px;">';
@@ -6653,7 +6653,7 @@ function renderRekap(d) {
   var pctOverdue    = Math.round(d.overdue90/Math.max(d.totalGardu,1)*100);
 
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-sm);margin-bottom:var(--sp-sm);">';
-  html += statCardBig(d.totalGardu+' Unit', 'Jumlah Gardu', totalKvaStr+', total daya trafo', '#0EA5E9', '📊');
+  html += statCardBig(d.totalGardu+' Unit', 'Jumlah Gardu', totalKvaStr+', total daya', '#0EA5E9', '📊');
   html += statCardBig(d.overdue90+' Unit', 'Gardu Overdue 90hr', pctOverdue+'% dari total '+d.totalGardu+' unit gardu', '#EF4444', '📊');
   html += '</div>';
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-sm);margin-bottom:var(--sp-sm);">';
@@ -6742,7 +6742,7 @@ function renderRekap(d) {
   // ── Donut Chart — Status Beban (3 segmen) ──
   if (d.bebanCount) {
     html += '<div class="card">';
-    html += '<div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);margin-bottom:var(--sp-sm);text-transform:uppercase;letter-spacing:.5px;">Status Beban Trafo</div>';
+    html += '<div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);margin-bottom:var(--sp-sm);text-transform:uppercase;letter-spacing:.5px;">Status Beban Gardu</div>';
     var bNormal = d.bebanCount['Normal (<=80%)']||0;
     var bLebih  = d.bebanCount['Lebih (>80%)']||0;
     var bNoData = d.bebanCount['Tidak Ada Data']||0;
@@ -8624,7 +8624,7 @@ function renderTabelPengukuran() {
       html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-top:2px;">📅 '+esc(formatTgl(r['TGLUKUR'])||r['TGLUKUR']||'—')+(r['JAM UKUR']?' · 🕐 '+esc(r['JAM UKUR']):'')+'</div>';
       html += '</div><span class="badge '+bc+'">'+prosenLabel+'</span></div>';
       html += '<div class="pm-list-body"><div style="margin-bottom:6px;">';
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;"><span style="font-size:var(--fs-xs);color:var(--pln-text3);font-weight:600;">BEBAN TRAFO</span><span style="font-size:var(--fs-xs);font-weight:800;color:'+bebanColor+';">'+prosenLabel+'</span></div>';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;"><span style="font-size:var(--fs-xs);color:var(--pln-text3);font-weight:600;">BEBAN</span><span style="font-size:var(--fs-xs);font-weight:800;color:'+bebanColor+';">'+prosenLabel+'</span></div>';
       html += '<div class="beban-bar"><div class="beban-bar-fill" style="width:'+bebanPct+'%;background:'+bebanColor+';"></div></div>';
       html += '</div><div class="grid2" style="margin:0;">';
       html += '<div><div class="lbl">Daya Pakai</div><div class="val-sm">'+esc(r['DAYA PAKAI']||'—')+' kVA</div></div>';
