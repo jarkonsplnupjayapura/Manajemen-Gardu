@@ -4551,6 +4551,8 @@ function exportTrenBeban() {
 }
 
 
+// ukurCell2: identik dengan ukurCell — dipakai di bagian pengukuran utama gardu
+function ukurCell2(label, val, unit) {
   var raw = val !== null && val !== undefined ? String(val).trim() : '';
   var isEmpty  = raw === '' || raw === '—' || raw === 'undefined' || raw === 'null';
   var isZero   = !isEmpty && (raw === '0' || raw === '0.0' || parseFloat(raw) === 0);
