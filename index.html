@@ -2447,6 +2447,20 @@ if (typeof L === 'undefined') {
       <div class="form-group" style="margin:0;"><label class="form-label">TPF–T</label><input type="number" id="ei-tpft" class="form-input" placeholder="0.0" step="any" min="0" max="1.2"></div>
     </div>
 
+    <!-- Jurusan -->
+    <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:var(--pln-biru-pale);border-radius:6px;display:flex;align-items:center;justify-content:space-between;">
+      <span>🔌 Data Jurusan</span>
+      <span id="ei-jur-page-label" style="font-size:10px;font-weight:600;color:var(--pln-text3);text-transform:none;letter-spacing:0;"></span>
+    </div>
+    <!-- Pagination nav jurusan -->
+    <div id="ei-jur-nav" style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+      <button type="button" id="ei-jur-prev" onclick="eiJurPage(-1)" style="background:var(--pln-bg);border:1.5px solid var(--pln-border);border-radius:6px;padding:4px 12px;font-size:var(--fs-xs);cursor:pointer;font-family:inherit;">◀ Prev</button>
+      <span id="ei-jur-dots" style="display:flex;gap:4px;flex-wrap:wrap;"></span>
+      <button type="button" id="ei-jur-next" onclick="eiJurPage(1)" style="background:var(--pln-bg);border:1.5px solid var(--pln-border);border-radius:6px;padding:4px 12px;font-size:var(--fs-xs);cursor:pointer;font-family:inherit;">Next ▶</button>
+    </div>
+    <!-- Jurusan pages container -->
+    <div id="ei-jur-pages"></div>
+
     <div id="edit-inspeksi-err" style="display:none;background:var(--pln-red-pale);color:var(--pln-red);border-radius:var(--radius-xs);padding:8px 12px;font-size:var(--fs-xs);margin-bottom:8px;"></div>
     <div id="edit-inspeksi-ok" style="display:none;background:var(--pln-green-pale);color:var(--pln-green);border-radius:var(--radius-xs);padding:8px 12px;font-size:var(--fs-xs);margin-bottom:8px;"></div>
     <div class="btn-row">
@@ -4748,11 +4762,17 @@ function fiAddJurusan() {
         '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">T</label><input type="number" class="form-input" id="fi-jur'+n+'-t" placeholder="0" inputmode="decimal" min="0" step="any"></div>' +
         '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#8E44AD;">N</label><input type="number" class="form-input" id="fi-jur'+n+'-n" placeholder="0" inputmode="decimal" min="0" step="any"></div>' +
       '</div>' +
-      '<div class="fi-section-label" style="margin-top:var(--sp-sm);">🔋 Tegangan (V)</div>' +
+      '<div class="fi-section-label" style="margin-top:var(--sp-sm);">🔋 Tegangan Fasa-Netral (V)</div>' +
       '<div class="grid2">' +
         '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">R–N</label><input type="number" class="form-input" id="fi-jur'+n+'-rn" placeholder="220" inputmode="decimal" min="0" step="any"></div>' +
         '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">S–N</label><input type="number" class="form-input" id="fi-jur'+n+'-sn" placeholder="220" inputmode="decimal" min="0" step="any"></div>' +
         '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">T–N</label><input type="number" class="form-input" id="fi-jur'+n+'-tn" placeholder="220" inputmode="decimal" min="0" step="any"></div>' +
+      '</div>' +
+      '<div class="fi-section-label" style="margin-top:var(--sp-sm);">🔋 Tegangan Antar Fasa (V)</div>' +
+      '<div class="grid2">' +
+        '<div class="form-group" style="margin:0;"><label class="form-label">R–S</label><input type="number" class="form-input" id="fi-jur'+n+'-rs" placeholder="380" inputmode="decimal" min="0" step="any"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label">S–T</label><input type="number" class="form-input" id="fi-jur'+n+'-st" placeholder="380" inputmode="decimal" min="0" step="any"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label">R–T</label><input type="number" class="form-input" id="fi-jur'+n+'-rt" placeholder="380" inputmode="decimal" min="0" step="any"></div>' +
       '</div>' +
       '<div class="fi-section-label" style="margin-top:var(--sp-sm);">〰️ THD (%)</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-xs);">' +
@@ -4825,6 +4845,9 @@ function fiGetJurusanData() {
       v_r_n:   getV('fi-jur'+i+'-rn'),
       v_s_n:   getV('fi-jur'+i+'-sn'),
       v_t_n:   getV('fi-jur'+i+'-tn'),
+      v_r_s:   getV('fi-jur'+i+'-rs'),
+      v_s_t:   getV('fi-jur'+i+'-st'),
+      v_r_t:   getV('fi-jur'+i+'-rt'),
       thd_r:   getV('fi-jur'+i+'-thdr'),
       thd_s:   getV('fi-jur'+i+'-thds'),
       thd_t:   getV('fi-jur'+i+'-thdt'),
@@ -5050,12 +5073,212 @@ function bukaEditInspeksi(id, r) {
   document.getElementById('ei-tpfs').value = r['TPF-S'] || '';
   document.getElementById('ei-tpft').value = r['TPF-T'] || '';
 
+  // Load jurusan data ke form (6 slot selalu dibuat)
+  _eiJurusanData = [];
+  try {
+    var rawJur = r._jurusanRaw || r.jurusan;
+    if (typeof rawJur === 'string') _eiJurusanData = JSON.parse(rawJur);
+    else if (Array.isArray(rawJur)) _eiJurusanData = rawJur;
+  } catch(e) {}
+  // Fallback: baca dari flat keys JUR1_R_TOTAL, dst.
+  if (!_eiJurusanData.length) {
+    for (var ji = 1; ji <= 6; ji++) {
+      var jNama = r['JURUSAN ' + ji] || '';
+      var jR = r['JUR' + ji + '_R_TOTAL'] || r['JUR' + ji + '_R TOTAL'] || '0';
+      _eiJurusanData.push({
+        nama:    jNama,
+        titik:   r['JUR' + ji + '_TITIK_UKUR'] || '',
+        r_total: parseFloat(jR) || 0,
+        s_total: parseFloat(r['JUR' + ji + '_S_TOTAL'] || r['JUR' + ji + '_S TOTAL'] || '0') || 0,
+        t_total: parseFloat(r['JUR' + ji + '_T_TOTAL'] || r['JUR' + ji + '_T TOTAL'] || '0') || 0,
+        n_total: parseFloat(r['JUR' + ji + '_N_TOTAL'] || r['JUR' + ji + '_N TOTAL'] || '0') || 0,
+        v_r_n:   parseFloat(r['JUR' + ji + '_R-N'] || r['JUR' + ji + '_R - N'] || '0') || 0,
+        v_s_n:   parseFloat(r['JUR' + ji + '_S-N'] || r['JUR' + ji + '_S - N'] || '0') || 0,
+        v_t_n:   parseFloat(r['JUR' + ji + '_T-N'] || r['JUR' + ji + '_T - N'] || '0') || 0,
+        v_r_s:   parseFloat(r['JUR' + ji + '_R-S'] || r['JUR' + ji + '_R - S'] || '0') || 0,
+        v_s_t:   parseFloat(r['JUR' + ji + '_S-T'] || r['JUR' + ji + '_S - T'] || '0') || 0,
+        v_r_t:   parseFloat(r['JUR' + ji + '_R-T'] || r['JUR' + ji + '_R - T'] || '0') || 0,
+        thd_r:   parseFloat(r['JUR' + ji + '_THD-R'] || '0') || 0,
+        thd_s:   parseFloat(r['JUR' + ji + '_THD-S'] || '0') || 0,
+        thd_t:   parseFloat(r['JUR' + ji + '_THD-T'] || '0') || 0,
+        ipeak_r: parseFloat(r['JUR' + ji + '_IPEAK-R'] || '0') || 0,
+        ipeak_s: parseFloat(r['JUR' + ji + '_IPEAK-S'] || '0') || 0,
+        ipeak_t: parseFloat(r['JUR' + ji + '_IPEAK-T'] || '0') || 0,
+        tpf_r:   parseFloat(r['JUR' + ji + '_TPF-R'] || '0') || 0,
+        tpf_s:   parseFloat(r['JUR' + ji + '_TPF-S'] || '0') || 0,
+        tpf_t:   parseFloat(r['JUR' + ji + '_TPF-T'] || '0') || 0
+      });
+    }
+  }
+  // Pastikan selalu 6 slot
+  while (_eiJurusanData.length < 6) _eiJurusanData.push({});
+  _eiCurrentJurPage = 0;
+  eiRenderJurusanPages();
+
   document.getElementById('edit-inspeksi-err').style.display = 'none';
   document.getElementById('edit-inspeksi-ok').style.display  = 'none';
   document.getElementById('modal-edit-inspeksi').style.display = 'flex';
   // Scroll ke atas modal
   var modal = document.getElementById('modal-edit-inspeksi');
   if (modal) modal.scrollTop = 0;
+}
+
+// ── Edit Inspeksi: Jurusan state & render ─────────────────────
+var _eiJurusanData    = [];
+var _eiCurrentJurPage = 0; // 0-based, 1 jurusan per page
+
+function eiRenderJurusanPages() {
+  var pages = document.getElementById('ei-jur-pages');
+  var dots  = document.getElementById('ei-jur-dots');
+  var label = document.getElementById('ei-jur-page-label');
+  if (!pages) return;
+
+  // Simpan nilai sebelumnya ke _eiJurusanData sebelum re-render
+  eiSaveCurrentJurPage();
+
+  var total = _eiJurusanData.length; // selalu 6
+  pages.innerHTML = '';
+  dots.innerHTML  = '';
+
+  for (var pi = 0; pi < total; pi++) {
+    var j = _eiJurusanData[pi] || {};
+    var isActive = pi === _eiCurrentJurPage;
+    var w = ['#C0392B','#27AE60','#2980B9','#8E44AD','#D35400','#16A085'][pi % 6];
+    var n = pi + 1;
+    var s = function(field, def) { var v = j[field]; return (v !== undefined && v !== null) ? v : (def !== undefined ? def : 0); };
+
+    // Dot button
+    var dot = document.createElement('button');
+    dot.type = 'button';
+    dot.textContent = 'JUR ' + n;
+    dot.setAttribute('data-jidx', pi);
+    dot.onclick = (function(idx){ return function(){ eiSaveCurrentJurPage(); _eiCurrentJurPage = idx; eiRenderJurusanPages(); }; })(pi);
+    dot.style.cssText = 'background:' + (isActive ? w : 'var(--pln-bg)') + ';border:1.5px solid ' + w + ';border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;color:' + (isActive ? '#fff' : w) + ';font-family:inherit;';
+    dots.appendChild(dot);
+
+    if (!isActive) continue;
+
+    label.textContent = 'Jurusan ' + n + ' dari 6';
+
+    var div = document.createElement('div');
+    div.id = 'ei-jur-page-' + pi;
+    div.style.cssText = 'background:var(--pln-bg);border:1.5px solid ' + w + ';border-radius:8px;padding:12px;margin-bottom:8px;';
+    div.innerHTML =
+      '<div style="font-size:var(--fs-xs);font-weight:700;color:' + w + ';margin-bottom:8px;">🔌 Jurusan ' + n + '</div>' +
+      '<div class="grid2" style="margin-bottom:6px;">' +
+        '<div class="form-group" style="margin:0;"><label class="form-label">Nama / Arah Jurusan</label><input type="text" class="form-input" id="ei-jur' + pi + '-nama" value="' + _esc(s('nama','')) + '" placeholder="Nama jurusan" autocomplete="off"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label">Titik Ukur</label><input type="text" class="form-input" id="ei-jur' + pi + '-titik" value="' + _esc(s('titik','')) + '" placeholder="Titik pengukuran"></div>' +
+      '</div>' +
+      '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">⚡ Arus (A)</div>' +
+      '<div class="grid2" style="margin-bottom:6px;">' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">R</label><input type="number" class="form-input" id="ei-jur' + pi + '-r" value="' + s('r_total',0) + '" placeholder="0" step="any" min="0"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">S</label><input type="number" class="form-input" id="ei-jur' + pi + '-s" value="' + s('s_total',0) + '" placeholder="0" step="any" min="0"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">T</label><input type="number" class="form-input" id="ei-jur' + pi + '-t" value="' + s('t_total',0) + '" placeholder="0" step="any" min="0"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#8E44AD;">N</label><input type="number" class="form-input" id="ei-jur' + pi + '-n" value="' + s('n_total',0) + '" placeholder="0" step="any" min="0"></div>' +
+      '</div>' +
+      '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">🔋 Tegangan Fasa-Netral (V)</div>' +
+      '<div class="grid2" style="margin-bottom:6px;">' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">R–N</label><input type="number" class="form-input" id="ei-jur' + pi + '-rn" value="' + s('v_r_n',0) + '" placeholder="220" step="any" min="0"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">S–N</label><input type="number" class="form-input" id="ei-jur' + pi + '-sn" value="' + s('v_s_n',0) + '" placeholder="220" step="any" min="0"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">T–N</label><input type="number" class="form-input" id="ei-jur' + pi + '-tn" value="' + s('v_t_n',0) + '" placeholder="220" step="any" min="0"></div>' +
+      '</div>' +
+      '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">🔋 Tegangan Antar Fasa (V)</div>' +
+      '<div class="grid2" style="margin-bottom:6px;">' +
+        '<div class="form-group" style="margin:0;"><label class="form-label">R–S</label><input type="number" class="form-input" id="ei-jur' + pi + '-rs" value="' + s('v_r_s',0) + '" placeholder="380" step="any" min="0"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label">S–T</label><input type="number" class="form-input" id="ei-jur' + pi + '-st" value="' + s('v_s_t',0) + '" placeholder="380" step="any" min="0"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label">R–T</label><input type="number" class="form-input" id="ei-jur' + pi + '-rt" value="' + s('v_r_t',0) + '" placeholder="380" step="any" min="0"></div>' +
+      '</div>' +
+      '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">〰️ THD (%)</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-xs);margin-bottom:6px;">' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">THD-R</label><input type="number" class="form-input" id="ei-jur' + pi + '-thdr" value="' + s('thd_r',0) + '" placeholder="0" step="any" min="0"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">THD-S</label><input type="number" class="form-input" id="ei-jur' + pi + '-thds" value="' + s('thd_s',0) + '" placeholder="0" step="any" min="0"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">THD-T</label><input type="number" class="form-input" id="ei-jur' + pi + '-thdt" value="' + s('thd_t',0) + '" placeholder="0" step="any" min="0"></div>' +
+      '</div>' +
+      '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">⚡ I-Peak (A)</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-xs);margin-bottom:6px;">' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">IPeak-R</label><input type="number" class="form-input" id="ei-jur' + pi + '-ipeakr" value="' + s('ipeak_r',0) + '" placeholder="0" step="any" min="0"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">IPeak-S</label><input type="number" class="form-input" id="ei-jur' + pi + '-ipeaks" value="' + s('ipeak_s',0) + '" placeholder="0" step="any" min="0"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">IPeak-T</label><input type="number" class="form-input" id="ei-jur' + pi + '-ipeakt" value="' + s('ipeak_t',0) + '" placeholder="0" step="any" min="0"></div>' +
+      '</div>' +
+      '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">🔋 TPF</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-xs);">' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">TPF-R</label><input type="number" class="form-input" id="ei-jur' + pi + '-tpfr" value="' + s('tpf_r',0) + '" placeholder="0" step="any" min="0" max="1.2"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">TPF-S</label><input type="number" class="form-input" id="ei-jur' + pi + '-tpfs" value="' + s('tpf_s',0) + '" placeholder="0" step="any" min="0" max="1.2"></div>' +
+        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">TPF-T</label><input type="number" class="form-input" id="ei-jur' + pi + '-tpft" value="' + s('tpf_t',0) + '" placeholder="0" step="any" min="0" max="1.2"></div>' +
+      '</div>';
+    pages.appendChild(div);
+  }
+
+  // Prev/Next buttons state
+  document.getElementById('ei-jur-prev').disabled = (_eiCurrentJurPage === 0);
+  document.getElementById('ei-jur-next').disabled = (_eiCurrentJurPage >= total - 1);
+}
+
+function _esc(s) { return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function eiSaveCurrentJurPage() {
+  var pi = _eiCurrentJurPage;
+  if (!_eiJurusanData[pi]) return;
+  var gV = function(id){ var el=document.getElementById(id); return el ? (parseFloat(el.value)||0) : 0; };
+  var gS = function(id){ var el=document.getElementById(id); return el ? el.value.trim() : ''; };
+  _eiJurusanData[pi] = {
+    nama:    gS('ei-jur'+pi+'-nama'),
+    titik:   gS('ei-jur'+pi+'-titik'),
+    r_total: gV('ei-jur'+pi+'-r'),
+    s_total: gV('ei-jur'+pi+'-s'),
+    t_total: gV('ei-jur'+pi+'-t'),
+    n_total: gV('ei-jur'+pi+'-n'),
+    v_r_n:   gV('ei-jur'+pi+'-rn'),
+    v_s_n:   gV('ei-jur'+pi+'-sn'),
+    v_t_n:   gV('ei-jur'+pi+'-tn'),
+    v_r_s:   gV('ei-jur'+pi+'-rs'),
+    v_s_t:   gV('ei-jur'+pi+'-st'),
+    v_r_t:   gV('ei-jur'+pi+'-rt'),
+    thd_r:   gV('ei-jur'+pi+'-thdr'),
+    thd_s:   gV('ei-jur'+pi+'-thds'),
+    thd_t:   gV('ei-jur'+pi+'-thdt'),
+    ipeak_r: gV('ei-jur'+pi+'-ipeakr'),
+    ipeak_s: gV('ei-jur'+pi+'-ipeaks'),
+    ipeak_t: gV('ei-jur'+pi+'-ipeakt'),
+    tpf_r:   gV('ei-jur'+pi+'-tpfr'),
+    tpf_s:   gV('ei-jur'+pi+'-tpfs'),
+    tpf_t:   gV('ei-jur'+pi+'-tpft')
+  };
+}
+
+function eiJurPage(delta) {
+  eiSaveCurrentJurPage();
+  _eiCurrentJurPage = Math.max(0, Math.min(5, _eiCurrentJurPage + delta));
+  eiRenderJurusanPages();
+}
+
+function eiGetJurusanPayload() {
+  eiSaveCurrentJurPage();
+  return JSON.stringify(_eiJurusanData.map(function(j) {
+    return {
+      nama:    j.nama    || null,
+      titik:   j.titik   || null,
+      r_total: j.r_total  || 0,
+      s_total: j.s_total  || 0,
+      t_total: j.t_total  || 0,
+      n_total: j.n_total  || 0,
+      v_r_n:   j.v_r_n    || 0,
+      v_s_n:   j.v_s_n    || 0,
+      v_t_n:   j.v_t_n    || 0,
+      v_r_s:   j.v_r_s    || 0,
+      v_s_t:   j.v_s_t    || 0,
+      v_r_t:   j.v_r_t    || 0,
+      thd_r:   j.thd_r    || 0,
+      thd_s:   j.thd_s    || 0,
+      thd_t:   j.thd_t    || 0,
+      ipeak_r: j.ipeak_r  || 0,
+      ipeak_s: j.ipeak_s  || 0,
+      ipeak_t: j.ipeak_t  || 0,
+      tpf_r:   j.tpf_r    || 0,
+      tpf_s:   j.tpf_s    || 0,
+      tpf_t:   j.tpf_t    || 0
+    };
+  }));
 }
 
 function simpanEditInspeksi() {
@@ -5102,7 +5325,8 @@ function simpanEditInspeksi() {
     ipeakT:       gv('ei-ipeakt'),
     tpfR:         gv('ei-tpfr'),
     tpfS:         gv('ei-tpfs'),
-    tpfT:         gv('ei-tpft')
+    tpfT:         gv('ei-tpft'),
+    jurusan:      eiGetJurusanPayload()
   }, function(res) {
     btn.disabled = false; btn.textContent = '💾 Simpan Perubahan';
     if (res.status !== 'ok') {
@@ -8714,29 +8938,52 @@ function exportPengukuranExcel() {
         properties: { tabColor: { argb:'FF1565C0' } },
         views: [{ state:'frozen', ySplit:4 }]
       });
-      ws2.columns = [
-        {width:5},{width:14},{width:18},{width:16},{width:30},
-        {width:10},{width:6},{width:10},{width:9},{width:11},{width:9},{width:13},{width:22},
-        {width:10},{width:10},{width:10},{width:10},
-        {width:10},{width:10},{width:10},
-        {width:9},{width:9},{width:9},
-        {width:8},{width:8},{width:8},
-        {width:8},{width:8},{width:8},
-        {width:7},{width:7},{width:7}
-      ];
 
-      ws2.mergeCells('A1:AF1');
+      // Base 32 cols + 6 jurusan × 22 cols
+      (function() {
+        var baseCols = [
+          {width:5},{width:14},{width:18},{width:16},{width:30},
+          {width:10},{width:6},{width:10},{width:9},{width:11},{width:9},{width:13},{width:22},
+          {width:10},{width:10},{width:10},{width:10},
+          {width:10},{width:10},{width:10},
+          {width:9},{width:9},{width:9},
+          {width:8},{width:8},{width:8},
+          {width:8},{width:8},{width:8},
+          {width:7},{width:7},{width:7}
+        ];
+        var jurColDefs = [];
+        for (var jci2=0; jci2<6; jci2++) {
+          jurColDefs = jurColDefs.concat([
+            {width:18},{width:20},
+            {width:9},{width:9},{width:9},{width:9},
+            {width:9},{width:9},{width:9},
+            {width:9},{width:9},{width:9},
+            {width:8},{width:8},{width:8},
+            {width:8},{width:8},{width:8},
+            {width:7},{width:7},{width:7},
+            {width:20}
+          ]);
+        }
+        ws2.columns = baseCols.concat(jurColDefs);
+      })();
+
+      var _totalCols2 = 32 + 6 * 22;
+      function _colLetter(n) { var s=''; while(n>0){n--;s=String.fromCharCode(65+n%26)+s;n=Math.floor(n/26);} return s; }
+      var _lastCol2 = _colLetter(_totalCols2);
+
+      ws2.mergeCells('A1:' + _lastCol2 + '1');
       ws2.getCell('A1').value = 'PT. PLN (PERSERO) UP3 JAYAPURA — DATA LENGKAP PENGUKURAN GARDU';
       ws2.getCell('A1').style = { font:{bold:true,size:13,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnBlue}}, alignment:{horizontal:'center',vertical:'middle'} };
       ws2.getRow(1).height = 26;
 
-      ws2.mergeCells('A2:AF2');
+      ws2.mergeCells('A2:' + _lastCol2 + '2');
       ws2.getCell('A2').value = 'Periode: '+periodeStr+' | ULP: '+ulpLabel+' | Dicetak: '+tglCetak;
       ws2.getCell('A2').style = { font:{size:9,color:{argb:C.grayTxt},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnGold}}, alignment:{horizontal:'center',vertical:'middle'} };
       ws2.getRow(2).height = 16;
 
       ws2.getRow(3).height = 6;
 
+      var _jurColors2 = ['FF1565C0','FF2E7D32','FF6A1B9A','FFE65100','FF00838F','FF558B2F'];
       var colHdrs = [
         'NO','NO GARDU','ULP','PENYULANG','ALAMAT',
         'DAYA\n(kVA)','FASA','DAYA\nPAKAI','BEBAN\n(%)','TDK\nSEIMBANG\n(%)','JAM\nUKUR','TGL\nUKUR','PETUGAS',
@@ -8747,13 +8994,29 @@ function exportPengukuranExcel() {
         'IPEAK\n-R','IPEAK\n-S','IPEAK\n-T',
         'TPF-R','TPF-S','TPF-T'
       ];
+      for (var _jhi=0; _jhi<6; _jhi++) {
+        var _jn = _jhi+1;
+        colHdrs = colHdrs.concat([
+          'JUR'+_jn+'\nNAMA','JUR'+_jn+'\nTITIK UKUR',
+          'JUR'+_jn+'\nIR','JUR'+_jn+'\nIS','JUR'+_jn+'\nIT','JUR'+_jn+'\nIN',
+          'JUR'+_jn+'\nVR-N','JUR'+_jn+'\nVS-N','JUR'+_jn+'\nVT-N',
+          'JUR'+_jn+'\nVR-S','JUR'+_jn+'\nVS-T','JUR'+_jn+'\nVR-T',
+          'JUR'+_jn+'\nTHD-R','JUR'+_jn+'\nTHD-S','JUR'+_jn+'\nTHD-T',
+          'JUR'+_jn+'\nIPEAK-R','JUR'+_jn+'\nIPEAK-S','JUR'+_jn+'\nIPEAK-T',
+          'JUR'+_jn+'\nTPF-R','JUR'+_jn+'\nTPF-S','JUR'+_jn+'\nTPF-T',
+          'JUR'+_jn+'\nTITIK_UKUR'
+        ]);
+      }
+
       var rHdr = ws2.getRow(4); rHdr.height = 44;
       colHdrs.forEach(function(h,i){
         var cell = rHdr.getCell(i+1);
         cell.value = h;
+        var jurIdx4 = i>=32 ? Math.floor((i-32)/22) : -1;
+        var hdrBg4 = jurIdx4>=0 ? _jurColors2[jurIdx4%6] : C.headerBg;
         cell.style = {
           font:      { bold:true, size:9, color:{argb:C.white}, name:'Calibri' },
-          fill:      { type:'pattern', pattern:'solid', fgColor:{argb:C.headerBg} },
+          fill:      { type:'pattern', pattern:'solid', fgColor:{argb:hdrBg4} },
           alignment: { horizontal:'center', vertical:'middle', wrapText:true },
           border:    { top:{style:'medium',color:{argb:C.darkBorder}}, bottom:{style:'medium',color:{argb:C.darkBorder}}, left:{style:'thin',color:{argb:C.white}}, right:{style:'thin',color:{argb:C.white}} }
         };
@@ -8788,28 +9051,54 @@ function exportPengukuranExcel() {
           r['IPEAK-R']||r['IPEAK_R']||'', r['IPEAK-S']||r['IPEAK_S']||'', r['IPEAK-T']||r['IPEAK_T']||'',
           r['TPF-R']||'', r['TPF-S']||'', r['TPF-T']||''
         ];
+        for (var _ji3=1; _ji3<=6; _ji3++) {
+          vals = vals.concat([
+            r['JURUSAN '+_ji3]||'',
+            r['JUR'+_ji3+'_TITIK_UKUR']||'',
+            r['JUR'+_ji3+'_R_TOTAL']||r['JUR'+_ji3+'_R TOTAL']||'0',
+            r['JUR'+_ji3+'_S_TOTAL']||r['JUR'+_ji3+'_S TOTAL']||'0',
+            r['JUR'+_ji3+'_T_TOTAL']||r['JUR'+_ji3+'_T TOTAL']||'0',
+            r['JUR'+_ji3+'_N_TOTAL']||r['JUR'+_ji3+'_N TOTAL']||'0',
+            r['JUR'+_ji3+'_R-N']||r['JUR'+_ji3+'_R - N']||'0',
+            r['JUR'+_ji3+'_S-N']||r['JUR'+_ji3+'_S - N']||'0',
+            r['JUR'+_ji3+'_T-N']||r['JUR'+_ji3+'_T - N']||'0',
+            r['JUR'+_ji3+'_R-S']||r['JUR'+_ji3+'_R - S']||'0',
+            r['JUR'+_ji3+'_S-T']||r['JUR'+_ji3+'_S - T']||'0',
+            r['JUR'+_ji3+'_R-T']||r['JUR'+_ji3+'_R - T']||'0',
+            r['JUR'+_ji3+'_THD-R']||'0',
+            r['JUR'+_ji3+'_THD-S']||'0',
+            r['JUR'+_ji3+'_THD-T']||'0',
+            r['JUR'+_ji3+'_IPEAK-R']||'0',
+            r['JUR'+_ji3+'_IPEAK-S']||'0',
+            r['JUR'+_ji3+'_IPEAK-T']||'0',
+            r['JUR'+_ji3+'_TPF-R']||'0',
+            r['JUR'+_ji3+'_TPF-S']||'0',
+            r['JUR'+_ji3+'_TPF-T']||'0',
+            r['JUR'+_ji3+'_TITIK_UKUR']||''
+          ]);
+        }
 
         vals.forEach(function(v,ci){
           var cell = rRow.getCell(ci+1);
           cell.value = v;
-          var isNumCol = (ci===0)||(ci>=7&&ci<=9)||(ci>=13);
+          var isNumCol = (ci===0)||(ci>=7&&ci<=9)||(ci>=13&&ci<32)||(ci>=34);
           var align = ci===0?'center': ci===1?'left': isNumCol?'right':'left';
+          var jurIdx5 = ci>=32 ? Math.floor((ci-32)/22) : -1;
+          var cellBg = jurIdx5>=0 ? (isBeban?C.redBg:isAlt?C.altRow:C.white) : baseBg;
           cell.style = {
             font:      { size:9, name:'Calibri', bold:ci===1 },
-            fill:      { type:'pattern', pattern:'solid', fgColor:{argb:baseBg} },
+            fill:      { type:'pattern', pattern:'solid', fgColor:{argb:cellBg} },
             alignment: { horizontal:align, vertical:'middle' },
             border:    { top:{style:'thin',color:{argb:C.border}}, bottom:{style:'thin',color:{argb:C.border}}, left:{style:'thin',color:{argb:C.border}}, right:{style:'thin',color:{argb:C.border}} }
           };
-          // Warnai kolom BEBAN (%)
-          if(ci===8 && v!==''){
-            var pb = parseFloat(v);
-            if(!isNaN(pb)) cell.style.font.color = { argb: pb>80?C.red : pb>60?C.orange : C.green };
-            if(pb>80) cell.style.font.bold = true;
+          if (ci===8 && v!=='') {
+            var pb2=parseFloat(v);
+            if (!isNaN(pb2)) cell.style.font.color={argb:pb2>80?C.red:pb2>60?C.orange:C.green};
+            if (pb2>80) cell.style.font.bold=true;
           }
-          // Warnai TDK SEIMBANG
-          if(ci===9 && v!==''){
-            var ps = parseFloat(v);
-            if(!isNaN(ps) && ps>20) { cell.style.font.color={argb:C.orange}; cell.style.font.bold=true; }
+          if (ci===9 && v!=='') {
+            var ps3=parseFloat(v);
+            if (!isNaN(ps3)&&ps3>20){cell.style.font.color={argb:C.orange};cell.style.font.bold=true;}
           }
         });
       });
@@ -8821,8 +9110,7 @@ function exportPengukuranExcel() {
       ws2.mergeCells(5+data.length,1,5+data.length,colHdrs.length);
       totCell2.style = { font:{bold:true,size:10,color:{argb:C.plnBlue},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.subHdrBg}}, alignment:{horizontal:'left',vertical:'middle'} };
 
-      // ─────────────────────────────────────────────────────────
-      //  SHEET 3 — GARDU BEBAN LEBIH
+            //  SHEET 3 — GARDU BEBAN LEBIH
       // ─────────────────────────────────────────────────────────
       var bebanData = data.filter(function(r){ return parseFloat(r['PROSEN']||r['prosen'])>80; });
       var ws3 = wb.addWorksheet('Beban Lebih', {
@@ -9480,29 +9768,52 @@ function exportPengukuranExcel() {
         properties: { tabColor: { argb:'FF1565C0' } },
         views: [{ state:'frozen', ySplit:4 }]
       });
-      ws2.columns = [
-        {width:5},{width:14},{width:18},{width:16},{width:30},
-        {width:10},{width:6},{width:10},{width:9},{width:11},{width:9},{width:13},{width:22},
-        {width:10},{width:10},{width:10},{width:10},
-        {width:10},{width:10},{width:10},
-        {width:9},{width:9},{width:9},
-        {width:8},{width:8},{width:8},
-        {width:8},{width:8},{width:8},
-        {width:7},{width:7},{width:7}
-      ];
 
-      ws2.mergeCells('A1:AF1');
+      // Base 32 cols + 6 jurusan × 22 cols
+      (function() {
+        var baseCols = [
+          {width:5},{width:14},{width:18},{width:16},{width:30},
+          {width:10},{width:6},{width:10},{width:9},{width:11},{width:9},{width:13},{width:22},
+          {width:10},{width:10},{width:10},{width:10},
+          {width:10},{width:10},{width:10},
+          {width:9},{width:9},{width:9},
+          {width:8},{width:8},{width:8},
+          {width:8},{width:8},{width:8},
+          {width:7},{width:7},{width:7}
+        ];
+        var jurColDefs = [];
+        for (var jci2=0; jci2<6; jci2++) {
+          jurColDefs = jurColDefs.concat([
+            {width:18},{width:20},
+            {width:9},{width:9},{width:9},{width:9},
+            {width:9},{width:9},{width:9},
+            {width:9},{width:9},{width:9},
+            {width:8},{width:8},{width:8},
+            {width:8},{width:8},{width:8},
+            {width:7},{width:7},{width:7},
+            {width:20}
+          ]);
+        }
+        ws2.columns = baseCols.concat(jurColDefs);
+      })();
+
+      var _totalCols2 = 32 + 6 * 22;
+      function _colLetter(n) { var s=''; while(n>0){n--;s=String.fromCharCode(65+n%26)+s;n=Math.floor(n/26);} return s; }
+      var _lastCol2 = _colLetter(_totalCols2);
+
+      ws2.mergeCells('A1:' + _lastCol2 + '1');
       ws2.getCell('A1').value = 'PT. PLN (PERSERO) UP3 JAYAPURA — DATA LENGKAP PENGUKURAN GARDU';
       ws2.getCell('A1').style = { font:{bold:true,size:13,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnBlue}}, alignment:{horizontal:'center',vertical:'middle'} };
       ws2.getRow(1).height = 26;
 
-      ws2.mergeCells('A2:AF2');
+      ws2.mergeCells('A2:' + _lastCol2 + '2');
       ws2.getCell('A2').value = 'Periode: '+periodeStr+' | ULP: '+ulpLabel+' | Dicetak: '+tglCetak;
       ws2.getCell('A2').style = { font:{size:9,color:{argb:C.grayTxt},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnGold}}, alignment:{horizontal:'center',vertical:'middle'} };
       ws2.getRow(2).height = 16;
 
       ws2.getRow(3).height = 6;
 
+      var _jurColors2 = ['FF1565C0','FF2E7D32','FF6A1B9A','FFE65100','FF00838F','FF558B2F'];
       var colHdrs = [
         'NO','NO GARDU','ULP','PENYULANG','ALAMAT',
         'DAYA\n(kVA)','FASA','DAYA\nPAKAI','BEBAN\n(%)','TDK\nSEIMBANG\n(%)','JAM\nUKUR','TGL\nUKUR','PETUGAS',
@@ -9513,13 +9824,29 @@ function exportPengukuranExcel() {
         'IPEAK\n-R','IPEAK\n-S','IPEAK\n-T',
         'TPF-R','TPF-S','TPF-T'
       ];
+      for (var _jhi=0; _jhi<6; _jhi++) {
+        var _jn = _jhi+1;
+        colHdrs = colHdrs.concat([
+          'JUR'+_jn+'\nNAMA','JUR'+_jn+'\nTITIK UKUR',
+          'JUR'+_jn+'\nIR','JUR'+_jn+'\nIS','JUR'+_jn+'\nIT','JUR'+_jn+'\nIN',
+          'JUR'+_jn+'\nVR-N','JUR'+_jn+'\nVS-N','JUR'+_jn+'\nVT-N',
+          'JUR'+_jn+'\nVR-S','JUR'+_jn+'\nVS-T','JUR'+_jn+'\nVR-T',
+          'JUR'+_jn+'\nTHD-R','JUR'+_jn+'\nTHD-S','JUR'+_jn+'\nTHD-T',
+          'JUR'+_jn+'\nIPEAK-R','JUR'+_jn+'\nIPEAK-S','JUR'+_jn+'\nIPEAK-T',
+          'JUR'+_jn+'\nTPF-R','JUR'+_jn+'\nTPF-S','JUR'+_jn+'\nTPF-T',
+          'JUR'+_jn+'\nTITIK_UKUR'
+        ]);
+      }
+
       var rHdr = ws2.getRow(4); rHdr.height = 44;
       colHdrs.forEach(function(h,i){
         var cell = rHdr.getCell(i+1);
         cell.value = h;
+        var jurIdx4 = i>=32 ? Math.floor((i-32)/22) : -1;
+        var hdrBg4 = jurIdx4>=0 ? _jurColors2[jurIdx4%6] : C.headerBg;
         cell.style = {
           font:      { bold:true, size:9, color:{argb:C.white}, name:'Calibri' },
-          fill:      { type:'pattern', pattern:'solid', fgColor:{argb:C.headerBg} },
+          fill:      { type:'pattern', pattern:'solid', fgColor:{argb:hdrBg4} },
           alignment: { horizontal:'center', vertical:'middle', wrapText:true },
           border:    { top:{style:'medium',color:{argb:C.darkBorder}}, bottom:{style:'medium',color:{argb:C.darkBorder}}, left:{style:'thin',color:{argb:C.white}}, right:{style:'thin',color:{argb:C.white}} }
         };
@@ -9554,28 +9881,54 @@ function exportPengukuranExcel() {
           r['IPEAK-R']||r['IPEAK_R']||'', r['IPEAK-S']||r['IPEAK_S']||'', r['IPEAK-T']||r['IPEAK_T']||'',
           r['TPF-R']||'', r['TPF-S']||'', r['TPF-T']||''
         ];
+        for (var _ji3=1; _ji3<=6; _ji3++) {
+          vals = vals.concat([
+            r['JURUSAN '+_ji3]||'',
+            r['JUR'+_ji3+'_TITIK_UKUR']||'',
+            r['JUR'+_ji3+'_R_TOTAL']||r['JUR'+_ji3+'_R TOTAL']||'0',
+            r['JUR'+_ji3+'_S_TOTAL']||r['JUR'+_ji3+'_S TOTAL']||'0',
+            r['JUR'+_ji3+'_T_TOTAL']||r['JUR'+_ji3+'_T TOTAL']||'0',
+            r['JUR'+_ji3+'_N_TOTAL']||r['JUR'+_ji3+'_N TOTAL']||'0',
+            r['JUR'+_ji3+'_R-N']||r['JUR'+_ji3+'_R - N']||'0',
+            r['JUR'+_ji3+'_S-N']||r['JUR'+_ji3+'_S - N']||'0',
+            r['JUR'+_ji3+'_T-N']||r['JUR'+_ji3+'_T - N']||'0',
+            r['JUR'+_ji3+'_R-S']||r['JUR'+_ji3+'_R - S']||'0',
+            r['JUR'+_ji3+'_S-T']||r['JUR'+_ji3+'_S - T']||'0',
+            r['JUR'+_ji3+'_R-T']||r['JUR'+_ji3+'_R - T']||'0',
+            r['JUR'+_ji3+'_THD-R']||'0',
+            r['JUR'+_ji3+'_THD-S']||'0',
+            r['JUR'+_ji3+'_THD-T']||'0',
+            r['JUR'+_ji3+'_IPEAK-R']||'0',
+            r['JUR'+_ji3+'_IPEAK-S']||'0',
+            r['JUR'+_ji3+'_IPEAK-T']||'0',
+            r['JUR'+_ji3+'_TPF-R']||'0',
+            r['JUR'+_ji3+'_TPF-S']||'0',
+            r['JUR'+_ji3+'_TPF-T']||'0',
+            r['JUR'+_ji3+'_TITIK_UKUR']||''
+          ]);
+        }
 
         vals.forEach(function(v,ci){
           var cell = rRow.getCell(ci+1);
           cell.value = v;
-          var isNumCol = (ci===0)||(ci>=7&&ci<=9)||(ci>=13);
+          var isNumCol = (ci===0)||(ci>=7&&ci<=9)||(ci>=13&&ci<32)||(ci>=34);
           var align = ci===0?'center': ci===1?'left': isNumCol?'right':'left';
+          var jurIdx5 = ci>=32 ? Math.floor((ci-32)/22) : -1;
+          var cellBg = jurIdx5>=0 ? (isBeban?C.redBg:isAlt?C.altRow:C.white) : baseBg;
           cell.style = {
             font:      { size:9, name:'Calibri', bold:ci===1 },
-            fill:      { type:'pattern', pattern:'solid', fgColor:{argb:baseBg} },
+            fill:      { type:'pattern', pattern:'solid', fgColor:{argb:cellBg} },
             alignment: { horizontal:align, vertical:'middle' },
             border:    { top:{style:'thin',color:{argb:C.border}}, bottom:{style:'thin',color:{argb:C.border}}, left:{style:'thin',color:{argb:C.border}}, right:{style:'thin',color:{argb:C.border}} }
           };
-          // Warnai kolom BEBAN (%)
-          if(ci===8 && v!==''){
-            var pb = parseFloat(v);
-            if(!isNaN(pb)) cell.style.font.color = { argb: pb>80?C.red : pb>60?C.orange : C.green };
-            if(pb>80) cell.style.font.bold = true;
+          if (ci===8 && v!=='') {
+            var pb2=parseFloat(v);
+            if (!isNaN(pb2)) cell.style.font.color={argb:pb2>80?C.red:pb2>60?C.orange:C.green};
+            if (pb2>80) cell.style.font.bold=true;
           }
-          // Warnai TDK SEIMBANG
-          if(ci===9 && v!==''){
-            var ps = parseFloat(v);
-            if(!isNaN(ps) && ps>20) { cell.style.font.color={argb:C.orange}; cell.style.font.bold=true; }
+          if (ci===9 && v!=='') {
+            var ps3=parseFloat(v);
+            if (!isNaN(ps3)&&ps3>20){cell.style.font.color={argb:C.orange};cell.style.font.bold=true;}
           }
         });
       });
@@ -9587,8 +9940,7 @@ function exportPengukuranExcel() {
       ws2.mergeCells(5+data.length,1,5+data.length,colHdrs.length);
       totCell2.style = { font:{bold:true,size:10,color:{argb:C.plnBlue},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.subHdrBg}}, alignment:{horizontal:'left',vertical:'middle'} };
 
-      // ─────────────────────────────────────────────────────────
-      //  SHEET 3 — GARDU BEBAN LEBIH
+            //  SHEET 3 — GARDU BEBAN LEBIH
       // ─────────────────────────────────────────────────────────
       var bebanData = data.filter(function(r){ return parseFloat(r['PROSEN']||r['prosen'])>80; });
       var ws3 = wb.addWorksheet('Beban Lebih', {

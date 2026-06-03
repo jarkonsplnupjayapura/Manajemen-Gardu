@@ -745,25 +745,25 @@ function _normalizeJurusanPayload(jurusan) {
       return {
         nama:    j.nama    || null,
         titik:   j.titik   || null,
-        r_total: j.r_total != null ? parseFloat(j.r_total) : null,
-        s_total: j.s_total != null ? parseFloat(j.s_total) : null,
-        t_total: j.t_total != null ? parseFloat(j.t_total) : null,
-        n_total: j.n_total != null ? parseFloat(j.n_total) : null,
-        v_r_n:   j.v_r_n   != null ? parseFloat(j.v_r_n)   : null,
-        v_s_n:   j.v_s_n   != null ? parseFloat(j.v_s_n)   : null,
-        v_t_n:   j.v_t_n   != null ? parseFloat(j.v_t_n)   : null,
-        v_r_s:   j.v_r_s   != null ? parseFloat(j.v_r_s)   : null,
-        v_s_t:   j.v_s_t   != null ? parseFloat(j.v_s_t)   : null,
-        v_r_t:   j.v_r_t   != null ? parseFloat(j.v_r_t)   : null,
-        thd_r:   j.thd_r   != null ? parseFloat(j.thd_r)   : null,
-        thd_s:   j.thd_s   != null ? parseFloat(j.thd_s)   : null,
-        thd_t:   j.thd_t   != null ? parseFloat(j.thd_t)   : null,
-        ipeak_r: j.ipeak_r != null ? parseFloat(j.ipeak_r) : null,
-        ipeak_s: j.ipeak_s != null ? parseFloat(j.ipeak_s) : null,
-        ipeak_t: j.ipeak_t != null ? parseFloat(j.ipeak_t) : null,
-        tpf_r:   j.tpf_r   != null ? parseFloat(j.tpf_r)   : null,
-        tpf_s:   j.tpf_s   != null ? parseFloat(j.tpf_s)   : null,
-        tpf_t:   j.tpf_t   != null ? parseFloat(j.tpf_t)   : null
+        r_total: j.r_total != null ? parseFloat(j.r_total) : 0,
+        s_total: j.s_total != null ? parseFloat(j.s_total) : 0,
+        t_total: j.t_total != null ? parseFloat(j.t_total) : 0,
+        n_total: j.n_total != null ? parseFloat(j.n_total) : 0,
+        v_r_n:   j.v_r_n   != null ? parseFloat(j.v_r_n)   : 0,
+        v_s_n:   j.v_s_n   != null ? parseFloat(j.v_s_n)   : 0,
+        v_t_n:   j.v_t_n   != null ? parseFloat(j.v_t_n)   : 0,
+        v_r_s:   j.v_r_s   != null ? parseFloat(j.v_r_s)   : 0,
+        v_s_t:   j.v_s_t   != null ? parseFloat(j.v_s_t)   : 0,
+        v_r_t:   j.v_r_t   != null ? parseFloat(j.v_r_t)   : 0,
+        thd_r:   j.thd_r   != null ? parseFloat(j.thd_r)   : 0,
+        thd_s:   j.thd_s   != null ? parseFloat(j.thd_s)   : 0,
+        thd_t:   j.thd_t   != null ? parseFloat(j.thd_t)   : 0,
+        ipeak_r: j.ipeak_r != null ? parseFloat(j.ipeak_r) : 0,
+        ipeak_s: j.ipeak_s != null ? parseFloat(j.ipeak_s) : 0,
+        ipeak_t: j.ipeak_t != null ? parseFloat(j.ipeak_t) : 0,
+        tpf_r:   j.tpf_r   != null ? parseFloat(j.tpf_r)   : 0,
+        tpf_s:   j.tpf_s   != null ? parseFloat(j.tpf_s)   : 0,
+        tpf_t:   j.tpf_t   != null ? parseFloat(j.tpf_t)   : 0
       };
     }));
   } catch (e) {
@@ -1023,29 +1023,43 @@ function _mapInspeksiRow(r) {
       : (r.jurusan || []);
   } catch (e) {}
 
-  jurusan.forEach(function(j, idx) {
+  // Always output 6 jurusan slots — fill with 0 if not present
+  for (var idx = 0; idx < 6; idx++) {
+    var j = jurusan[idx] || {};
     var n = idx + 1;
-    flat['JURUSAN ' + n]       = j.nama     || '';
-    flat['JUR' + n + '_R TOTAL'] = j.r_total != null ? String(j.r_total)  : '';
-    flat['JUR' + n + '_S TOTAL'] = j.s_total != null ? String(j.s_total)  : '';
-    flat['JUR' + n + '_T TOTAL'] = j.t_total != null ? String(j.t_total)  : '';
-    flat['JUR' + n + '_N TOTAL'] = j.n_total != null ? String(j.n_total)  : '';
-    flat['JUR' + n + '_R - N']   = j.v_r_n   != null ? String(j.v_r_n)    : '';
-    flat['JUR' + n + '_S - N']   = j.v_s_n   != null ? String(j.v_s_n)    : '';
-    flat['JUR' + n + '_T - N']   = j.v_t_n   != null ? String(j.v_t_n)    : '';
-    flat['JUR' + n + '_R - s']   = j.v_r_t   != null ? String(j.v_r_t)    : '';
-    flat['JUR' + n + '_R - T']   = j.v_r_t   != null ? String(j.v_r_t)    : '';
-    flat['JUR' + n + '_S - T']   = j.v_s_t   != null ? String(j.v_s_t)    : '';
-    flat['JUR' + n + '_THD-R']   = j.thd_r   != null ? String(j.thd_r)    : '';
-    flat['JUR' + n + '_THD-S']   = j.thd_s   != null ? String(j.thd_s)    : '';
-    flat['JUR' + n + '_THD-T']   = j.thd_t   != null ? String(j.thd_t)    : '';
-    flat['JUR' + n + '_IPEAK-R'] = j.ipeak_r != null ? String(j.ipeak_r)  : '';
-    flat['JUR' + n + '_IPEAK-S'] = j.ipeak_s != null ? String(j.ipeak_s)  : '';
-    flat['JUR' + n + '_IPEAK-T'] = j.ipeak_t != null ? String(j.ipeak_t)  : '';
-    flat['JUR' + n + '_TPF-R']   = j.tpf_r   != null ? String(j.tpf_r)    : '';
-    flat['JUR' + n + '_TPF-S']   = j.tpf_s   != null ? String(j.tpf_s)    : '';
-    flat['JUR' + n + '_TPF-T']   = j.tpf_t   != null ? String(j.tpf_t)    : '';
-  });
+    flat['JURUSAN ' + n]           = j.nama     || '';
+    flat['JUR' + n + '_R_TOTAL']   = j.r_total  != null ? String(j.r_total)  : '0';
+    flat['JUR' + n + '_S_TOTAL']   = j.s_total  != null ? String(j.s_total)  : '0';
+    flat['JUR' + n + '_T_TOTAL']   = j.t_total  != null ? String(j.t_total)  : '0';
+    flat['JUR' + n + '_N_TOTAL']   = j.n_total  != null ? String(j.n_total)  : '0';
+    flat['JUR' + n + '_R-N']       = j.v_r_n    != null ? String(j.v_r_n)    : '0';
+    flat['JUR' + n + '_S-N']       = j.v_s_n    != null ? String(j.v_s_n)    : '0';
+    flat['JUR' + n + '_T-N']       = j.v_t_n    != null ? String(j.v_t_n)    : '0';
+    flat['JUR' + n + '_R-S']       = j.v_r_s    != null ? String(j.v_r_s)    : '0';
+    flat['JUR' + n + '_S-T']       = j.v_s_t    != null ? String(j.v_s_t)    : '0';
+    flat['JUR' + n + '_R-T']       = j.v_r_t    != null ? String(j.v_r_t)    : '0';
+    flat['JUR' + n + '_THD-R']     = j.thd_r    != null ? String(j.thd_r)    : '0';
+    flat['JUR' + n + '_THD-S']     = j.thd_s    != null ? String(j.thd_s)    : '0';
+    flat['JUR' + n + '_THD-T']     = j.thd_t    != null ? String(j.thd_t)    : '0';
+    flat['JUR' + n + '_IPEAK-R']   = j.ipeak_r  != null ? String(j.ipeak_r)  : '0';
+    flat['JUR' + n + '_IPEAK-S']   = j.ipeak_s  != null ? String(j.ipeak_s)  : '0';
+    flat['JUR' + n + '_IPEAK-T']   = j.ipeak_t  != null ? String(j.ipeak_t)  : '0';
+    flat['JUR' + n + '_TPF-R']     = j.tpf_r    != null ? String(j.tpf_r)    : '0';
+    flat['JUR' + n + '_TPF-S']     = j.tpf_s    != null ? String(j.tpf_s)    : '0';
+    flat['JUR' + n + '_TPF-T']     = j.tpf_t    != null ? String(j.tpf_t)    : '0';
+    flat['JUR' + n + '_TITIK_UKUR'] = j.titik   || '';
+    // Backward compat aliases
+    flat['JUR' + n + '_R TOTAL']   = flat['JUR' + n + '_R_TOTAL'];
+    flat['JUR' + n + '_S TOTAL']   = flat['JUR' + n + '_S_TOTAL'];
+    flat['JUR' + n + '_T TOTAL']   = flat['JUR' + n + '_T_TOTAL'];
+    flat['JUR' + n + '_N TOTAL']   = flat['JUR' + n + '_N_TOTAL'];
+    flat['JUR' + n + '_R - N']     = flat['JUR' + n + '_R-N'];
+    flat['JUR' + n + '_S - N']     = flat['JUR' + n + '_S-N'];
+    flat['JUR' + n + '_T - N']     = flat['JUR' + n + '_T-N'];
+    flat['JUR' + n + '_R - S']     = flat['JUR' + n + '_R-S'];
+    flat['JUR' + n + '_S - T']     = flat['JUR' + n + '_S-T'];
+    flat['JUR' + n + '_R - T']     = flat['JUR' + n + '_R-T'];
+  }
 
   return flat;
 }
