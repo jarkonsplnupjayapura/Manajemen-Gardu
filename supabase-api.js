@@ -733,42 +733,47 @@ async function _toggleStatus(p, signal) {
   return { status: 'ok', message: data.message };
 }
 
+// ── HELPER: Normalisasi array jurusan → JSON string ──────────
+// Single source of truth untuk mapping field numerik per jurusan.
+// Dipakai oleh _tambahInspeksi dan _editInspeksi agar perbaikan
+// field (mis. v_r_s) cukup dilakukan di satu tempat.
+function _normalizeJurusanPayload(jurusan) {
+  if (!jurusan) return null;
+  try {
+    var arr = typeof jurusan === 'string' ? JSON.parse(jurusan) : jurusan;
+    return JSON.stringify(arr.map(function(j) {
+      return {
+        nama:    j.nama    || null,
+        titik:   j.titik   || null,
+        r_total: j.r_total != null ? parseFloat(j.r_total) : null,
+        s_total: j.s_total != null ? parseFloat(j.s_total) : null,
+        t_total: j.t_total != null ? parseFloat(j.t_total) : null,
+        n_total: j.n_total != null ? parseFloat(j.n_total) : null,
+        v_r_n:   j.v_r_n   != null ? parseFloat(j.v_r_n)   : null,
+        v_s_n:   j.v_s_n   != null ? parseFloat(j.v_s_n)   : null,
+        v_t_n:   j.v_t_n   != null ? parseFloat(j.v_t_n)   : null,
+        v_r_s:   j.v_r_s   != null ? parseFloat(j.v_r_s)   : null,
+        v_s_t:   j.v_s_t   != null ? parseFloat(j.v_s_t)   : null,
+        v_r_t:   j.v_r_t   != null ? parseFloat(j.v_r_t)   : null,
+        thd_r:   j.thd_r   != null ? parseFloat(j.thd_r)   : null,
+        thd_s:   j.thd_s   != null ? parseFloat(j.thd_s)   : null,
+        thd_t:   j.thd_t   != null ? parseFloat(j.thd_t)   : null,
+        ipeak_r: j.ipeak_r != null ? parseFloat(j.ipeak_r) : null,
+        ipeak_s: j.ipeak_s != null ? parseFloat(j.ipeak_s) : null,
+        ipeak_t: j.ipeak_t != null ? parseFloat(j.ipeak_t) : null,
+        tpf_r:   j.tpf_r   != null ? parseFloat(j.tpf_r)   : null,
+        tpf_s:   j.tpf_s   != null ? parseFloat(j.tpf_s)   : null,
+        tpf_t:   j.tpf_t   != null ? parseFloat(j.tpf_t)   : null
+      };
+    }));
+  } catch (e) {
+    return typeof jurusan === 'string' ? jurusan : null;
+  }
+}
+
 // ── TAMBAH INSPEKSI via RPC ──────────────────────────────────
 async function _tambahInspeksi(p, signal) {
-  // Normalisasi jurusan: pastikan semua field numerik diparse dan field 'titik' ikut terkirim
-  var jurusanPayload = null;
-  if (p.jurusan) {
-    try {
-      var jurusanArr = typeof p.jurusan === 'string' ? JSON.parse(p.jurusan) : p.jurusan;
-      jurusanPayload = JSON.stringify(jurusanArr.map(function(j) {
-        return {
-          nama:    j.nama    || null,
-          titik:   j.titik   || null,
-          r_total: j.r_total != null ? parseFloat(j.r_total) : null,
-          s_total: j.s_total != null ? parseFloat(j.s_total) : null,
-          t_total: j.t_total != null ? parseFloat(j.t_total) : null,
-          n_total: j.n_total != null ? parseFloat(j.n_total) : null,
-          v_r_n:   j.v_r_n   != null ? parseFloat(j.v_r_n)   : null,
-          v_s_n:   j.v_s_n   != null ? parseFloat(j.v_s_n)   : null,
-          v_t_n:   j.v_t_n   != null ? parseFloat(j.v_t_n)   : null,
-          v_r_s:   j.v_r_s   != null ? parseFloat(j.v_r_s)   : null,
-          v_s_t:   j.v_s_t   != null ? parseFloat(j.v_s_t)   : null,
-          v_r_t:   j.v_r_t   != null ? parseFloat(j.v_r_t)   : null,
-          thd_r:   j.thd_r   != null ? parseFloat(j.thd_r)   : null,
-          thd_s:   j.thd_s   != null ? parseFloat(j.thd_s)   : null,
-          thd_t:   j.thd_t   != null ? parseFloat(j.thd_t)   : null,
-          ipeak_r: j.ipeak_r != null ? parseFloat(j.ipeak_r) : null,
-          ipeak_s: j.ipeak_s != null ? parseFloat(j.ipeak_s) : null,
-          ipeak_t: j.ipeak_t != null ? parseFloat(j.ipeak_t) : null,
-          tpf_r:   j.tpf_r   != null ? parseFloat(j.tpf_r)   : null,
-          tpf_s:   j.tpf_s   != null ? parseFloat(j.tpf_s)   : null,
-          tpf_t:   j.tpf_t   != null ? parseFloat(j.tpf_t)   : null
-        };
-      }));
-    } catch (e) {
-      jurusanPayload = typeof p.jurusan === 'string' ? p.jurusan : null;
-    }
-  }
+  var jurusanPayload = _normalizeJurusanPayload(p.jurusan);
 
   var data = await rpcCall('fn_tambah_inspeksi', {
     p_token:         p.token,
@@ -845,39 +850,7 @@ async function _getInspeksi(p, signal) {
 
 // ── EDIT INSPEKSI via RPC ─────────────────────────────────────
 async function _editInspeksi(p, signal) {
-  var jurusanPayload = null;
-  if (p.jurusan) {
-    try {
-      var arr = typeof p.jurusan === 'string' ? JSON.parse(p.jurusan) : p.jurusan;
-      jurusanPayload = JSON.stringify(arr.map(function(j) {
-        return {
-          nama:    j.nama    || null,
-          titik:   j.titik   || null,
-          r_total: j.r_total != null ? parseFloat(j.r_total) : null,
-          s_total: j.s_total != null ? parseFloat(j.s_total) : null,
-          t_total: j.t_total != null ? parseFloat(j.t_total) : null,
-          n_total: j.n_total != null ? parseFloat(j.n_total) : null,
-          v_r_n:   j.v_r_n   != null ? parseFloat(j.v_r_n)   : null,
-          v_s_n:   j.v_s_n   != null ? parseFloat(j.v_s_n)   : null,
-          v_t_n:   j.v_t_n   != null ? parseFloat(j.v_t_n)   : null,
-          v_r_s:   j.v_r_s   != null ? parseFloat(j.v_r_s)   : null,
-          v_s_t:   j.v_s_t   != null ? parseFloat(j.v_s_t)   : null,
-          v_r_t:   j.v_r_t   != null ? parseFloat(j.v_r_t)   : null,
-          thd_r:   j.thd_r   != null ? parseFloat(j.thd_r)   : null,
-          thd_s:   j.thd_s   != null ? parseFloat(j.thd_s)   : null,
-          thd_t:   j.thd_t   != null ? parseFloat(j.thd_t)   : null,
-          ipeak_r: j.ipeak_r != null ? parseFloat(j.ipeak_r) : null,
-          ipeak_s: j.ipeak_s != null ? parseFloat(j.ipeak_s) : null,
-          ipeak_t: j.ipeak_t != null ? parseFloat(j.ipeak_t) : null,
-          tpf_r:   j.tpf_r   != null ? parseFloat(j.tpf_r)   : null,
-          tpf_s:   j.tpf_s   != null ? parseFloat(j.tpf_s)   : null,
-          tpf_t:   j.tpf_t   != null ? parseFloat(j.tpf_t)   : null
-        };
-      }));
-    } catch (e) {
-      jurusanPayload = typeof p.jurusan === 'string' ? p.jurusan : null;
-    }
-  }
+  var jurusanPayload = _normalizeJurusanPayload(p.jurusan);
 
   var data = await rpcCall('fn_edit_inspeksi', {
     p_token:         p.token,

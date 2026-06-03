@@ -1811,6 +1811,43 @@ if (typeof L === 'undefined') {
 <!-- SCAN TOAST -->
 
 
+<!-- MODAL KONFIRMASI CUSTOM (menggantikan window.confirm) -->
+<div id="modal-konfirmasi" style="display:none;position:fixed;inset:0;z-index:9800;background:rgba(0,0,0,.65);align-items:center;justify-content:center;padding:var(--sp-md);">
+  <div style="background:var(--pln-card);border-radius:var(--radius);width:100%;max-width:360px;box-shadow:var(--shadow-lg);overflow:hidden;">
+    <!-- Header -->
+    <div id="mk-header" style="background:var(--pln-red);padding:var(--sp-md) var(--sp-lg);display:flex;align-items:center;gap:10px;">
+      <span id="mk-icon" style="font-size:24px;">⚠️</span>
+      <span id="mk-title" style="color:#fff;font-weight:700;font-size:var(--fs-md);"></span>
+    </div>
+    <!-- Body -->
+    <div style="padding:var(--sp-lg);">
+      <p id="mk-pesan" style="color:var(--pln-text);font-size:var(--fs-sm);margin-bottom:var(--sp-md);line-height:1.55;"></p>
+      <!-- Konfirmasi ketik nama (hanya untuk aksi sangat kritis) -->
+      <div id="mk-konfirmasi-ketik-wrap" style="display:none;margin-bottom:var(--sp-md);">
+        <label style="font-size:var(--fs-xs);font-weight:600;color:var(--pln-text2);display:block;margin-bottom:6px;">
+          Ketik <b id="mk-konfirmasi-label" style="color:var(--pln-red);font-family:monospace;letter-spacing:.5px;"></b> untuk konfirmasi:
+        </label>
+        <input id="mk-konfirmasi-input" type="text" autocomplete="off" autocorrect="off" spellcheck="false"
+          style="width:100%;padding:10px 12px;border:2px solid var(--pln-border);border-radius:var(--radius-sm);
+                 font-size:var(--fs-sm);font-family:monospace;outline:none;transition:border-color .15s;"
+          oninput="window._mkCheckKetik()"
+          onkeydown="if(event.key==='Enter'&&!document.getElementById('mk-btn-hapus').disabled)window._mkDoAction()">
+      </div>
+      <!-- Tombol -->
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button id="mk-btn-batal"
+          style="flex:1;padding:11px;border:1.5px solid var(--pln-border);background:var(--pln-bg);border-radius:var(--radius-sm);
+                 font-size:var(--fs-sm);font-weight:600;color:var(--pln-text2);cursor:pointer;transition:all .15s;font-family:inherit;"
+          onclick="window._mkClose()">Batal</button>
+        <button id="mk-btn-hapus"
+          style="flex:1;padding:11px;border:none;background:var(--pln-red);color:#fff;border-radius:var(--radius-sm);
+                 font-size:var(--fs-sm);font-weight:700;cursor:pointer;transition:all .15s;font-family:inherit;"
+          onclick="window._mkDoAction()">Hapus</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL PIN GARDU (v36: PIN per user, dikirim ke server) -->
 <div id="modal-pin-gardu" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.6);align-items:center;justify-content:center;">
   <div style="background:var(--pln-card);border-radius:var(--radius);padding:var(--sp-lg);width:100%;max-width:340px;box-shadow:var(--shadow-lg);">
@@ -2605,7 +2642,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function doLogout() {
-  if (!confirm('Yakin ingin logout?')) return;
+  bukaModalKonfirmasi({
+    judul: 'Logout', pesan: 'Yakin ingin keluar dari sesi ini?',
+    ikon: '👋', labelAksi: 'Logout', warna: 'var(--pln-biru2)'
+  }, function() {
   clearSession();
   currentULP = '';
   _adminUlpVerified = false;
@@ -2754,9 +2794,11 @@ function bukaMenuAdmin() {
   // Petugas: tidak punya akses admin, tapi bisa logout
   if (s.role === 'petugas') {
     // Tampilkan hanya modal logout sederhana untuk petugas
-    if (confirm('Anda login sebagai Petugas.\n\nAkses menu admin tidak tersedia.\n\nKlik OK untuk Logout.')) {
-      doLogout();
-    }
+    konfirmasiAksi(
+      'Anda login sebagai <b>Petugas</b>. Akses menu admin tidak tersedia.<br><br>Ingin logout?',
+      'Akses Terbatas', 'Logout',
+      function() { doLogout(); }
+    );
     return;
   }
   // Superadmin langsung masuk (tidak perlu PIN tambahan)
@@ -2990,12 +3032,17 @@ function simpanUser() {
 
 function hapusUser(username, nama) {
   var label = nama ? '"' + nama + '" (' + username + ')' : '"' + username + '"';
-  if (!confirm('Hapus akun ' + label + '?\n\nUser ini tidak akan bisa login lagi.\nTindakan ini tidak bisa dibatalkan.')) return;
-  var s = getSession();
-  apiGet({ action: 'hapusUser', token: s ? s.token : '', username: username }, function(res) {
-    if (res.status === 'ok') { renderUserList(); }
-    else { alert('Gagal hapus: ' + (res.message || 'error')); }
-  });
+  konfirmasiHapus(
+    'Akun <b>' + esc(label) + '</b> akan dihapus permanen.<br><br>User tidak akan bisa login lagi.',
+    'Hapus Akun User',
+    function() {
+      var s = getSession();
+      apiGet({ action: 'hapusUser', token: s ? s.token : '', username: username }, function(res) {
+        if (res.status === 'ok') { renderUserList(); }
+        else { alert('Gagal hapus: ' + (res.message || 'error')); }
+      });
+    }
+  );
 }
 
 // ══ KELOLA USER ULP — Khusus Admin ULP ═══════════════════════
@@ -3162,12 +3209,17 @@ function simpanUserULP() {
 
 function hapusUserULP(username, nama) {
   var label = nama ? '"' + nama + '" (' + username + ')' : '"' + username + '"';
-  if (!confirm('Hapus akun ' + label + '?\n\nUser ini tidak akan bisa login lagi.\nTindakan ini tidak bisa dibatalkan.')) return;
-  var s = getSession();
-  apiGet({ action: 'hapusUser', token: s ? s.token : '', username: username }, function(res) {
-    if (res.status === 'ok') { renderUserListULP(); }
-    else { alert('Gagal hapus: ' + (res.message || 'error')); }
-  });
+  konfirmasiHapus(
+    'Akun <b>' + esc(label) + '</b> akan dihapus permanen.<br><br>User tidak akan bisa login lagi.',
+    'Hapus Akun User',
+    function() {
+      var s = getSession();
+      apiGet({ action: 'hapusUser', token: s ? s.token : '', username: username }, function(res) {
+        if (res.status === 'ok') { renderUserListULP(); }
+        else { alert('Gagal hapus: ' + (res.message || 'error')); }
+      });
+    }
+  );
 }
 // ══ END KELOLA USER ULP ═══════════════════════════════════════
 
@@ -3254,7 +3306,10 @@ function submitResetPassword() {
 
 // ── Reset PIN oleh Admin ULP ─────────────────────────────────
 function resetPinULP(username) {
-  if (!confirm('Reset PIN untuk "' + username + '"?\n\nUser harus set PIN baru saat login berikutnya.')) return;
+  konfirmasiAksi(
+    'Reset PIN untuk akun <b>' + esc(username) + '</b>?<br><br>User harus mengatur PIN baru saat login berikutnya.',
+    'Reset PIN', 'Reset PIN',
+    function() {
   var s = getSession();
   if (!s) return;
   apiGet({ action: 'resetPin', token: s.token, username: username }, function(res) {
@@ -3265,12 +3320,17 @@ function resetPinULP(username) {
       alert('Gagal reset PIN:\n' + (res.message || 'error'));
     }
   });
+  }); // end konfirmasiAksi
 }
 
 // ── Aktifkan / Nonaktifkan user oleh Admin ULP ───────────────
 function toggleAktifULP(username, aktifkan) {
   var aksi = aktifkan ? 'mengaktifkan' : 'menonaktifkan';
-  if (!confirm((aktifkan ? 'Aktifkan' : 'Nonaktifkan') + ' akun "' + username + '"?')) return;
+  konfirmasiAksi(
+    (aktifkan ? 'Aktifkan' : 'Nonaktifkan') + ' akun <b>' + esc(username) + '</b>?',
+    (aktifkan ? 'Aktifkan' : 'Nonaktifkan') + ' Akun',
+    aktifkan ? 'Aktifkan' : 'Nonaktifkan',
+    function() {
   var s = getSession();
   if (!s) return;
   apiGet({ action: 'aktifkanUser', token: s.token, username: username, aktifkan: aktifkan }, function(res) {
@@ -3280,6 +3340,7 @@ function toggleAktifULP(username, aktifkan) {
       alert('Gagal ' + aksi + ' user:\n' + (res.message || 'error'));
     }
   });
+  }); // end konfirmasiAksi
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -4896,7 +4957,12 @@ function submitFormInspeksi() {
 
 // ── Hapus Inspeksi by ID ──────────────────────────────────────
 function hapusInspeksiById(id, tglLabel) {
-  if (!confirm('Hapus data inspeksi tanggal ' + tglLabel + '?\n\nTindakan ini tidak dapat dibatalkan.')) return;
+  var _noGarduForDel = (document.getElementById('detail-view-title') || {}).textContent || 'GARDU';
+  konfirmasiHapusKritis(
+    'Data pengukuran tanggal <b>' + esc(tglLabel) + '</b> akan dihapus permanen dan tidak dapat dikembalikan.',
+    _noGarduForDel.trim(),
+    'Hapus Data Inspeksi',
+    function() {
   var s = getSession();
   if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
 
@@ -4910,6 +4976,7 @@ function hapusInspeksiById(id, tglLabel) {
     var noGardu = titleEl ? titleEl.textContent.trim() : '';
     if (noGardu) bukaDetailGardu(noGardu);
   });
+  }); // end konfirmasiHapusKritis
 }
 
 // ── EDIT INSPEKSI ──────────────────────────────────────────────
@@ -5067,7 +5134,11 @@ function bukaEditInspeksiDariPengukuran(id, r) {
 
 // ── Hapus inspeksi dipanggil dari halaman Pengukuran Gardu ─────
 function hapusInspeksiDariPengukuran(id, tglLabel) {
-  if (!confirm('Hapus data pengukuran tanggal ' + tglLabel + '?\n\nTindakan ini tidak dapat dibatalkan.')) return;
+  konfirmasiHapusKritis(
+    'Data pengukuran tanggal <b>' + esc(tglLabel) + '</b> akan dihapus permanen dan tidak dapat dikembalikan.',
+    tglLabel,
+    'Hapus Data Pengukuran',
+    function() {
   var s = getSession();
   if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
   apiGet({ action: 'hapusInspeksi', token: s.token, id: id }, function(res) {
@@ -5078,6 +5149,7 @@ function hapusInspeksiDariPengukuran(id, tglLabel) {
     _ukurSudahMuat = false;
     muatDataPengukuran(true);
   });
+  }); // end konfirmasiHapusKritis
 }
 
 // ── EDIT PEMELIHARAAN ─────────────────────────────────────────
@@ -6978,7 +7050,10 @@ function submitEditGardu() {
     'ULP    : ' + ulpVal + '\n' +
     'Status : ' + (document.getElementById('ef-status').value||'AKTIF') + '\n\n' +
     'Perubahan ini akan tersimpan ke database.\nLanjutkan?';
-  if (!confirm(konfirmasiMsg)) return;
+  konfirmasiAksi(
+    'Perubahan data gardu <b>' + esc(noLama) + '</b> akan tersimpan ke database. Lanjutkan?',
+    'Konfirmasi Perubahan Gardu', 'Lanjutkan',
+    function() {
 
   // FIX: minta PIN ULP untuk konfirmasi setiap operasi edit
   bukaModalPinGardu('Konfirmasi PIN — Edit Gardu', function(pin) {
@@ -7009,6 +7084,7 @@ function submitEditGardu() {
       }
     });
   });
+  }); // end konfirmasiAksi
 }
 
 function tutupPanelAdmin() {
@@ -8098,7 +8174,11 @@ function renderDaftarPemeliharaan() {
 
 // ── Hapus pemeliharaan ──────────────────────────────────────────
 function hapusPemeliharaanById(id, noGardu) {
-  if (!confirm('Hapus catatan pemeliharaan gardu ' + noGardu + '?\n\nTindakan ini tidak dapat dibatalkan.')) return;
+  konfirmasiHapusKritis(
+    'Catatan pemeliharaan gardu <b>' + esc(noGardu) + '</b> akan dihapus permanen.',
+    noGardu,
+    'Hapus Pemeliharaan',
+    function() {
   var s = getSession();
   if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
 
@@ -8110,6 +8190,7 @@ function hapusPemeliharaanById(id, noGardu) {
     _pmSudahMuat = false;
     muatDaftarPemeliharaan(true);
   });
+  }); // end konfirmasiHapusKritis
 }
 
 // ══ PENGUKURAN GARDU JS ══════════════════════════════════════
@@ -9064,6 +9145,163 @@ function _fmtTglExport(iso) {
   if (p.length === 3) return p[2]+'/'+p[1]+'/'+p[0];
   return iso;
 }
+
+// ══ MODAL KONFIRMASI CUSTOM ════════════════════════════════════
+// Menggantikan window.confirm() di seluruh aplikasi.
+// API:
+//   bukaModalKonfirmasi(opts, callback)
+//   opts = {
+//     judul:       string   (default: 'Konfirmasi Hapus')
+//     pesan:       string   (wajib)
+//     labelAksi:   string   (default: 'Hapus')
+//     warna:       string   css-color untuk header (default: var(--pln-red))
+//     ikon:        string   emoji (default: '⚠️')
+//     konfirmasiKetik: string|null  jika diisi, user harus ketik ulang string ini
+//     labelBatal:  string   (default: 'Batal')
+//   }
+//   callback dipanggil hanya jika user mengklik tombol aksi.
+
+(function() {
+  var _mkCallback = null;
+  var _mkKonfirmasiTarget = null;
+
+  // Expose internal helpers ke window agar bisa dipanggil dari inline HTML
+  window._mkDoAction = function() {
+    var btn = document.getElementById('mk-btn-hapus');
+    if (btn && btn.disabled) return;
+    var cb = _mkCallback;
+    _mkClose();
+    if (cb) cb();
+  };
+
+  window._mkClose = function() {
+    var el = document.getElementById('modal-konfirmasi');
+    if (el) el.style.display = 'none';
+    _mkCallback = null;
+    _mkKonfirmasiTarget = null;
+    var inp = document.getElementById('mk-konfirmasi-input');
+    if (inp) { inp.value = ''; inp.style.borderColor = 'var(--pln-border)'; }
+  };
+
+  window._mkCheckKetik = function() {
+    if (!_mkKonfirmasiTarget) return;
+    var inp = document.getElementById('mk-konfirmasi-input');
+    var btn = document.getElementById('mk-btn-hapus');
+    if (!inp || !btn) return;
+    var match = inp.value.trim() === _mkKonfirmasiTarget;
+    btn.disabled = !match;
+    btn.style.opacity = match ? '1' : '0.4';
+    btn.style.cursor  = match ? 'pointer' : 'not-allowed';
+    inp.style.borderColor = inp.value
+      ? (match ? 'var(--pln-green)' : 'var(--pln-red)')
+      : 'var(--pln-border)';
+  };
+
+  window.bukaModalKonfirmasi = function(opts, callback) {
+    if (typeof opts === 'string') {
+      // compat: bukaModalKonfirmasi('pesan', cb) — simple mode
+      opts = { pesan: opts };
+    }
+    _mkCallback = callback || null;
+    _mkKonfirmasiTarget = opts.konfirmasiKetik || null;
+
+    // Populate UI
+    var el       = document.getElementById('modal-konfirmasi');
+    var header   = document.getElementById('mk-header');
+    var iconEl   = document.getElementById('mk-icon');
+    var titleEl  = document.getElementById('mk-title');
+    var pesanEl  = document.getElementById('mk-pesan');
+    var ketikWrap= document.getElementById('mk-konfirmasi-ketik-wrap');
+    var ketikLbl = document.getElementById('mk-konfirmasi-label');
+    var ketikInp = document.getElementById('mk-konfirmasi-input');
+    var btnHapus = document.getElementById('mk-btn-hapus');
+    var btnBatal = document.getElementById('mk-btn-batal');
+
+    if (!el) return;
+
+    var warna   = opts.warna     || 'var(--pln-red)';
+    var ikon    = opts.ikon      || '⚠️';
+    var judul   = opts.judul     || 'Konfirmasi';
+    var aksi    = opts.labelAksi || 'Hapus';
+    var batal   = opts.labelBatal|| 'Batal';
+
+    if (header)  header.style.background = warna;
+    if (iconEl)  iconEl.textContent  = ikon;
+    if (titleEl) titleEl.textContent = judul;
+    if (pesanEl) pesanEl.innerHTML   = opts.pesan || '';
+    if (btnHapus){ btnHapus.textContent = aksi; btnHapus.style.background = warna; }
+    if (btnBatal)  btnBatal.textContent = batal;
+
+    if (_mkKonfirmasiTarget) {
+      if (ketikWrap) ketikWrap.style.display = 'block';
+      if (ketikLbl)  ketikLbl.textContent    = _mkKonfirmasiTarget;
+      if (ketikInp)  { ketikInp.value = ''; ketikInp.style.borderColor = 'var(--pln-border)'; ketikInp.placeholder = _mkKonfirmasiTarget; }
+      if (btnHapus)  { btnHapus.disabled = true; btnHapus.style.opacity = '0.4'; btnHapus.style.cursor = 'not-allowed'; }
+    } else {
+      if (ketikWrap) ketikWrap.style.display = 'none';
+      if (btnHapus)  { btnHapus.disabled = false; btnHapus.style.opacity = '1'; btnHapus.style.cursor = 'pointer'; }
+    }
+
+    el.style.display = 'flex';
+
+    // Focus: default ke Batal untuk cegah hapus tidak sengaja
+    setTimeout(function() {
+      var focusTarget = _mkKonfirmasiTarget ? ketikInp : btnBatal;
+      if (focusTarget) focusTarget.focus();
+    }, 80);
+  };
+
+  // Tutup modal saat klik backdrop
+  document.addEventListener('click', function(e) {
+    var modal = document.getElementById('modal-konfirmasi');
+    if (modal && e.target === modal) window._mkClose();
+  });
+
+  // Tutup modal dengan Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      var modal = document.getElementById('modal-konfirmasi');
+      if (modal && modal.style.display === 'flex') window._mkClose();
+    }
+  });
+})();
+
+// ── Wrapper helpers: konfirmasiHapus & konfirmasiAksi ─────────
+// konfirmasiHapus: untuk hapus data (merah, tidak perlu ketik ulang)
+function konfirmasiHapus(pesan, judul, callback) {
+  bukaModalKonfirmasi({
+    judul:     judul || 'Konfirmasi Hapus',
+    pesan:     pesan,
+    ikon:      '🗑️',
+    labelAksi: 'Hapus',
+    warna:     'var(--pln-red)'
+  }, callback);
+}
+
+// konfirmasiHapusKritis: untuk hapus sangat kritis (perlu ketik ulang no_gardu / nama)
+function konfirmasiHapusKritis(pesan, namaKonfirmasi, judul, callback) {
+  bukaModalKonfirmasi({
+    judul:           judul || 'Konfirmasi Hapus',
+    pesan:           pesan,
+    ikon:            '🚨',
+    labelAksi:       'Hapus Permanen',
+    warna:           '#7F1D1D',
+    konfirmasiKetik: namaKonfirmasi
+  }, callback);
+}
+
+// konfirmasiAksi: untuk aksi non-hapus (biru, tidak destruktif)
+function konfirmasiAksi(pesan, judul, labelAksi, callback) {
+  bukaModalKonfirmasi({
+    judul:     judul     || 'Konfirmasi',
+    pesan:     pesan,
+    ikon:      'ℹ️',
+    labelAksi: labelAksi || 'Lanjutkan',
+    warna:     'var(--pln-biru)'
+  }, callback);
+}
+// ══ END MODAL KONFIRMASI CUSTOM ════════════════════════════════
+
 
 // ══ END EXPORT FUNCTIONS ══════════════════════════════════════════
 
