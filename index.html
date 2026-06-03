@@ -1083,8 +1083,6 @@ body{
 .pm-status-proses{background:#FEF3C7;color:#92400E;}
 .pm-status-tunda{background:#FEE2E2;color:#991B1B;}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <!-- Leaflet CSS: jsdelivr (primary) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css" crossorigin=""/>
 <!-- Leaflet JS: jsdelivr (primary), cdnjs (fallback), unpkg (last resort) -->
@@ -2626,7 +2624,12 @@ function doLogin() {
 
   // Tampilkan loading
   var btnLogin = document.querySelector('.login-btn');
-  if (btnLogin) { btnLogin.textContent = 'Memverifikasi...'; btnLogin.disabled = true; }
+  // Jika supabase-api.js belum selesai dimuat (defer), tampilkan pesan sesuai
+  var apiSiap = typeof window.apiGet === 'function' && window.apiGet !== apiGet;
+  if (btnLogin) {
+    btnLogin.textContent = apiSiap ? 'Memverifikasi...' : '⏳ Menghubungkan...';
+    btnLogin.disabled = true;
+  }
 
   apiGet({ action: 'loginUser', username: username, password: password }, function(res) {
       if (btnLogin) { btnLogin.textContent = 'Masuk →'; btnLogin.disabled = false; }
@@ -3519,11 +3522,12 @@ function apiGet(params, cb) {
   if (typeof window.apiGet === 'function' && window.apiGet !== apiGet) {
     window.apiGet(params, cb); return;
   }
-  // Fallback: supabase-api.js belum siap, tunda 300ms lalu coba lagi (maks 5x)
+  // Fallback: supabase-api.js belum siap (defer load belum selesai).
+  // Tunggu hingga _sbApiReady = true, maks 10 detik (100 × 100ms).
   if (!apiGet._retries) apiGet._retries = 0;
-  if (apiGet._retries < 5) {
+  if (apiGet._retries < 100) {
     apiGet._retries++;
-    setTimeout(function(){ apiGet._retries = 0; apiGet(params, cb); }, 300);
+    setTimeout(function() { apiGet(params, cb); }, 100);
     return;
   }
   apiGet._retries = 0;
@@ -9513,9 +9517,17 @@ function konfirmasiAksi(pesan, judul, labelAksi, callback) {
 
 </script>
 
-<!-- SheetJS — untuk export XLSX client-side -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<!-- Supabase API Layer — harus dimuat SETELAH script utama -->
+<!--
+  ══ LIBRARY BERAT — dimuat di akhir body agar tidak memblokir login ══
+  SheetJS & ExcelJS hanya dibutuhkan saat user menekan tombol Export,
+  bukan saat halaman pertama kali dibuka. Memuat di sini (bukan di <head>)
+  memastikan form login sudah interaktif sebelum download library selesai.
+-->
+<!-- SheetJS (untuk export CSV/XLSX ringan, termasuk Export Tren Beban) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<!-- ExcelJS (untuk export Excel berformat/multi-sheet) -->
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
+<!-- Supabase API Layer — dimuat tanpa defer agar segera tersedia untuk login -->
 <script src="supabase-api.js"></script>
 </body>
 </html>
