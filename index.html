@@ -4014,7 +4014,13 @@ function renderDetailGardu(g, riwayat){
 
 
       // ── [F3] Ketidakseimbangan Fasa Alert ──────────────────
-      var rTot = parseFloat(rTotal), sTot = parseFloat(sTotal), tTot = parseFloat(tTotal), nTot = parseFloat(nTotal);
+      // Auto-koreksi nilai arus sebelum digunakan (misal 53789 → 53.789)
+      function _fixArus(v) {
+        var n = parseFloat(v);
+        if (!isNaN(n) && n > 2000 && n <= 9999999) { var c = n/1000; if (c <= 2000) return c; }
+        return n;
+      }
+      var rTot = _fixArus(rTotal), sTot = _fixArus(sTotal), tTot = _fixArus(tTotal), nTot = _fixArus(nTotal);
       if (!isNaN(rTot) && !isNaN(sTot) && !isNaN(tTot) && rTot > 0 && sTot > 0 && tTot > 0) {
         var avgFasa = (rTot + sTot + tTot) / 3;
         var maxDev = Math.max(Math.abs(rTot-avgFasa), Math.abs(sTot-avgFasa), Math.abs(tTot-avgFasa));
@@ -4051,7 +4057,7 @@ function renderDetailGardu(g, riwayat){
           fasaBarHtml += '<div class="fasa-bar-item">'+
             '<div class="fasa-bar-label">'+fb[0]+'</div>'+
             '<div class="fasa-bar-track"><div class="fasa-bar-fill" style="height:'+pct+'%;background:'+fb[2]+';width:100%;"></div></div>'+
-            '<div class="fasa-bar-val">'+(fb[1]!==null?fb[1].toFixed(0):'—')+'</div>'+
+            '<div class="fasa-bar-val">'+(fb[1]!==null ? (Number.isInteger(fb[1]) ? fb[1] : parseFloat(fb[1].toFixed(3))) : '—')+'</div>'+
           '</div>';
         });
         fasaBarHtml += '</div>';
@@ -4279,18 +4285,25 @@ function renderDetailGardu(g, riwayat){
 }
 
 function ukurCell(label, val, unit) {
-  var raw = val !== null && val !== undefined ? String(val).trim() : '';
+  // Auto-koreksi nilai arus (A) yang kemungkinan tersimpan salah format
+  // Contoh: 53789 → 53.789 A (titik sebagai pemisah ribuan yang hilang)
+  var displayVal = (unit === 'A') ? _normArusDisplay(val) : normVal(val);
+  var raw = displayVal !== null && displayVal !== undefined ? String(displayVal).trim() : '';
   var isEmpty  = raw === '' || raw === '—' || raw === 'undefined' || raw === 'null';
-  var isZero   = !isEmpty && (raw === '0' || raw === '0.0' || raw === '0.00' || parseFloat(raw) === 0);
+  var isWarn   = !isEmpty && raw.indexOf('⚠️') !== -1;
+  var rawNum   = raw.replace(' ⚠️', '');
+  var isZero   = !isEmpty && (rawNum === '0' || rawNum === '0.0' || rawNum === '0.00' || parseFloat(rawNum) === 0);
   var display  = isEmpty ? '—' : raw;
   var valStyle = isEmpty
     ? 'color:var(--pln-text3);font-style:italic;font-size:var(--fs-xs);'
-    : isZero
-      ? 'color:#94A3B8;'
-      : 'color:var(--pln-biru2);';
+    : isWarn
+      ? 'color:#D97706;'
+      : isZero
+        ? 'color:#94A3B8;'
+        : 'color:var(--pln-biru2);';
   return '<div class="ukur-cell">'+
     '<div class="ukur-cell-label">'+esc(label)+'</div>'+
-    '<div class="ukur-cell-val" style="'+valStyle+'">'+esc(display)+'</div>'+
+    '<div class="ukur-cell-val" style="'+valStyle+'" title="'+(isWarn?'Nilai asli di database: '+String(normVal(val))+' — kemungkinan format desimal salah saat input':'')+'">'+esc(display)+'</div>'+
     (!isEmpty && unit ? '<div class="ukur-cell-unit">'+esc(unit)+'</div>' : '')+
   '</div>';
 }
@@ -4902,8 +4915,30 @@ function submitFormInspeksi() {
     return;
   }
 
-  // Ambil nilai
-  var getV = function(id){ var el=document.getElementById(id); return el&&el.value.trim() ? parseFloat(el.value)||null : null; };
+  // Ambil nilai — gunakan _safeParseInput untuk menangani koma desimal format Indonesia
+  var getV = function(id){
+    var el = document.getElementById(id);
+    if (!el) return null;
+    var s = el.value.trim();
+    if (!s) return null;
+    // Normalisasi: "53,789" (koma=desimal ID) → 53.789
+    // "1.234,56" (titik=ribuan) → 1234.56
+    // "53.789" dengan tepat 3 digit → ambiguous; jika >9999 tanpa titik, titik=ribuan
+    var dc = (s.match(/\./g)||[]).length, cc = (s.match(/,/g)||[]).length;
+    if (cc >= 1 && dc >= 1) {
+      s = s.replace(/\./g, '').replace(',', '.'); // 1.234,56 → 1234.56
+    } else if (cc === 1 && dc === 0) {
+      s = s.replace(',', '.'); // 53,789 → 53.789
+    } else if (dc === 1 && cc === 0) {
+      var pts = s.split('.');
+      if (pts[1] && pts[1].length === 3 && /^\d+$/.test(pts[0]) && /^\d+$/.test(pts[1])) {
+        if (parseFloat(s) > 9999) s = pts[0] + pts[1]; // titik=ribuan, contoh: 53.789 → 53789? Tidak—lihat bawah
+        // Catatan: untuk nilai sensor arus/tegangan < 9999, titik tetap dianggap desimal
+      }
+    }
+    var n = parseFloat(s);
+    return isNaN(n) ? null : n;
+  };
   var rA = getV('fi-r-total');
   var sA = getV('fi-s-total');
   var tA = getV('fi-t-total');
@@ -7395,6 +7430,27 @@ function normVal(v) {
   if (v === null || v === undefined) return null;
   var s = String(v).trim();
   if (s === '' || s === '-' || s.toLowerCase() === 'null') return null;
+  return s;
+}
+
+// ── Auto-koreksi nilai arus/tegangan yang kemungkinan tersimpan salah format ──
+// Contoh: DB menyimpan 53789 padahal nilai aslinya 53.789 A
+// Heuristik: nilai arus > 2000 dan memiliki ≥ 3 digit — coba bagi 1000
+// Hanya untuk tampilan; tidak mengubah data di database.
+function _normArusDisplay(val) {
+  var s = normVal(val);
+  if (s === null) return null;
+  var n = parseFloat(s);
+  if (isNaN(n)) return s;
+  // Jika nilai > 2000A (batas max arus gardu distribusi), kemungkinan tersimpan salah
+  // Coba koreksi: jika n / 1000 masuk rentang wajar (0–2000), gunakan nilai koreksi
+  if (n > 2000 && n <= 9999999) {
+    var corrected = n / 1000;
+    if (corrected <= 2000) {
+      // Tampilkan nilai terkoreksi dengan tanda peringatan
+      return parseFloat(corrected.toFixed(3)) + ' ⚠️';
+    }
+  }
   return s;
 }
 

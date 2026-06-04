@@ -17,6 +17,52 @@ function _normalizeUlpEnum(ulp) {
   return 'ULP ' + s;
 }
 
+// ── Numeric parser — aman untuk format Indonesia & internasional ──────────────
+// Menangani: "53,789" (koma=desimal) → 53.789
+//            "1.234,56" (titik=ribuan, koma=desimal) → 1234.56
+//            "53.789" (titik=desimal, bukan ribuan) → 53.789
+//            "53789" (integer) → 53789
+// Heuristik untuk ambiguitas titik tunggal + 3 digit:
+//   Nilai arus/tegangan/beban trafo batas wajar: Arus < 3000 A, Tegangan < 500 V
+//   Jika hasil tanpa titik > MAX_SENSOR_VAL kemungkinan titik = desimal (bukan ribuan)
+function _parseNumSafe(val) {
+  if (val === null || val === undefined) return null;
+  if (typeof val === 'number') return isNaN(val) ? null : val;
+  var s = String(val).trim();
+  if (s === '' || s === '-' || s.toLowerCase() === 'null') return null;
+
+  var dotCount   = (s.match(/\./g)  || []).length;
+  var commaCount = (s.match(/,/g)   || []).length;
+
+  if (commaCount >= 1 && dotCount >= 1) {
+    // Format campuran: titik=ribuan, koma=desimal → "1.234,56" → "1234.56"
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else if (commaCount === 1 && dotCount === 0) {
+    // Hanya koma: desimal Indonesia → "53,789" → "53.789"
+    s = s.replace(',', '.');
+  } else if (dotCount === 1 && commaCount === 0) {
+    // Satu titik: bisa desimal atau ribuan (ambiguitas)
+    var parts = s.split('.');
+    if (parts[1] && parts[1].length === 3 && /^\d+$/.test(parts[0]) && /^\d+$/.test(parts[1])) {
+      // Pola "NNN.NNN" — ambiguous. Cek: jika nilai tanpa titik (misal 53789) > 9999,
+      // maka besar kemungkinan titik = pemisah ribuan. Hapus titik.
+      // Untuk nilai sensor (arus A, tegangan V, dll.) yang wajar, nilai > 9999 tidak masuk akal.
+      var withoutDot = parseFloat(parts[0] + parts[1]);
+      var withDot    = parseFloat(s);
+      // Jika nilai dengan titik masuk akal (< 9999) → pertahankan titik sebagai desimal
+      // Jika nilai dengan titik > 9999 maka titik adalah ribuan → hapus titik
+      if (withDot > 9999) {
+        s = parts[0] + parts[1]; // hapus titik: 53.789 → 53789 (ribuan)
+      }
+      // else: titik adalah desimal, biarkan apa adanya
+    }
+    // Jika pola lain (mis. "3.5", "220.5"), biarkan apa adanya
+  }
+
+  var n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
 // ── SHA-256 helper ───────────────────────────────────────────
 async function sha256(str) {
   var buf = await crypto.subtle.digest('SHA-256',
@@ -745,25 +791,25 @@ function _normalizeJurusanPayload(jurusan) {
       return {
         nama:    j.nama    || null,
         titik:   j.titik   || null,
-        r_total: j.r_total != null ? parseFloat(j.r_total) : 0,
-        s_total: j.s_total != null ? parseFloat(j.s_total) : 0,
-        t_total: j.t_total != null ? parseFloat(j.t_total) : 0,
-        n_total: j.n_total != null ? parseFloat(j.n_total) : 0,
-        v_r_n:   j.v_r_n   != null ? parseFloat(j.v_r_n)   : 0,
-        v_s_n:   j.v_s_n   != null ? parseFloat(j.v_s_n)   : 0,
-        v_t_n:   j.v_t_n   != null ? parseFloat(j.v_t_n)   : 0,
-        v_r_s:   j.v_r_s   != null ? parseFloat(j.v_r_s)   : 0,
-        v_s_t:   j.v_s_t   != null ? parseFloat(j.v_s_t)   : 0,
-        v_r_t:   j.v_r_t   != null ? parseFloat(j.v_r_t)   : 0,
-        thd_r:   j.thd_r   != null ? parseFloat(j.thd_r)   : 0,
-        thd_s:   j.thd_s   != null ? parseFloat(j.thd_s)   : 0,
-        thd_t:   j.thd_t   != null ? parseFloat(j.thd_t)   : 0,
-        ipeak_r: j.ipeak_r != null ? parseFloat(j.ipeak_r) : 0,
-        ipeak_s: j.ipeak_s != null ? parseFloat(j.ipeak_s) : 0,
-        ipeak_t: j.ipeak_t != null ? parseFloat(j.ipeak_t) : 0,
-        tpf_r:   j.tpf_r   != null ? parseFloat(j.tpf_r)   : 0,
-        tpf_s:   j.tpf_s   != null ? parseFloat(j.tpf_s)   : 0,
-        tpf_t:   j.tpf_t   != null ? parseFloat(j.tpf_t)   : 0
+        r_total: _parseNumSafe(j.r_total) != null ? _parseNumSafe(j.r_total) : 0,
+        s_total: _parseNumSafe(j.s_total) != null ? _parseNumSafe(j.s_total) : 0,
+        t_total: _parseNumSafe(j.t_total) != null ? _parseNumSafe(j.t_total) : 0,
+        n_total: _parseNumSafe(j.n_total) != null ? _parseNumSafe(j.n_total) : 0,
+        v_r_n:   _parseNumSafe(j.v_r_n)   != null ? _parseNumSafe(j.v_r_n)   : 0,
+        v_s_n:   _parseNumSafe(j.v_s_n)   != null ? _parseNumSafe(j.v_s_n)   : 0,
+        v_t_n:   _parseNumSafe(j.v_t_n)   != null ? _parseNumSafe(j.v_t_n)   : 0,
+        v_r_s:   _parseNumSafe(j.v_r_s)   != null ? _parseNumSafe(j.v_r_s)   : 0,
+        v_s_t:   _parseNumSafe(j.v_s_t)   != null ? _parseNumSafe(j.v_s_t)   : 0,
+        v_r_t:   _parseNumSafe(j.v_r_t)   != null ? _parseNumSafe(j.v_r_t)   : 0,
+        thd_r:   _parseNumSafe(j.thd_r)   != null ? _parseNumSafe(j.thd_r)   : 0,
+        thd_s:   _parseNumSafe(j.thd_s)   != null ? _parseNumSafe(j.thd_s)   : 0,
+        thd_t:   _parseNumSafe(j.thd_t)   != null ? _parseNumSafe(j.thd_t)   : 0,
+        ipeak_r: _parseNumSafe(j.ipeak_r) != null ? _parseNumSafe(j.ipeak_r) : 0,
+        ipeak_s: _parseNumSafe(j.ipeak_s) != null ? _parseNumSafe(j.ipeak_s) : 0,
+        ipeak_t: _parseNumSafe(j.ipeak_t) != null ? _parseNumSafe(j.ipeak_t) : 0,
+        tpf_r:   _parseNumSafe(j.tpf_r)   != null ? _parseNumSafe(j.tpf_r)   : 0,
+        tpf_s:   _parseNumSafe(j.tpf_s)   != null ? _parseNumSafe(j.tpf_s)   : 0,
+        tpf_t:   _parseNumSafe(j.tpf_t)   != null ? _parseNumSafe(j.tpf_t)   : 0
       };
     }));
   } catch (e) {
@@ -786,25 +832,25 @@ async function _tambahInspeksi(p, signal) {
     p_daya_pakai:    p.dayaPakai   ? parseFloat(p.dayaPakai) : null,
     p_prosen:        p.prosen      ? parseFloat(p.prosen)    : null,
     p_tdk_seimbang:  p.tdkSeimbang ? parseFloat(p.tdkSeimbang) : null,
-    p_r_total:       p.rTotal      ? parseFloat(p.rTotal)    : null,
-    p_s_total:       p.sTotal      ? parseFloat(p.sTotal)    : null,
-    p_t_total:       p.tTotal      ? parseFloat(p.tTotal)    : null,
-    p_n_total:       p.nTotal      ? parseFloat(p.nTotal)    : null,
-    p_v_r_n:         p.vRN         ? parseFloat(p.vRN)       : null,
-    p_v_s_n:         p.vSN         ? parseFloat(p.vSN)       : null,
-    p_v_t_n:         p.vTN         ? parseFloat(p.vTN)       : null,
-    p_v_r_s:         p.vRS         ? parseFloat(p.vRS)       : null,
-    p_v_s_t:         p.vST         ? parseFloat(p.vST)       : null,
-    p_v_r_t:         p.vRT         ? parseFloat(p.vRT)       : null,
-    p_thd_r:         p.thdR        ? parseFloat(p.thdR)      : null,
-    p_thd_s:         p.thdS        ? parseFloat(p.thdS)      : null,
-    p_thd_t:         p.thdT        ? parseFloat(p.thdT)      : null,
-    p_ipeak_r:       p.ipeakR      ? parseFloat(p.ipeakR)    : null,
-    p_ipeak_s:       p.ipeakS      ? parseFloat(p.ipeakS)    : null,
-    p_ipeak_t:       p.ipeakT      ? parseFloat(p.ipeakT)    : null,
-    p_tpf_r:         p.tpfR        ? parseFloat(p.tpfR)      : null,
-    p_tpf_s:         p.tpfS        ? parseFloat(p.tpfS)      : null,
-    p_tpf_t:         p.tpfT        ? parseFloat(p.tpfT)      : null,
+    p_r_total:       _parseNumSafe(p.rTotal),
+    p_s_total:       _parseNumSafe(p.sTotal),
+    p_t_total:       _parseNumSafe(p.tTotal),
+    p_n_total:       _parseNumSafe(p.nTotal),
+    p_v_r_n:         _parseNumSafe(p.vRN),
+    p_v_s_n:         _parseNumSafe(p.vSN),
+    p_v_t_n:         _parseNumSafe(p.vTN),
+    p_v_r_s:         _parseNumSafe(p.vRS),
+    p_v_s_t:         _parseNumSafe(p.vST),
+    p_v_r_t:         _parseNumSafe(p.vRT),
+    p_thd_r:         _parseNumSafe(p.thdR),
+    p_thd_s:         _parseNumSafe(p.thdS),
+    p_thd_t:         _parseNumSafe(p.thdT),
+    p_ipeak_r:       _parseNumSafe(p.ipeakR),
+    p_ipeak_s:       _parseNumSafe(p.ipeakS),
+    p_ipeak_t:       _parseNumSafe(p.ipeakT),
+    p_tpf_r:         _parseNumSafe(p.tpfR),
+    p_tpf_s:         _parseNumSafe(p.tpfS),
+    p_tpf_t:         _parseNumSafe(p.tpfT),
     p_jurusan:       jurusanPayload
   }, signal);
 
@@ -863,25 +909,25 @@ async function _editInspeksi(p, signal) {
     p_daya_pakai:    p.dayaPakai   ? parseFloat(p.dayaPakai) : null,
     p_prosen:        p.prosen      ? parseFloat(p.prosen)    : null,
     p_tdk_seimbang:  p.tdkSeimbang ? parseFloat(p.tdkSeimbang) : null,
-    p_r_total:       p.rTotal      ? parseFloat(p.rTotal)    : null,
-    p_s_total:       p.sTotal      ? parseFloat(p.sTotal)    : null,
-    p_t_total:       p.tTotal      ? parseFloat(p.tTotal)    : null,
-    p_n_total:       p.nTotal      ? parseFloat(p.nTotal)    : null,
-    p_v_r_n:         p.vRN         ? parseFloat(p.vRN)       : null,
-    p_v_s_n:         p.vSN         ? parseFloat(p.vSN)       : null,
-    p_v_t_n:         p.vTN         ? parseFloat(p.vTN)       : null,
-    p_v_r_s:         p.vRS         ? parseFloat(p.vRS)       : null,
-    p_v_s_t:         p.vST         ? parseFloat(p.vST)       : null,
-    p_v_r_t:         p.vRT         ? parseFloat(p.vRT)       : null,
-    p_thd_r:         p.thdR        ? parseFloat(p.thdR)      : null,
-    p_thd_s:         p.thdS        ? parseFloat(p.thdS)      : null,
-    p_thd_t:         p.thdT        ? parseFloat(p.thdT)      : null,
-    p_ipeak_r:       p.ipeakR      ? parseFloat(p.ipeakR)    : null,
-    p_ipeak_s:       p.ipeakS      ? parseFloat(p.ipeakS)    : null,
-    p_ipeak_t:       p.ipeakT      ? parseFloat(p.ipeakT)    : null,
-    p_tpf_r:         p.tpfR        ? parseFloat(p.tpfR)      : null,
-    p_tpf_s:         p.tpfS        ? parseFloat(p.tpfS)      : null,
-    p_tpf_t:         p.tpfT        ? parseFloat(p.tpfT)      : null,
+    p_r_total:       _parseNumSafe(p.rTotal),
+    p_s_total:       _parseNumSafe(p.sTotal),
+    p_t_total:       _parseNumSafe(p.tTotal),
+    p_n_total:       _parseNumSafe(p.nTotal),
+    p_v_r_n:         _parseNumSafe(p.vRN),
+    p_v_s_n:         _parseNumSafe(p.vSN),
+    p_v_t_n:         _parseNumSafe(p.vTN),
+    p_v_r_s:         _parseNumSafe(p.vRS),
+    p_v_s_t:         _parseNumSafe(p.vST),
+    p_v_r_t:         _parseNumSafe(p.vRT),
+    p_thd_r:         _parseNumSafe(p.thdR),
+    p_thd_s:         _parseNumSafe(p.thdS),
+    p_thd_t:         _parseNumSafe(p.thdT),
+    p_ipeak_r:       _parseNumSafe(p.ipeakR),
+    p_ipeak_s:       _parseNumSafe(p.ipeakS),
+    p_ipeak_t:       _parseNumSafe(p.ipeakT),
+    p_tpf_r:         _parseNumSafe(p.tpfR),
+    p_tpf_s:         _parseNumSafe(p.tpfS),
+    p_tpf_t:         _parseNumSafe(p.tpfT),
     p_jurusan:       jurusanPayload
   }, signal);
 
