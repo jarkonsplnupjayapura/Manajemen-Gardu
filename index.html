@@ -3980,7 +3980,7 @@ function renderDetailGardu(g, riwayat){
         window._inspeksiDataMap[_inspeksiId] = r;
       }
 
-      html += '<div class="riwayat-card">';
+      html += '<div class="riwayat-card" id="riwayat-card-id-'+(_inspeksiId != null ? _inspeksiId : 'idx-'+idx)+'" data-inspeksi-id="'+(_inspeksiId != null ? String(_inspeksiId) : '')+'">';
       html += '<div class="riwayat-header">';
       html += '<div style="flex:1;min-width:0;">';
       html += '<div style="font-size:var(--fs-sm);font-weight:700;color:var(--pln-text);">'+formatTgl(r['TGLUKUR'])+(r['JAM UKUR']?' &nbsp;·&nbsp; 🕐 '+esc(formatJam(r['JAM UKUR'])):'')+'</div>';
@@ -5013,6 +5013,8 @@ function hapusInspeksiById(id, tglLabel) {
       alert('Gagal menghapus: ' + (res.message || 'Error tidak diketahui.'));
       return;
     }
+    // Invalidasi cache anomali agar list data bermasalah ikut diperbarui
+    _anomaliData = null;
     // Ambil no_gardu dari topbar detail-view lalu reload
     var titleEl = document.getElementById('detail-view-title');
     var noGardu = titleEl ? titleEl.textContent.trim() : '';
@@ -5341,6 +5343,8 @@ function simpanEditInspeksi() {
     }
     okEl.textContent = '✅ Data berhasil diperbarui!';
     okEl.style.display = 'block';
+    // Invalidasi cache anomali agar list data bermasalah ikut diperbarui
+    _anomaliData = null;
     setTimeout(function() {
       document.getElementById('modal-edit-inspeksi').style.display = 'none';
       // Reload sesuai konteks: jika dari halaman pengukuran, refresh tabel pengukuran
@@ -7271,7 +7275,7 @@ function _renderAnomaliContent() {
     // Header baris
     html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">';
     html += '<div style="flex:1;min-width:0;">';
-    html += '<div style="font-size:var(--fs-sm);font-weight:800;color:var(--pln-biru2);cursor:pointer;" onclick="bukaDetailGardu(\'' + esc(d.noGardu) + '\')">' + esc(d.noGardu) + '</div>';
+    html += '<div style="font-size:var(--fs-sm);font-weight:800;color:var(--pln-biru2);cursor:pointer;" onclick="bukaDetailGarduDariAnomali(\'' + esc(d.noGardu) + '\', ' + (d.id != null ? d.id : 'null') + ')">' + esc(d.noGardu) + '</div>';
     html += '<div style="font-size:var(--fs-xs);color:var(--pln-text2);margin-top:1px;">' + esc(d.ulp) + ' · ' + esc(d.penyulang) + '</div>';
     html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);">📅 ' + esc(d.tglUkur) + (d.jam ? ' ' + esc(d.jam) : '') + ' · ' + esc(d.petugas) + '</div>';
     html += '</div>';
@@ -7288,7 +7292,7 @@ function _renderAnomaliContent() {
 
     // Tombol detail
     html += '<div style="margin-top:6px;">';
-    html += '<button onclick="bukaDetailGardu(\'' + esc(d.noGardu) + '\')" style="background:var(--pln-biru-pale);color:var(--pln-biru2);border:1px solid var(--pln-border2);border-radius:6px;padding:4px 12px;font-size:var(--fs-xs);font-weight:700;cursor:pointer;touch-action:manipulation;">🔍 Lihat Detail Gardu</button>';
+    html += '<button onclick="bukaDetailGarduDariAnomali(\'' + esc(d.noGardu) + '\', ' + (d.id != null ? d.id : 'null') + ')" style="background:var(--pln-biru-pale);color:var(--pln-biru2);border:1px solid var(--pln-border2);border-radius:6px;padding:4px 12px;font-size:var(--fs-xs);font-weight:700;cursor:pointer;touch-action:manipulation;">📍 Lihat Pengukuran Bermasalah</button>';
     html += '</div>';
     html += '</div>';
   });
@@ -8341,6 +8345,64 @@ function bukaDetailGarduDariPeta(noGardu) {
   if (_petaMap) _petaMap.closePopup();
   tabSebelumDetail = 1;
   bukaDetailGardu(noGardu);
+}
+
+// ── Buka detail gardu dari list anomali, langsung scroll ke pengukuran bermasalah ──
+function bukaDetailGarduDariAnomali(noGardu, inspeksiId) {
+  if (!noGardu) return;
+  // Simpan ID inspeksi yang perlu di-highlight setelah render
+  window._anomaliTargetInspeksiId = inspeksiId != null ? String(inspeksiId) : null;
+  tabSebelumDetail = currentTab;
+  TAB_IDS.forEach(function(tid){ document.getElementById(tid).classList.remove('active'); });
+  if (window.innerWidth < 768) document.getElementById('bottom-nav').style.display = 'none';
+  document.getElementById('detail-view').style.display = 'block';
+  document.getElementById('detail-view-title').textContent = noGardu;
+  document.getElementById('detail-content').innerHTML = '<div class="loading"><div class="spinner"></div>Memuat detail...</div>';
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  var dv = document.getElementById('detail-view');
+  if (dv) dv.scrollTop = 0;
+  apiGet({ action: 'getDetailLengkap', noGardu: noGardu }, function(res) {
+    if (res.status !== 'ok' || !res.data) {
+      document.getElementById('detail-content').innerHTML =
+        '<div class="alert alert-err" style="margin-bottom:var(--sp-sm);">❌ ' + (res.message || 'Data gardu tidak ditemukan.') + '</div>' +
+        '<button class="btn btn-outline" style="width:100%;" onclick="tutupDetail()">← Kembali ke Daftar</button>';
+      document.getElementById('bottom-nav').style.display = 'flex';
+      return;
+    }
+    renderDetailGardu(res.data, res.riwayat || []);
+    // Setelah render, scroll dan expand card yang bermasalah
+    if (window._anomaliTargetInspeksiId != null) {
+      setTimeout(function() {
+        _scrollKeInspeksiAnomali(window._anomaliTargetInspeksiId);
+        window._anomaliTargetInspeksiId = null;
+      }, 120);
+    }
+  });
+}
+
+// Expand dan scroll ke riwayat-card tertentu berdasarkan inspeksi ID
+function _scrollKeInspeksiAnomali(inspeksiId) {
+  var card = document.getElementById('riwayat-card-id-' + inspeksiId);
+  if (!card) return;
+  // Expand collapse body jika belum terbuka
+  var collapseBody = card.querySelector('[id^="riwayat-body-"]');
+  var collapseBtn  = card.querySelector('.riwayat-collapse-btn');
+  if (collapseBody && collapseBody.style.display === 'none') {
+    collapseBody.style.display = 'block';
+    if (collapseBtn) collapseBtn.innerHTML = '<span>▲ Sembunyikan Detail</span>';
+  }
+  // Highlight visual sementara
+  card.style.transition = 'box-shadow 0.3s, outline 0.3s';
+  card.style.outline = '2.5px solid var(--pln-orange)';
+  card.style.boxShadow = '0 0 0 4px rgba(251,146,60,0.18)';
+  setTimeout(function() {
+    card.style.outline = '';
+    card.style.boxShadow = '';
+  }, 3500);
+  // Scroll ke card
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 window.addEventListener('resize', function() {
