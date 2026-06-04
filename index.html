@@ -611,6 +611,12 @@ body{
 .fasa-bar-fill{border-radius:4px;transition:.4s;}
 .fasa-bar-val{font-size:clamp(8px,2vw,10px);font-weight:700;color:var(--pln-text);margin-top:3px;}
 
+/* ══ ANOMALI DATA — Pendeteksi Nilai Mencurigakan ════════════ */
+.sec-anomali::before { background: var(--pln-orange) !important; }
+.anomali-item-pasti  { border-left: 3px solid var(--pln-red); }
+.anomali-item-kuat   { border-left: 3px solid var(--pln-orange); }
+.anomali-item-lunak  { border-left: 3px solid #94A3B8; }
+
 /* ══ ANOMALI / VALIDASI WARNING ══════════════════════════════ */
 .anomali-badge{
   display:inline-flex;align-items:center;gap:4px;
@@ -6812,9 +6818,10 @@ function renderRekap(d) {
       html += '</div></div>';
     });
     html += '</div>';
-    // Link ke spreadsheet lengkap
-    html += '<a href="'+SPREADSHEET_URL+'" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:var(--sp-xs);padding:clamp(10px,3vw,13px);background:var(--pln-bg);border:1.5px solid var(--pln-border);border-radius:var(--radius-sm);font-size:var(--fs-xs);color:var(--pln-biru2);font-weight:700;text-decoration:none;">📊 Lihat semua riwayat di Spreadsheet →</a>';
   }
+
+  // ── Section: Anomali Data ──────────────────────────────────
+  html += renderSeksiAnomali();
 
   // ── Section: Gardu Kritis ──────────────────────────────────
   html += renderGarduKritis();
@@ -6822,8 +6829,9 @@ function renderRekap(d) {
   html += '<div style="height:var(--sp-lg);"></div>';
   document.getElementById('rekap-content').innerHTML = html;
 
-  // Muat data kritis setelah render (element sudah ada di DOM)
+  // Muat data kritis dan anomali setelah render (elemen sudah ada di DOM)
   muatGarduKritis();
+  muatAnomaliData();
 }
 
 // ── Pagination state untuk Gardu Kritis
@@ -6962,6 +6970,376 @@ function renderGarduKritis() {
   html += '<div id="gardu-kritis-content"><div class="loading"><div class="spinner"></div>Memuat data kritis...</div></div>';
   return html;
 }
+
+// ══ ANOMALI DATA — Pendeteksi Nilai Mencurigakan ══════════════
+// Diinisialisasi saat render rekap, data dimuat async via muatAnomaliData()
+
+function renderSeksiAnomali() {
+  return '<div class="sec sec-anomali" style="">⚠️ Deteksi Anomali Data</div>' +
+    '<div id="anomali-data-content"><div class="loading"><div class="spinner"></div>Menganalisis data pengukuran...</div></div>';
+}
+
+// ── Aturan deteksi anomali ────────────────────────────────────
+// Nilai arus (Ampere) wajar untuk gardu distribusi PLN:
+//   - Gardu 25-100 kVA  : arus maks ~380A (Irated = kVA/(1.732*0.4) )
+//   - Gardu 100-630 kVA : arus maks ~1500A
+//   - Arus gardu normal tidak lebih dari 2000A dalam kondisi apapun
+//   - Jurusan (feeder) biasanya jauh lebih kecil dari trafo, max ~800A
+//   - Tegangan fasa-netral normal: 200–260V (PLN standar 220V±10%)
+//   - Tegangan antar fasa normal: 360–420V
+//   - THD: wajar 0–40%, >100% hampir pasti error
+//   - TPF (power factor): 0.0–1.0 adalah wajar; >1.0 mustahil
+// Anomali pasti: nilai > 9999 (jelas typo/satuan salah)
+// Anomali kuat:  arus total > 2000A ATAU arus jurusan > 1500A
+// Anomali lunak: arus total > kapasitas_trafo * 5 (jauh melampaui nama)
+//                tegangan < 100V atau > 300V (fasa-netral)
+//                TPF > 1.0
+
+function _deteksiAnomalyInspeksi(r) {
+  var pesan = [];
+  var tingkat = 'lunak'; // 'pasti' > 'kuat' > 'lunak'
+  function naikTingkat(t) {
+    var urutan = { lunak:0, kuat:1, pasti:2 };
+    if (urutan[t] > urutan[tingkat]) tingkat = t;
+  }
+
+  var kapasitasKva = parseFloat(r['DAYA'] || r['KAPASITAS_KVA'] || 0) || 0;
+  // Arus rated ≈ kVA / (1.732 * 0.4kV) → ambil 6x sebagai batas lunak (overload sangat ekstrem)
+  var batasArusLunak = kapasitasKva > 0 ? Math.max(kapasitasKva / (1.732 * 0.4) * 6, 500) : 3000;
+
+  // ── Helper cek satu nilai ─────────────────────────────────
+  function cekArus(label, val) {
+    var v = parseFloat(val);
+    if (isNaN(v) || v <= 0) return;
+    if (v > 9999) {
+      pesan.push(label + ' = ' + v + ' A (sangat tidak wajar, kemungkinan satuan salah atau typo)');
+      naikTingkat('pasti');
+    } else if (v > 2000) {
+      pesan.push(label + ' = ' + v + ' A (melebihi batas arus maksimum jaringan distribusi 2000A)');
+      naikTingkat('kuat');
+    } else if (kapasitasKva > 0 && v > batasArusLunak) {
+      pesan.push(label + ' = ' + v + ' A (lebih dari 6× arus rated gardu ' + kapasitasKva + ' kVA)');
+      naikTingkat('lunak');
+    }
+  }
+
+  function cekArusJurusan(label, val) {
+    var v = parseFloat(val);
+    if (isNaN(v) || v <= 0) return;
+    if (v > 9999) {
+      pesan.push(label + ' = ' + v + ' A (nilai jurusan sangat tidak wajar)');
+      naikTingkat('pasti');
+    } else if (v > 1500) {
+      pesan.push(label + ' = ' + v + ' A (arus jurusan melebihi 1500A, tidak wajar untuk feeder distribusi)');
+      naikTingkat('kuat');
+    }
+  }
+
+  function cekTegangan(label, val, isLineLine) {
+    var v = parseFloat(val);
+    if (isNaN(v) || v <= 0) return;
+    if (isLineLine) {
+      if (v < 250 || v > 500) {
+        pesan.push(label + ' = ' + v + ' V (tegangan antar fasa di luar rentang normal 380V±30%)');
+        naikTingkat('lunak');
+      }
+    } else {
+      if (v < 100 || v > 300) {
+        pesan.push(label + ' = ' + v + ' V (tegangan fasa-netral di luar rentang normal 220V±45%)');
+        naikTingkat('lunak');
+      }
+    }
+  }
+
+  function cekTPF(label, val) {
+    var v = parseFloat(val);
+    if (isNaN(v) || v <= 0) return;
+    if (v > 1.0) {
+      pesan.push(label + ' = ' + v + ' (power factor >1.0 mustahil secara fisika)');
+      naikTingkat('kuat');
+    }
+  }
+
+  function cekTHD(label, val) {
+    var v = parseFloat(val);
+    if (isNaN(v) || v <= 0) return;
+    if (v > 100) {
+      pesan.push(label + ' = ' + v + '% (THD >100% tidak mungkin, kemungkinan error input)');
+      naikTingkat('kuat');
+    }
+  }
+
+  // ── Arus trafo utama ──────────────────────────────────────
+  cekArus('R TOTAL', r['R TOTAL'] || r['r_total']);
+  cekArus('S TOTAL', r['S TOTAL'] || r['s_total']);
+  cekArus('T TOTAL', r['T TOTAL'] || r['t_total']);
+  cekArus('N TOTAL', r['N TOTAL'] || r['n_total']);
+
+  // ── Tegangan fasa-netral ──────────────────────────────────
+  cekTegangan('V R-N', r['R - N'] || r['v_r_n'], false);
+  cekTegangan('V S-N', r['S - N'] || r['v_s_n'], false);
+  cekTegangan('V T-N', r['T - N'] || r['v_t_n'], false);
+
+  // ── Tegangan antar fasa ───────────────────────────────────
+  cekTegangan('V R-S', r['R - S'] || r['v_r_s'], true);
+  cekTegangan('V S-T', r['S - T'] || r['v_s_t'], true);
+  cekTegangan('V R-T', r['R - T'] || r['v_r_t'], true);
+
+  // ── THD ───────────────────────────────────────────────────
+  cekTHD('THD-R', r['THD-R'] || r['thd_r']);
+  cekTHD('THD-S', r['THD-S'] || r['thd_s']);
+  cekTHD('THD-T', r['THD-T'] || r['thd_t']);
+
+  // ── TPF ───────────────────────────────────────────────────
+  cekTPF('TPF-R', r['TPF-R'] || r['tpf_r']);
+  cekTPF('TPF-S', r['TPF-S'] || r['tpf_s']);
+  cekTPF('TPF-T', r['TPF-T'] || r['tpf_t']);
+
+  // ── Jurusan 1–6 ──────────────────────────────────────────
+  for (var ji = 1; ji <= 6; ji++) {
+    var jNama = r['JURUSAN ' + ji] || ('JUR ' + ji);
+    cekArusJurusan(jNama + ' R', r['JUR' + ji + '_R_TOTAL'] || r['JUR' + ji + '_R TOTAL']);
+    cekArusJurusan(jNama + ' S', r['JUR' + ji + '_S_TOTAL'] || r['JUR' + ji + '_S TOTAL']);
+    cekArusJurusan(jNama + ' T', r['JUR' + ji + '_T_TOTAL'] || r['JUR' + ji + '_T TOTAL']);
+    cekTPF(jNama + ' TPF-R', r['JUR' + ji + '_TPF-R']);
+    cekTPF(jNama + ' TPF-S', r['JUR' + ji + '_TPF-S']);
+    cekTPF(jNama + ' TPF-T', r['JUR' + ji + '_TPF-T']);
+    cekTHD(jNama + ' THD-R', r['JUR' + ji + '_THD-R']);
+    cekTHD(jNama + ' THD-S', r['JUR' + ji + '_THD-S']);
+    cekTHD(jNama + ' THD-T', r['JUR' + ji + '_THD-T']);
+  }
+
+  if (!pesan.length) return null;
+  return { tingkat: tingkat, pesan: pesan };
+}
+
+// State anomali
+var _anomaliData = null;   // { gardu: [{noGardu, ulp, penyulang, tglUkur, petugas, anomali: {tingkat, pesan[]}}], ts: Date }
+var _anomaliPage = 1;
+var ANOMALI_PAGE_SIZE = 20;
+var _anomaliFilterUlp = '';
+
+function muatAnomaliData() {
+  var s = getSession();
+  // Ambil data inspeksi terbaru untuk deteksi anomali
+  // Tidak kirim limit/offset agar _getRiwayat masuk ke mode pagination loop (ambil semua)
+  var params = { action: 'getRiwayat' };
+  if (s && s.role !== 'superadmin' && s.ulp) {
+    params.ulp = s.ulp;
+  }
+
+  apiGet(params, function(res) {
+    var el = document.getElementById('anomali-data-content');
+    if (!el) return;
+
+    if (res.status !== 'ok') {
+      el.innerHTML = '<div class="alert alert-warn" style="margin:0 0 var(--sp-sm);">' +
+        '<span class="alert-icon">⚠️</span>' +
+        '<span class="alert-text">Gagal memuat data untuk analisis anomali: ' + esc(res.message || 'Error') +
+        ' <button style="margin-top:6px;background:none;border:1.5px solid var(--pln-orange);color:var(--pln-orange);border-radius:6px;padding:3px 10px;font-size:var(--fs-xs);font-weight:700;cursor:pointer;" onclick="muatAnomaliData()">↻ Coba Lagi</button>' +
+        '</span></div>';
+      return;
+    }
+
+    var rows = res.data || [];
+
+    // Filter ULP untuk non-superadmin (double-check)
+    if (s && s.role !== 'superadmin' && s.ulp) {
+      var ulpNorm = _normalizeUlpEnumClient(s.ulp);
+      rows = rows.filter(function(r) {
+        return _normalizeUlpEnumClient(r['ULP'] || r['ulp'] || '') === ulpNorm;
+      });
+    }
+
+    // Jalankan deteksi anomali per baris
+    // Grouping: satu gardu bisa punya banyak inspeksi — tampilkan setiap inspeksi yang anomali
+    var hasil = [];
+    rows.forEach(function(r) {
+      var anomali = _deteksiAnomalyInspeksi(r);
+      if (!anomali) return;
+      hasil.push({
+        noGardu:   r['NO_GARDU'] || r['NOGARDU'] || r['no_gardu'] || '—',
+        ulp:       r['ULP'] || r['ulp'] || '—',
+        penyulang: r['PENYULANG'] || r['penyulang'] || '—',
+        tglUkur:   r['TGLUKUR'] || r['tgl_ukur'] || '—',
+        jam:       r['JAM UKUR'] || r['jam_ukur'] || '',
+        petugas:   r['PETUGAS'] || r['petugas'] || '—',
+        id:        r['_id'] || null,
+        anomali:   anomali
+      });
+    });
+
+    // Urutkan: 'pasti' dulu, lalu 'kuat', lalu 'lunak'; dalam tier: terbaru dulu
+    var urutan = { pasti: 0, kuat: 1, lunak: 2 };
+    hasil.sort(function(a, b) {
+      var ta = urutan[a.anomali.tingkat], tb = urutan[b.anomali.tingkat];
+      if (ta !== tb) return ta - tb;
+      // tglUkur descending
+      return (b.tglUkur || '').localeCompare(a.tglUkur || '');
+    });
+
+    _anomaliData = { gardu: hasil, ts: new Date() };
+    _anomaliPage = 1;
+    _anomaliFilterUlp = '';
+    _renderAnomaliContent();
+  });
+}
+
+function _renderAnomaliContent() {
+  var el = document.getElementById('anomali-data-content');
+  if (!el || !_anomaliData) return;
+
+  var s = getSession();
+  var isNonSuperadmin = s && s.role !== 'superadmin' && s.ulp;
+  var semua = _anomaliData.gardu;
+
+  // Filter ULP (hanya untuk superadmin yang mau filter per ULP)
+  var filtered = _anomaliFilterUlp
+    ? semua.filter(function(d) { return _normalizeUlpEnumClient(d.ulp) === _normalizeUlpEnumClient(_anomaliFilterUlp); })
+    : semua;
+
+  if (!filtered.length) {
+    el.innerHTML =
+      '<div style="background:#F0FDF4;border:1.5px solid #A7F3D0;border-radius:var(--radius-sm);padding:var(--sp-md);display:flex;align-items:center;gap:12px;margin-bottom:var(--sp-sm);">' +
+      '<span style="font-size:22px;">✅</span>' +
+      '<div><div style="font-size:var(--fs-sm);font-weight:700;color:#065F46;">Tidak Ada Anomali Terdeteksi</div>' +
+      '<div style="font-size:var(--fs-xs);color:#047857;margin-top:2px;">Dari ' + semua.length + ' data terakhir yang dianalisis, tidak ditemukan nilai yang mencurigakan.</div></div>' +
+      '</div>';
+    return;
+  }
+
+  var html = '';
+
+  // ── ULP filter bar (hanya superadmin) ──────────────────────
+  if (!isNonSuperadmin && semua.length) {
+    var ulpSet = {};
+    semua.forEach(function(d) { if (d.ulp) ulpSet[_normalizeUlpEnumClient(d.ulp)] = true; });
+    var ulpList = Object.keys(ulpSet).sort();
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--sp-sm);">';
+    html += '<button onclick="_setAnomaliUlpFilter(\'\')" style="' + (!_anomaliFilterUlp ? 'background:var(--pln-biru2);color:#fff;' : 'background:var(--pln-bg);color:var(--pln-text2);') + 'border:1.5px solid var(--pln-biru2);border-radius:20px;padding:4px 12px;font-size:var(--fs-xs);font-weight:700;cursor:pointer;">Semua (' + semua.length + ')</button>';
+    ulpList.forEach(function(u) {
+      var cnt = semua.filter(function(d) { return _normalizeUlpEnumClient(d.ulp) === u; }).length;
+      var isActive = _normalizeUlpEnumClient(_anomaliFilterUlp) === u;
+      var shortUlp = u.replace(/^ULP\s*/i, '');
+      html += '<button onclick="_setAnomaliUlpFilter(\'' + esc(u) + '\')" style="' +
+        (isActive ? 'background:var(--pln-biru2);color:#fff;' : 'background:var(--pln-bg);color:var(--pln-text2);') +
+        'border:1.5px solid var(--pln-biru2);border-radius:20px;padding:4px 12px;font-size:var(--fs-xs);font-weight:700;cursor:pointer;">' +
+        esc(shortUlp) + ' (' + cnt + ')</button>';
+    });
+    html += '</div>';
+  }
+
+  // ── Summary banner ──────────────────────────────────────────
+  var cntPasti = filtered.filter(function(d){return d.anomali.tingkat==='pasti';}).length;
+  var cntKuat  = filtered.filter(function(d){return d.anomali.tingkat==='kuat';}).length;
+  var cntLunak = filtered.filter(function(d){return d.anomali.tingkat==='lunak';}).length;
+
+  html += '<div style="background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:var(--radius-sm);padding:var(--sp-sm) var(--sp-md);margin-bottom:var(--sp-sm);display:flex;align-items:center;gap:var(--sp-sm);flex-wrap:wrap;">';
+  html += '<span style="font-size:20px;">🔍</span>';
+  html += '<div style="flex:1;min-width:0;">';
+  html += '<div style="font-size:var(--fs-sm);font-weight:700;color:#92400E;">' + filtered.length + ' Entri Data Bermasalah Terdeteksi</div>';
+  html += '<div style="font-size:var(--fs-xs);color:var(--pln-text2);margin-top:3px;display:flex;flex-wrap:wrap;gap:8px;">';
+  if (cntPasti) html += '<span style="background:#FEE2E2;color:#991B1B;border-radius:4px;padding:1px 7px;font-weight:700;">🔴 Pasti Error: ' + cntPasti + '</span>';
+  if (cntKuat)  html += '<span style="background:#FEF3C7;color:#92400E;border-radius:4px;padding:1px 7px;font-weight:700;">🟠 Sangat Mencurigakan: ' + cntKuat + '</span>';
+  if (cntLunak) html += '<span style="background:#F1F5F9;color:#475569;border-radius:4px;padding:1px 7px;font-weight:700;">🟡 Perlu Diperiksa: ' + cntLunak + '</span>';
+  html += '</div>';
+  html += '</div>';
+  html += '</div>';
+
+  // ── Pagination ──────────────────────────────────────────────
+  var total = filtered.length;
+  var totalPages = Math.ceil(total / ANOMALI_PAGE_SIZE);
+  var curPage = Math.min(_anomaliPage, totalPages);
+  var start = (curPage - 1) * ANOMALI_PAGE_SIZE;
+  var end   = Math.min(start + ANOMALI_PAGE_SIZE, total);
+  var pageData = filtered.slice(start, end);
+
+  html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-bottom:6px;">Menampilkan <b>' + (start+1) + '</b>–<b>' + end + '</b> dari <b>' + total + '</b> entri anomali</div>';
+
+  // ── Daftar gardu anomali ────────────────────────────────────
+  html += '<div class="card" style="padding:0;overflow:hidden;">';
+  pageData.forEach(function(d, i) {
+    var tk = d.anomali.tingkat;
+    var tkColor = tk === 'pasti' ? '#DC2626' : tk === 'kuat' ? '#D97706' : '#64748B';
+    var tkBg    = tk === 'pasti' ? '#FEF2F2' : tk === 'kuat' ? '#FFFBEB' : '#F8FAFC';
+    var tkBorder= tk === 'pasti' ? '#FECACA' : tk === 'kuat' ? '#FDE68A' : '#E2E8F2';
+    var tkLabel = tk === 'pasti' ? '🔴 Pasti Error' : tk === 'kuat' ? '🟠 Sangat Mencurigakan' : '🟡 Perlu Diperiksa';
+    var bordTop = i > 0 ? 'border-top:1px solid var(--pln-border);' : '';
+
+    html += '<div style="' + bordTop + 'padding:var(--sp-sm) var(--sp-md);">';
+
+    // Header baris
+    html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">';
+    html += '<div style="flex:1;min-width:0;">';
+    html += '<div style="font-size:var(--fs-sm);font-weight:800;color:var(--pln-biru2);cursor:pointer;" onclick="bukaDetailGardu(\'' + esc(d.noGardu) + '\')">' + esc(d.noGardu) + '</div>';
+    html += '<div style="font-size:var(--fs-xs);color:var(--pln-text2);margin-top:1px;">' + esc(d.ulp) + ' · ' + esc(d.penyulang) + '</div>';
+    html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);">📅 ' + esc(d.tglUkur) + (d.jam ? ' ' + esc(d.jam) : '') + ' · ' + esc(d.petugas) + '</div>';
+    html += '</div>';
+    html += '<span style="background:' + tkBg + ';color:' + tkColor + ';border:1px solid ' + tkBorder + ';border-radius:6px;padding:3px 8px;font-size:var(--fs-xs);font-weight:700;white-space:nowrap;flex-shrink:0;">' + tkLabel + '</span>';
+    html += '</div>';
+
+    // Daftar masalah
+    html += '<div style="background:' + tkBg + ';border:1px solid ' + tkBorder + ';border-radius:var(--radius-xs);padding:8px 10px;">';
+    d.anomali.pesan.forEach(function(p, pi) {
+      html += '<div style="font-size:var(--fs-xs);color:' + tkColor + ';line-height:1.6;">' +
+        (pi > 0 ? '<span style="color:var(--pln-border2);">▸</span> ' : '⚠️ ') + esc(p) + '</div>';
+    });
+    html += '</div>';
+
+    // Tombol detail
+    html += '<div style="margin-top:6px;">';
+    html += '<button onclick="bukaDetailGardu(\'' + esc(d.noGardu) + '\')" style="background:var(--pln-biru-pale);color:var(--pln-biru2);border:1px solid var(--pln-border2);border-radius:6px;padding:4px 12px;font-size:var(--fs-xs);font-weight:700;cursor:pointer;touch-action:manipulation;">🔍 Lihat Detail Gardu</button>';
+    html += '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+
+  // ── Pagination controls ──────────────────────────────────────
+  if (totalPages > 1) {
+    html += _buildAnomaliPagination(curPage, totalPages);
+  }
+
+  el.innerHTML = html;
+}
+
+function _setAnomaliUlpFilter(ulp) {
+  _anomaliFilterUlp = ulp;
+  _anomaliPage = 1;
+  _renderAnomaliContent();
+}
+
+function _goAnomaliPage(page) {
+  _anomaliPage = page;
+  _renderAnomaliContent();
+  var el = document.getElementById('anomali-data-content');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function _buildAnomaliPagination(cur, total) {
+  var base = 'border:1.5px solid var(--pln-border);border-radius:6px;padding:4px 10px;font-size:var(--fs-xs);font-weight:600;cursor:pointer;background:var(--pln-card);color:var(--pln-text2);';
+  var act  = 'border:1.5px solid var(--pln-biru2);border-radius:6px;padding:4px 10px;font-size:var(--fs-xs);font-weight:700;cursor:default;background:var(--pln-biru2);color:#fff;';
+  var dis  = 'border:1.5px solid var(--pln-border);border-radius:6px;padding:4px 10px;font-size:var(--fs-xs);font-weight:600;cursor:default;background:var(--pln-bg);color:var(--pln-text3);opacity:.45;';
+  var s = '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;margin-top:4px;gap:6px;flex-wrap:wrap;">';
+  s += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);">Hal <b>' + cur + '</b> / <b>' + total + '</b></div>';
+  s += '<div style="display:flex;gap:4px;">';
+  s += cur > 1
+    ? '<button style="'+base+'" onclick="_goAnomaliPage('+(cur-1)+')">‹</button>'
+    : '<button style="'+dis+'" disabled>‹</button>';
+  var ps = Math.max(1, cur - 2), pe = Math.min(total, ps + 4);
+  if (pe - ps < 4) ps = Math.max(1, pe - 4);
+  for (var p = ps; p <= pe; p++) {
+    s += p === cur
+      ? '<button style="'+act+'" disabled>' + p + '</button>'
+      : '<button style="'+base+'" onclick="_goAnomaliPage('+p+')">' + p + '</button>';
+  }
+  s += cur < total
+    ? '<button style="'+base+'" onclick="_goAnomaliPage('+(cur+1)+')">›</button>'
+    : '<button style="'+dis+'" disabled>›</button>';
+  s += '</div></div>';
+  return s;
+}
+
+// ══ END ANOMALI DATA ══════════════════════════════════════════
 
 function statCardBig(val, title, sub, color, icon) {
   return '<div style="background:'+color+';border-radius:var(--radius);padding:var(--sp-md);color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.15);">'+
