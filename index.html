@@ -5043,6 +5043,36 @@ function bukaEditInspeksiById(id) {
   window._inspeksiDataMap = window._inspeksiDataMap || {};
   var r = window._inspeksiDataMap[id];
   if (!r) { alert('Data inspeksi tidak ditemukan. Coba muat ulang halaman.'); return; }
+
+  // Jika _jurusanRaw kosong/tidak ada, fetch data segar dari server agar
+  // nilai jurusan tidak tampil semua 0 (terjadi pada riwayat ringkas dari detail gardu)
+  var hasJurusanRaw = Array.isArray(r._jurusanRaw) && r._jurusanRaw.length > 0;
+  if (!hasJurusanRaw) {
+    var s = getSession();
+    if (s && s.token) {
+      // Tampilkan loading singkat
+      var _loadEl = document.createElement('div');
+      _loadEl.id = '_jur-loading-overlay';
+      _loadEl.style.cssText = 'position:fixed;inset:0;background:rgba(10,45,107,.35);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      _loadEl.innerHTML = '<div style="background:#fff;border-radius:12px;padding:20px 28px;font-size:14px;font-weight:600;color:#0A2D6B;box-shadow:0 8px 32px rgba(10,45,107,.2);">⏳ Memuat data jurusan...</div>';
+      document.body.appendChild(_loadEl);
+
+      apiGet({ action: 'getInspeksiById', id: id }, function(res) {
+        var overlay = document.getElementById('_jur-loading-overlay');
+        if (overlay) overlay.remove();
+        if (res && res.status === 'ok' && res.data) {
+          // Update cache dengan data lengkap
+          window._inspeksiDataMap[id] = res.data;
+          bukaEditInspeksi(id, res.data);
+        } else {
+          // Fallback ke data cache meski jurusan mungkin kosong
+          bukaEditInspeksi(id, r);
+        }
+      });
+      return;
+    }
+  }
+
   bukaEditInspeksi(id, r);
 }
 
@@ -5418,6 +5448,31 @@ function bukaEditInspeksiDariPengukuranById(id) {
   window._inspeksiDataMap = window._inspeksiDataMap || {};
   var r = window._inspeksiDataMap[id];
   if (!r) { alert('Data pengukuran tidak ditemukan. Coba muat ulang halaman.'); return; }
+
+  var hasJurusanRaw = Array.isArray(r._jurusanRaw) && r._jurusanRaw.length > 0;
+  if (!hasJurusanRaw) {
+    var s = getSession();
+    if (s && s.token) {
+      var _loadEl2 = document.createElement('div');
+      _loadEl2.id = '_jur-loading-overlay';
+      _loadEl2.style.cssText = 'position:fixed;inset:0;background:rgba(10,45,107,.35);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      _loadEl2.innerHTML = '<div style="background:#fff;border-radius:12px;padding:20px 28px;font-size:14px;font-weight:600;color:#0A2D6B;box-shadow:0 8px 32px rgba(10,45,107,.2);">⏳ Memuat data jurusan...</div>';
+      document.body.appendChild(_loadEl2);
+
+      apiGet({ action: 'getInspeksiById', id: id }, function(res) {
+        var overlay = document.getElementById('_jur-loading-overlay');
+        if (overlay) overlay.remove();
+        if (res && res.status === 'ok' && res.data) {
+          window._inspeksiDataMap[id] = res.data;
+          bukaEditInspeksiDariPengukuran(id, res.data);
+        } else {
+          bukaEditInspeksiDariPengukuran(id, r);
+        }
+      });
+      return;
+    }
+  }
+
   bukaEditInspeksiDariPengukuran(id, r);
 }
 
