@@ -1069,6 +1069,10 @@ function _mapInspeksiRow(r) {
       : (r.jurusan || []);
   } catch (e) {}
 
+  // Simpan array asli agar bukaEditInspeksi bisa membaca data jurusan langsung
+  // tanpa harus reconstruct dari flat keys (yang rentan bug key mismatch)
+  flat._jurusanRaw = jurusan;
+
   // Always output 6 jurusan slots — fill with 0 if not present
   for (var idx = 0; idx < 6; idx++) {
     var j = jurusan[idx] || {};
