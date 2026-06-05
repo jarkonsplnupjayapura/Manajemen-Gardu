@@ -896,28 +896,14 @@ async function _getInspeksi(p, signal) {
 }
 
 // ── GET SINGLE INSPEKSI BY ID via REST ───────────────────────
-// Dipakai untuk refresh data jurusan saat edit (menghindari data
-// stale/kosong di _jurusanRaw yang kadang terjadi pada riwayat ringkas)
+// Dipakai sebagai fallback fetch saat _jurusanRaw kosong di cache
 async function _getInspeksiById(p, signal) {
   var id = parseInt(p.id);
-  if (!id) return { status: 'error', message: 'ID inspeksi tidak valid.' };
-
-  // REST langsung ke tabel inspeksi — paling reliabel karena
-  // fn_get_riwayat_inspeksi tidak mendukung filter by id
-  var res = await sbFetch(
-    '/rest/v1/inspeksi?id=eq.' + id + '&limit=1',
-    { signal: signal }
-  );
-
-  if (!res.ok) {
-    var errTxt = await res.text().catch(function() { return res.status; });
-    return { status: 'error', message: 'Gagal memuat inspeksi (' + res.status + ').' };
-  }
-
+  if (!id) return { status: 'error', message: 'ID tidak valid.' };
+  var res = await sbFetch('/rest/v1/inspeksi?id=eq.' + id + '&limit=1', { signal: signal });
+  if (!res.ok) return { status: 'error', message: 'Gagal memuat inspeksi (' + res.status + ').' };
   var arr = await res.json();
-  if (!arr || !arr.length)
-    return { status: 'error', message: 'Data inspeksi tidak ditemukan (id=' + id + ').' };
-
+  if (!arr || !arr.length) return { status: 'error', message: 'Data tidak ditemukan (id=' + id + ').' };
   return { status: 'ok', data: _mapInspeksiRow(arr[0]) };
 }
 
