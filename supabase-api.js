@@ -345,8 +345,7 @@ async function _getDetailLengkap(p, signal) {
 
   var g = garduArr[0];
 
-  // Ambil riwayat inspeksi — pakai REST langsung ke tabel inspeksi
-  // agar kolom jurusan JSONB selalu ikut (RPC kadang tidak return kolom ini)
+  // Ambil riwayat inspeksi via REST langsung — agar kolom jurusan JSONB selalu ikut
   var riwayatRows = [];
   try {
     var resI = await sbFetch(
@@ -356,22 +355,17 @@ async function _getDetailLengkap(p, signal) {
     );
     if (resI.ok) {
       var rawI = await resI.json();
-      // Untuk REST kita perlu enrich dengan data gardu (ulp, penyulang, dll)
-      // yang ada di tabel gardu — ambil dari gardu yang sudah kita fetch
       riwayatRows = (rawI || []).map(function(row) {
-        // Inject data gardu ke row inspeksi agar _mapInspeksiRow bisa map ULP dll
-        row.ulp               = g.ulp;
-        row.unitup            = g.unitup;
-        row.penyulang         = g.penyulang;
-        row.alamat            = g.alamat;
+        row.ulp                = g.ulp;
+        row.unitup             = g.unitup;
+        row.penyulang          = g.penyulang;
+        row.alamat             = g.alamat;
         row.status_kepemilikan = g.status_kepemilikan;
         return _mapInspeksiRow(row);
       });
     } else {
-      // Fallback ke RPC jika REST gagal
-      var riwayatData = await rpcCall('fn_get_riwayat_inspeksi', {
-        p_no_gardu: noGardu, p_limit: 5
-      }, signal);
+      // Fallback ke RPC
+      var riwayatData = await rpcCall('fn_get_riwayat_inspeksi', { p_no_gardu: noGardu, p_limit: 5 }, signal);
       if (riwayatData && riwayatData.status === 'ok') {
         riwayatRows = (riwayatData.data || []).map(function(r) { return _mapInspeksiRow(r); });
       }
@@ -905,27 +899,26 @@ async function _getInspeksi(p, signal) {
   };
 }
 
-// ── GET INSPEKSI BY ID — REST langsung (select=* agar jurusan ikut) ──
+// ── GET INSPEKSI BY ID — REST (select=* agar jurusan selalu ikut) ──
 async function _getInspeksiById(p, signal) {
   var id = parseInt(p.id);
   if (!id) return { status: 'error', message: 'ID tidak valid.' };
-  var res = await sbFetch(
-    '/rest/v1/inspeksi?select=*&id=eq.' + id + '&limit=1',
-    { signal: signal }
-  );
+  var res = await sbFetch('/rest/v1/inspeksi?select=*&id=eq.' + id + '&limit=1', { signal: signal });
   if (!res.ok) return { status: 'error', message: 'Gagal ambil data (' + res.status + ').' };
   var arr = await res.json();
   if (!arr || !arr.length) return { status: 'error', message: 'Data tidak ditemukan.' };
-  // Inject gardu info dari cache jika ada
   var row = arr[0];
-  var g = window.garduIndex && window.garduIndex[row.no_gardu];
-  if (g) {
-    row.ulp               = row.ulp               || g['ULP']      || '';
-    row.unitup            = row.unitup             || g['UNITUP']   || '';
-    row.penyulang         = row.penyulang          || g['PENYULANG']|| '';
-    row.alamat            = row.alamat             || g['ALAMAT']   || '';
-    row.status_kepemilikan = row.status_kepemilikan || g['STATUS_KEPEMILIKAN'] || '';
-  }
+  // Inject gardu info dari cache global jika ada
+  try {
+    var gc = window.garduIndex && window.garduIndex[row.no_gardu];
+    if (gc) {
+      row.ulp                = row.ulp                || gc['ULP']               || '';
+      row.unitup             = row.unitup             || gc['UNITUP']            || '';
+      row.penyulang          = row.penyulang          || gc['PENYULANG']         || '';
+      row.alamat             = row.alamat             || gc['ALAMAT']            || '';
+      row.status_kepemilikan = row.status_kepemilikan || gc['STATUS_KEPEMILIKAN']|| '';
+    }
+  } catch(e) {}
   return { status: 'ok', data: _mapInspeksiRow(row) };
 }
 

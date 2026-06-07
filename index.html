@@ -2336,7 +2336,7 @@ if (typeof L === 'undefined') {
           <div id="edit-inspeksi-subtitle" style="font-size:var(--fs-xs);color:var(--pln-text3);"></div>
         </div>
       </div>
-      <button onclick="document.getElementById('modal-edit-inspeksi').style.display='none'" style="background:var(--pln-bg);border:none;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:18px;flex-shrink:0;">✕</button>
+      <button onclick="tutupModalEditInspeksi()" style="background:var(--pln-bg);border:none;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:18px;flex-shrink:0;">✕</button>
     </div>
     <div style="height:1px;background:var(--pln-border);margin-bottom:var(--sp-md);"></div>
     <input type="hidden" id="edit-inspeksi-id">
@@ -2455,7 +2455,7 @@ if (typeof L === 'undefined') {
     <div id="edit-inspeksi-err" style="display:none;background:var(--pln-red-pale);color:var(--pln-red);border-radius:var(--radius-xs);padding:8px 12px;font-size:var(--fs-xs);margin-bottom:8px;"></div>
     <div id="edit-inspeksi-ok" style="display:none;background:var(--pln-green-pale);color:var(--pln-green);border-radius:var(--radius-xs);padding:8px 12px;font-size:var(--fs-xs);margin-bottom:8px;"></div>
     <div class="btn-row">
-      <button class="btn btn-outline" onclick="document.getElementById('modal-edit-inspeksi').style.display='none'">Batal</button>
+      <button class="btn btn-outline" onclick="tutupModalEditInspeksi()">Batal</button>
       <button class="btn btn-blue" id="btn-simpan-edit-inspeksi" onclick="simpanEditInspeksi()">💾 Simpan Perubahan</button>
     </div>
   </div>
@@ -5045,12 +5045,10 @@ function bukaEditInspeksiById(id) {
   if (!r) { alert('Data inspeksi tidak ditemukan. Coba muat ulang halaman.'); return; }
   var sess = getSession();
   if (!sess || !sess.token) { bukaEditInspeksi(id, r); return; }
-  // Selalu fetch ulang by ID via REST agar kolom jurusan pasti ada
-  // (data di cache bisa berasal dari RPC ringkas yang kadang skip kolom jurusan)
   var ov = document.createElement('div');
   ov.id = '_ei-load-ov';
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(10,45,107,.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
-  ov.innerHTML = '<div style="background:#fff;border-radius:14px;padding:22px 32px;font-size:15px;font-weight:700;color:#0A2D6B;box-shadow:0 8px 32px rgba(10,45,107,.3);">⏳ Memuat data...</div>';
+  ov.innerHTML = '<div style="background:#fff;border-radius:14px;padding:22px 32px;font-size:15px;font-weight:700;color:#0A2D6B;box-shadow:0 8px 32px rgba(10,45,107,.3);">⏳ Memuat data jurusan...</div>';
   document.body.appendChild(ov);
   apiGet({ action: 'getInspeksiById', id: id }, function(res) {
     var o = document.getElementById('_ei-load-ov');
@@ -5059,9 +5057,16 @@ function bukaEditInspeksiById(id) {
       window._inspeksiDataMap[id] = res.data;
       bukaEditInspeksi(id, res.data);
     } else {
-      bukaEditInspeksi(id, r); // fallback ke cache jika fetch gagal
+      bukaEditInspeksi(id, r);
     }
   });
+}
+
+function tutupModalEditInspeksi() {
+  document.getElementById('modal-edit-inspeksi').style.display = 'none';
+  // Reset built state agar saat buka lagi, panel di-rebuild dengan data segar
+  var pagesEl = document.getElementById('ei-jur-pages');
+  if (pagesEl) delete pagesEl.dataset.built;
 }
 
 function bukaEditInspeksi(id, r) {
@@ -5209,125 +5214,160 @@ function eiRenderJurusanPages() {
   var label = document.getElementById('ei-jur-page-label');
   if (!pages) return;
 
-  // Simpan nilai sebelumnya ke _eiJurusanData sebelum re-render
-  eiSaveCurrentJurPage();
-
   var total = _eiJurusanData.length; // selalu 6
-  pages.innerHTML = '';
-  dots.innerHTML  = '';
+  var colors = ['#C0392B','#27AE60','#2980B9','#8E44AD','#D35400','#16A085'];
 
-  for (var pi = 0; pi < total; pi++) {
-    var j = _eiJurusanData[pi] || {};
-    var isActive = pi === _eiCurrentJurPage;
-    var w = ['#C0392B','#27AE60','#2980B9','#8E44AD','#D35400','#16A085'][pi % 6];
-    var n = pi + 1;
-    var s = function(field, def) { var v = j[field]; return (v !== undefined && v !== null) ? v : (def !== undefined ? def : 0); };
+  // ── PERTAMA KALI: build semua 6 panel sekaligus ──────────────
+  // Setelah itu hanya show/hide — tidak pernah destroy DOM lagi.
+  // Ini mencegah bug: data hilang saat ganti tab, dan mencegah
+  // eiSaveCurrentJurPage membaca DOM kosong dan menimpa data DB.
+  if (!pages.dataset.built) {
+    pages.dataset.built = '1';
+    pages.innerHTML = '';
+    dots.innerHTML  = '';
 
-    // Dot button
-    var dot = document.createElement('button');
-    dot.type = 'button';
-    dot.textContent = 'JUR ' + n;
-    dot.setAttribute('data-jidx', pi);
-    dot.onclick = (function(idx){ return function(){ eiSaveCurrentJurPage(); _eiCurrentJurPage = idx; eiRenderJurusanPages(); }; })(pi);
-    dot.style.cssText = 'background:' + (isActive ? w : 'var(--pln-bg)') + ';border:1.5px solid ' + w + ';border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;color:' + (isActive ? '#fff' : w) + ';font-family:inherit;';
-    dots.appendChild(dot);
+    for (var bi = 0; bi < 6; bi++) {
+      var bj = _eiJurusanData[bi] || {};
+      var bw = colors[bi];
+      var bn = bi + 1;
+      var bs = function(jj){ return function(field, def) {
+        var v = jj[field];
+        return (v !== undefined && v !== null && v !== '') ? v : (def !== undefined ? def : 0);
+      }; }(bj);
 
-    if (!isActive) continue;
+      // Dot button
+      var dot = document.createElement('button');
+      dot.type = 'button';
+      dot.id   = 'ei-jur-dot-' + bi;
+      dot.textContent = 'JUR ' + bn;
+      dot.setAttribute('data-jidx', bi);
+      dot.onclick = (function(idx){ return function(){ eiGoJurPage(idx); }; })(bi);
+      dots.appendChild(dot);
 
-    label.textContent = 'Jurusan ' + n + ' dari 6';
-
-    var div = document.createElement('div');
-    div.id = 'ei-jur-page-' + pi;
-    div.style.cssText = 'background:var(--pln-bg);border:1.5px solid ' + w + ';border-radius:8px;padding:12px;margin-bottom:8px;';
-    div.innerHTML =
-      '<div style="font-size:var(--fs-xs);font-weight:700;color:' + w + ';margin-bottom:8px;">🔌 Jurusan ' + n + '</div>' +
-      '<div class="grid2" style="margin-bottom:6px;">' +
-        '<div class="form-group" style="margin:0;"><label class="form-label">Nama / Arah Jurusan</label><input type="text" class="form-input" id="ei-jur' + pi + '-nama" value="' + _esc(s('nama','')) + '" placeholder="Nama jurusan" autocomplete="off"></div>' +
-        '<div class="form-group" style="margin:0;"><label class="form-label">Titik Ukur</label><input type="text" class="form-input" id="ei-jur' + pi + '-titik" value="' + _esc(s('titik','')) + '" placeholder="Titik pengukuran"></div>' +
-      '</div>' +
-      '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">⚡ Arus (A)</div>' +
-      '<div class="grid2" style="margin-bottom:6px;">' +
-        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">R</label><input type="number" class="form-input" id="ei-jur' + pi + '-r" value="' + s('r_total',0) + '" placeholder="0" step="any" min="0"></div>' +
-        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">S</label><input type="number" class="form-input" id="ei-jur' + pi + '-s" value="' + s('s_total',0) + '" placeholder="0" step="any" min="0"></div>' +
-        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">T</label><input type="number" class="form-input" id="ei-jur' + pi + '-t" value="' + s('t_total',0) + '" placeholder="0" step="any" min="0"></div>' +
-        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#8E44AD;">N</label><input type="number" class="form-input" id="ei-jur' + pi + '-n" value="' + s('n_total',0) + '" placeholder="0" step="any" min="0"></div>' +
-      '</div>' +
-      '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">🔋 Tegangan Fasa-Netral (V)</div>' +
-      '<div class="grid2" style="margin-bottom:6px;">' +
-        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">R–N</label><input type="number" class="form-input" id="ei-jur' + pi + '-rn" value="' + s('v_r_n',0) + '" placeholder="220" step="any" min="0"></div>' +
-        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">S–N</label><input type="number" class="form-input" id="ei-jur' + pi + '-sn" value="' + s('v_s_n',0) + '" placeholder="220" step="any" min="0"></div>' +
-        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">T–N</label><input type="number" class="form-input" id="ei-jur' + pi + '-tn" value="' + s('v_t_n',0) + '" placeholder="220" step="any" min="0"></div>' +
-      '</div>' +
-      '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">🔋 Tegangan Antar Fasa (V)</div>' +
-      '<div class="grid2" style="margin-bottom:6px;">' +
-        '<div class="form-group" style="margin:0;"><label class="form-label">R–S</label><input type="number" class="form-input" id="ei-jur' + pi + '-rs" value="' + s('v_r_s',0) + '" placeholder="380" step="any" min="0"></div>' +
-        '<div class="form-group" style="margin:0;"><label class="form-label">S–T</label><input type="number" class="form-input" id="ei-jur' + pi + '-st" value="' + s('v_s_t',0) + '" placeholder="380" step="any" min="0"></div>' +
-        '<div class="form-group" style="margin:0;"><label class="form-label">R–T</label><input type="number" class="form-input" id="ei-jur' + pi + '-rt" value="' + s('v_r_t',0) + '" placeholder="380" step="any" min="0"></div>' +
-      '</div>' +
-      '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">〰️ THD (%)</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-xs);margin-bottom:6px;">' +
-        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">THD-R</label><input type="number" class="form-input" id="ei-jur' + pi + '-thdr" value="' + s('thd_r',0) + '" placeholder="0" step="any" min="0"></div>' +
-        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">THD-S</label><input type="number" class="form-input" id="ei-jur' + pi + '-thds" value="' + s('thd_s',0) + '" placeholder="0" step="any" min="0"></div>' +
-        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">THD-T</label><input type="number" class="form-input" id="ei-jur' + pi + '-thdt" value="' + s('thd_t',0) + '" placeholder="0" step="any" min="0"></div>' +
-      '</div>' +
-      '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">⚡ I-Peak (A)</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-xs);margin-bottom:6px;">' +
-        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">IPeak-R</label><input type="number" class="form-input" id="ei-jur' + pi + '-ipeakr" value="' + s('ipeak_r',0) + '" placeholder="0" step="any" min="0"></div>' +
-        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">IPeak-S</label><input type="number" class="form-input" id="ei-jur' + pi + '-ipeaks" value="' + s('ipeak_s',0) + '" placeholder="0" step="any" min="0"></div>' +
-        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">IPeak-T</label><input type="number" class="form-input" id="ei-jur' + pi + '-ipeakt" value="' + s('ipeak_t',0) + '" placeholder="0" step="any" min="0"></div>' +
-      '</div>' +
-      '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">🔋 TPF</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-xs);">' +
-        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">TPF-R</label><input type="number" class="form-input" id="ei-jur' + pi + '-tpfr" value="' + s('tpf_r',0) + '" placeholder="0" step="any" min="0" max="1.2"></div>' +
-        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">TPF-S</label><input type="number" class="form-input" id="ei-jur' + pi + '-tpfs" value="' + s('tpf_s',0) + '" placeholder="0" step="any" min="0" max="1.2"></div>' +
-        '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">TPF-T</label><input type="number" class="form-input" id="ei-jur' + pi + '-tpft" value="' + s('tpf_t',0) + '" placeholder="0" step="any" min="0" max="1.2"></div>' +
-      '</div>';
-    pages.appendChild(div);
+      // Panel
+      var div = document.createElement('div');
+      div.id = 'ei-jur-panel-' + bi;
+      div.style.cssText = 'background:var(--pln-bg);border:1.5px solid ' + bw + ';border-radius:8px;padding:12px;margin-bottom:8px;display:none;';
+      div.innerHTML =
+        '<div style="font-size:var(--fs-xs);font-weight:700;color:' + bw + ';margin-bottom:8px;">🔌 Jurusan ' + bn + '</div>' +
+        '<div class="grid2" style="margin-bottom:6px;">' +
+          '<div class="form-group" style="margin:0;"><label class="form-label">Nama / Arah Jurusan</label><input type="text" class="form-input" id="ei-jur' + bi + '-nama" value="' + _esc(bs('nama','')) + '" placeholder="Nama jurusan" autocomplete="off"></div>' +
+          '<div class="form-group" style="margin:0;"><label class="form-label">Titik Ukur</label><input type="text" class="form-input" id="ei-jur' + bi + '-titik" value="' + _esc(bs('titik','')) + '" placeholder="Titik pengukuran"></div>' +
+        '</div>' +
+        '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">⚡ Arus (A)</div>' +
+        '<div class="grid2" style="margin-bottom:6px;">' +
+          '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">R</label><input type="number" class="form-input" id="ei-jur' + bi + '-r" value="' + bs('r_total',0) + '" placeholder="0" step="any" min="0"></div>' +
+          '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">S</label><input type="number" class="form-input" id="ei-jur' + bi + '-s" value="' + bs('s_total',0) + '" placeholder="0" step="any" min="0"></div>' +
+          '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">T</label><input type="number" class="form-input" id="ei-jur' + bi + '-t" value="' + bs('t_total',0) + '" placeholder="0" step="any" min="0"></div>' +
+          '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#8E44AD;">N</label><input type="number" class="form-input" id="ei-jur' + bi + '-n" value="' + bs('n_total',0) + '" placeholder="0" step="any" min="0"></div>' +
+        '</div>' +
+        '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">🔋 Tegangan Fasa-Netral (V)</div>' +
+        '<div class="grid2" style="margin-bottom:6px;">' +
+          '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">R–N</label><input type="number" class="form-input" id="ei-jur' + bi + '-rn" value="' + bs('v_r_n',0) + '" placeholder="220" step="any" min="0"></div>' +
+          '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">S–N</label><input type="number" class="form-input" id="ei-jur' + bi + '-sn" value="' + bs('v_s_n',0) + '" placeholder="220" step="any" min="0"></div>' +
+          '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">T–N</label><input type="number" class="form-input" id="ei-jur' + bi + '-tn" value="' + bs('v_t_n',0) + '" placeholder="220" step="any" min="0"></div>' +
+        '</div>' +
+        '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">🔋 Tegangan Antar Fasa (V)</div>' +
+        '<div class="grid2" style="margin-bottom:6px;">' +
+          '<div class="form-group" style="margin:0;"><label class="form-label">R–S</label><input type="number" class="form-input" id="ei-jur' + bi + '-rs" value="' + bs('v_r_s',0) + '" placeholder="380" step="any" min="0"></div>' +
+          '<div class="form-group" style="margin:0;"><label class="form-label">S–T</label><input type="number" class="form-input" id="ei-jur' + bi + '-st" value="' + bs('v_s_t',0) + '" placeholder="380" step="any" min="0"></div>' +
+          '<div class="form-group" style="margin:0;"><label class="form-label">R–T</label><input type="number" class="form-input" id="ei-jur' + bi + '-rt" value="' + bs('v_r_t',0) + '" placeholder="380" step="any" min="0"></div>' +
+        '</div>' +
+        '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">〰️ THD (%)</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-xs);margin-bottom:6px;">' +
+          '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">THD-R</label><input type="number" class="form-input" id="ei-jur' + bi + '-thdr" value="' + bs('thd_r',0) + '" placeholder="0" step="any" min="0"></div>' +
+          '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">THD-S</label><input type="number" class="form-input" id="ei-jur' + bi + '-thds" value="' + bs('thd_s',0) + '" placeholder="0" step="any" min="0"></div>' +
+          '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">THD-T</label><input type="number" class="form-input" id="ei-jur' + bi + '-thdt" value="' + bs('thd_t',0) + '" placeholder="0" step="any" min="0"></div>' +
+        '</div>' +
+        '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">⚡ I-Peak (A)</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-xs);margin-bottom:6px;">' +
+          '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">IPeak-R</label><input type="number" class="form-input" id="ei-jur' + bi + '-ipeakr" value="' + bs('ipeak_r',0) + '" placeholder="0" step="any" min="0"></div>' +
+          '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">IPeak-S</label><input type="number" class="form-input" id="ei-jur' + bi + '-ipeaks" value="' + bs('ipeak_s',0) + '" placeholder="0" step="any" min="0"></div>' +
+          '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">IPeak-T</label><input type="number" class="form-input" id="ei-jur' + bi + '-ipeakt" value="' + bs('ipeak_t',0) + '" placeholder="0" step="any" min="0"></div>' +
+        '</div>' +
+        '<div style="font-size:10px;font-weight:700;color:var(--pln-text3);margin:6px 0 4px;">🔋 TPF</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-xs);">' +
+          '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#C0392B;">TPF-R</label><input type="number" class="form-input" id="ei-jur' + bi + '-tpfr" value="' + bs('tpf_r',0) + '" placeholder="0" step="any" min="0" max="1.2"></div>' +
+          '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#27AE60;">TPF-S</label><input type="number" class="form-input" id="ei-jur' + bi + '-tpfs" value="' + bs('tpf_s',0) + '" placeholder="0" step="any" min="0" max="1.2"></div>' +
+          '<div class="form-group" style="margin:0;"><label class="form-label" style="color:#2980B9;">TPF-T</label><input type="number" class="form-input" id="ei-jur' + bi + '-tpft" value="' + bs('tpf_t',0) + '" placeholder="0" step="any" min="0" max="1.2"></div>' +
+        '</div>';
+      pages.appendChild(div);
+    }
   }
 
-  // Prev/Next buttons state
-  document.getElementById('ei-jur-prev').disabled = (_eiCurrentJurPage === 0);
-  document.getElementById('ei-jur-next').disabled = (_eiCurrentJurPage >= total - 1);
+  // ── UPDATE: hanya ubah visibility dan style dot ───────────────
+  var colors2 = ['#C0392B','#27AE60','#2980B9','#8E44AD','#D35400','#16A085'];
+  for (var ui = 0; ui < 6; ui++) {
+    var panel = document.getElementById('ei-jur-panel-' + ui);
+    var dotEl = document.getElementById('ei-jur-dot-'  + ui);
+    var uw    = colors2[ui];
+    var isAct = (ui === _eiCurrentJurPage);
+    if (panel) panel.style.display = isAct ? 'block' : 'none';
+    if (dotEl) {
+      dotEl.style.background = isAct ? uw : 'var(--pln-bg)';
+      dotEl.style.color      = isAct ? '#fff' : uw;
+      dotEl.style.border     = '1.5px solid ' + uw;
+      dotEl.style.borderRadius = '6px';
+      dotEl.style.padding    = '4px 10px';
+      dotEl.style.fontSize   = '10px';
+      dotEl.style.fontWeight = '700';
+      dotEl.style.cursor     = 'pointer';
+      dotEl.style.fontFamily = 'inherit';
+    }
+  }
+
+  if (label) label.textContent = 'Jurusan ' + (_eiCurrentJurPage + 1) + ' dari 6';
+  var prevBtn = document.getElementById('ei-jur-prev');
+  var nextBtn = document.getElementById('ei-jur-next');
+  if (prevBtn) prevBtn.disabled = (_eiCurrentJurPage === 0);
+  if (nextBtn) nextBtn.disabled = (_eiCurrentJurPage >= 5);
+}
+
+// Pindah halaman jurusan — TIDAK perlu save dulu karena DOM tetap ada
+function eiGoJurPage(idx) {
+  _eiCurrentJurPage = Math.max(0, Math.min(5, idx));
+  eiRenderJurusanPages();
 }
 
 function _esc(s) { return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function eiSaveCurrentJurPage() {
-  var pi = _eiCurrentJurPage;
-  if (!_eiJurusanData[pi]) return;
-  // Cek dulu apakah DOM element untuk halaman ini sudah ada
-  // Kalau belum ada (dipanggil sebelum render pertama), JANGAN timpa data DB
-  var checkEl = document.getElementById('ei-jur'+pi+'-r');
-  if (!checkEl) return; // DOM belum ada — skip, jaga data DB tetap utuh
-  var gV = function(id){ var el=document.getElementById(id); return el ? (parseFloat(el.value)||0) : 0; };
-  var gS = function(id){ var el=document.getElementById(id); return el ? el.value.trim() : ''; };
-  _eiJurusanData[pi] = {
-    nama:    gS('ei-jur'+pi+'-nama'),
-    titik:   gS('ei-jur'+pi+'-titik'),
-    r_total: gV('ei-jur'+pi+'-r'),
-    s_total: gV('ei-jur'+pi+'-s'),
-    t_total: gV('ei-jur'+pi+'-t'),
-    n_total: gV('ei-jur'+pi+'-n'),
-    v_r_n:   gV('ei-jur'+pi+'-rn'),
-    v_s_n:   gV('ei-jur'+pi+'-sn'),
-    v_t_n:   gV('ei-jur'+pi+'-tn'),
-    v_r_s:   gV('ei-jur'+pi+'-rs'),
-    v_s_t:   gV('ei-jur'+pi+'-st'),
-    v_r_t:   gV('ei-jur'+pi+'-rt'),
-    thd_r:   gV('ei-jur'+pi+'-thdr'),
-    thd_s:   gV('ei-jur'+pi+'-thds'),
-    thd_t:   gV('ei-jur'+pi+'-thdt'),
-    ipeak_r: gV('ei-jur'+pi+'-ipeakr'),
-    ipeak_s: gV('ei-jur'+pi+'-ipeaks'),
-    ipeak_t: gV('ei-jur'+pi+'-ipeakt'),
-    tpf_r:   gV('ei-jur'+pi+'-tpfr'),
-    tpf_s:   gV('ei-jur'+pi+'-tpfs'),
-    tpf_t:   gV('ei-jur'+pi+'-tpft')
-  };
+  // Karena semua 6 panel sekarang selalu ada di DOM (cuma show/hide),
+  // kita baca SEMUA 6 sekaligus — bukan hanya halaman aktif.
+  // Ini mencegah data jurusan yang tidak aktif ikut terbuang.
+  for (var si = 0; si < 6; si++) {
+    if (!_eiJurusanData[si]) continue;
+    var gV = function(id){ var el=document.getElementById(id); return el ? (parseFloat(el.value)||0) : 0; };
+    var gS = function(id){ var el=document.getElementById(id); return el ? el.value.trim() : ''; };
+    // Cek apakah panel untuk index ini sudah ada di DOM
+    if (!document.getElementById('ei-jur' + si + '-r')) continue;
+    _eiJurusanData[si] = {
+      nama:    gS('ei-jur'+si+'-nama'),
+      titik:   gS('ei-jur'+si+'-titik'),
+      r_total: gV('ei-jur'+si+'-r'),
+      s_total: gV('ei-jur'+si+'-s'),
+      t_total: gV('ei-jur'+si+'-t'),
+      n_total: gV('ei-jur'+si+'-n'),
+      v_r_n:   gV('ei-jur'+si+'-rn'),
+      v_s_n:   gV('ei-jur'+si+'-sn'),
+      v_t_n:   gV('ei-jur'+si+'-tn'),
+      v_r_s:   gV('ei-jur'+si+'-rs'),
+      v_s_t:   gV('ei-jur'+si+'-st'),
+      v_r_t:   gV('ei-jur'+si+'-rt'),
+      thd_r:   gV('ei-jur'+si+'-thdr'),
+      thd_s:   gV('ei-jur'+si+'-thds'),
+      thd_t:   gV('ei-jur'+si+'-thdt'),
+      ipeak_r: gV('ei-jur'+si+'-ipeakr'),
+      ipeak_s: gV('ei-jur'+si+'-ipeaks'),
+      ipeak_t: gV('ei-jur'+si+'-ipeakt'),
+      tpf_r:   gV('ei-jur'+si+'-tpfr'),
+      tpf_s:   gV('ei-jur'+si+'-tpfs'),
+      tpf_t:   gV('ei-jur'+si+'-tpft')
+    };
+  }
 }
 
 function eiJurPage(delta) {
-  eiSaveCurrentJurPage();
   _eiCurrentJurPage = Math.max(0, Math.min(5, _eiCurrentJurPage + delta));
   eiRenderJurusanPages();
 }
@@ -5417,6 +5457,8 @@ function simpanEditInspeksi() {
     okEl.style.display = 'block';
     setTimeout(function() {
       document.getElementById('modal-edit-inspeksi').style.display = 'none';
+      var pagesEl = document.getElementById('ei-jur-pages');
+      if (pagesEl) delete pagesEl.dataset.built;
       // Reload sesuai konteks: jika dari halaman pengukuran, refresh tabel pengukuran
       if (_editInspeksiKonteks === 'pengukuran') {
         _editInspeksiKonteks = null;
@@ -5445,7 +5487,7 @@ function bukaEditInspeksiDariPengukuranById(id) {
   var ov = document.createElement('div');
   ov.id = '_ei-load-ov2';
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(10,45,107,.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
-  ov.innerHTML = '<div style="background:#fff;border-radius:14px;padding:22px 32px;font-size:15px;font-weight:700;color:#0A2D6B;box-shadow:0 8px 32px rgba(10,45,107,.3);">⏳ Memuat data...</div>';
+  ov.innerHTML = '<div style="background:#fff;border-radius:14px;padding:22px 32px;font-size:15px;font-weight:700;color:#0A2D6B;box-shadow:0 8px 32px rgba(10,45,107,.3);">⏳ Memuat data jurusan...</div>';
   document.body.appendChild(ov);
   apiGet({ action: 'getInspeksiById', id: id }, function(res) {
     var o = document.getElementById('_ei-load-ov2');
