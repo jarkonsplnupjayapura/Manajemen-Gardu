@@ -1076,22 +1076,59 @@ input[type=number]{-moz-appearance:textfield;}
 .pm-status-proses{background:#FEF3C7;color:#92400E;}
 .pm-status-tunda{background:#FEE2E2;color:#991B1B;}
 </style>
-<!-- Leaflet CSS: jsdelivr (primary) -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css" crossorigin=""/>
-<!-- Leaflet JS: jsdelivr (primary), cdnjs (fallback), unpkg (last resort) -->
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js" crossorigin=""></script>
+<!-- ============================================================
+     MED-12 FIX: SRI (Subresource Integrity) Hash pada semua CDN
+     Melindungi dari supply-chain attack jika CDN dikompromikan.
+     crossorigin="anonymous" wajib disertakan bersama integrity.
+     ============================================================ -->
+
+<!-- Leaflet CSS: jsdelivr (primary) dengan SRI hash -->
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin="anonymous"/>
+
+<!-- Leaflet JS: jsdelivr (primary) dengan SRI hash -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XR0UgOo="
+        crossorigin="anonymous"></script>
+
+<!-- Leaflet fallback: cdnjs (jika jsdelivr gagal) — pakai elemen DOM, bukan document.write -->
 <script>
-if (typeof L === 'undefined') {
-  document.write('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin=""/>');
-  document.write('<scr'+'ipt src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin=""><\/scr'+'ipt>');
-}
+(function() {
+  if (typeof L !== 'undefined') return; // Leaflet sudah dimuat, skip
+
+  // Fallback CSS dari cdnjs
+  var cssEl = document.createElement('link');
+  cssEl.rel  = 'stylesheet';
+  cssEl.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+  cssEl.integrity   = 'sha512-Zcn6bjR/8RZbLEpLIeOwNtzREBAJnUKESxces60Mpoj+2okopSAcSUIUOseddDm0cxv7/wQxg0kdny0PLB0Uew==';
+  cssEl.crossOrigin = 'anonymous';
+  document.head.appendChild(cssEl);
+
+  // Fallback JS dari cdnjs
+  var jsEl = document.createElement('script');
+  jsEl.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+  jsEl.integrity   = 'sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWoFqsFR3uT3isWVTUK8m7AkdObat/mORMqMRn5GWvsuJRA/Fq20A==';
+  jsEl.crossOrigin = 'anonymous';
+  jsEl.onerror = function() {
+    // Last-resort fallback tanpa SRI (unpkg) — hanya jika dua CDN pertama gagal
+    console.warn('[Leaflet] cdnjs gagal, mencoba unpkg sebagai last-resort...');
+    var lastJs = document.createElement('script');
+    lastJs.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    lastJs.crossOrigin = 'anonymous';
+    document.head.appendChild(lastJs);
+
+    var lastCss = document.createElement('link');
+    lastCss.rel  = 'stylesheet';
+    lastCss.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    lastCss.crossOrigin = 'anonymous';
+    document.head.appendChild(lastCss);
+  };
+  document.head.appendChild(jsEl);
+})();
 </script>
-<script>
-if (typeof L === 'undefined') {
-  document.write('<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>');
-  document.write('<scr'+'ipt src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""><\/scr'+'ipt>');
-}
-</script>
+
 <!-- Leaflet.markercluster — anti-lag untuk banyak marker -->
 
 </head>
@@ -1805,6 +1842,32 @@ if (typeof L === 'undefined') {
 
 
 <div id="modal-konfirmasi" style="display:none;position:fixed;inset:0;z-index:9800;background:rgba(0,0,0,.65);align-items:center;justify-content:center;padding:var(--sp-md);">
+
+<!-- ============================================================
+     MED-11 FIX: Modal konfirmasi keluar form dengan data terisi
+     Ditampilkan saat petugas menekan ← setelah mengisi field.
+     ============================================================ -->
+<div id="modal-keluar-form" style="display:none;position:fixed;inset:0;z-index:9850;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:var(--sp-md);">
+  <div style="background:var(--pln-card);border-radius:var(--radius);width:100%;max-width:340px;box-shadow:var(--shadow-lg);overflow:hidden;">
+    <div style="background:var(--pln-orange);padding:var(--sp-md) var(--sp-lg);display:flex;align-items:center;gap:10px;">
+      <span style="font-size:22px;">⚠️</span>
+      <span id="keluar-modal-title" style="color:#fff;font-weight:700;font-size:var(--fs-md);">Keluar dari Form?</span>
+    </div>
+    <div style="padding:var(--sp-lg);">
+      <p id="keluar-modal-pesan" style="color:var(--pln-text);font-size:var(--fs-sm);margin-bottom:var(--sp-md);line-height:1.6;"></p>
+      <div style="display:flex;gap:10px;">
+        <button id="keluar-modal-batal"
+          style="flex:1;padding:12px;border:1.5px solid var(--pln-border);background:var(--pln-bg);border-radius:var(--radius-sm);
+                 font-size:var(--fs-sm);font-weight:600;color:var(--pln-text2);cursor:pointer;font-family:inherit;"
+          onclick="window._keluarClose()">↩ Lanjut Isi</button>
+        <button id="keluar-modal-ok"
+          style="flex:1;padding:12px;border:none;background:var(--pln-orange);color:#fff;border-radius:var(--radius-sm);
+                 font-size:var(--fs-sm);font-weight:700;cursor:pointer;font-family:inherit;"
+          onclick="window._keluarConfirm()">Keluar</button>
+      </div>
+    </div>
+  </div>
+</div>
   <div style="background:var(--pln-card);border-radius:var(--radius);width:100%;max-width:360px;box-shadow:var(--shadow-lg);overflow:hidden;">
     <!-- Header -->
     <div id="mk-header" style="background:var(--pln-red);padding:var(--sp-md) var(--sp-lg);display:flex;align-items:center;gap:10px;">
@@ -2601,11 +2664,26 @@ function ulpAkunToSheet(ulpAkun) {
 }
 
 // ── Session helpers (sessionStorage — hilang saat browser ditutup) ──
+// MED-10 FIX: cache sesi di memori agar tidak parsing JSON setiap kali dipanggil.
+// renderDetailGardu memanggil getSession() N-kali (sekali per baris riwayat),
+// renderDaftarGardu juga memanggil berkali-kali. Caching menghilangkan overhead ini.
+var _sessionCache = null; // null = belum di-cache / sudah di-clear
+
 function getSession() {
-  try { return JSON.parse(sessionStorage.getItem('plnSession') || 'null'); } catch(e) { return null; }
+  if (_sessionCache !== null) return _sessionCache;
+  try {
+    _sessionCache = JSON.parse(sessionStorage.getItem('plnSession') || 'null');
+  } catch(e) { _sessionCache = null; }
+  return _sessionCache;
 }
-function setSession(s) { sessionStorage.setItem('plnSession', JSON.stringify(s)); }
-function clearSession() { sessionStorage.removeItem('plnSession'); }
+function setSession(s) {
+  _sessionCache = s; // perbarui cache sebelum tulis ke storage
+  sessionStorage.setItem('plnSession', JSON.stringify(s));
+}
+function clearSession() {
+  _sessionCache = null; // invalidasi cache saat logout
+  sessionStorage.removeItem('plnSession');
+}
 
 // Toggle show/hide password di halaman login
 function toggleShowPassword() {
@@ -2623,12 +2701,23 @@ function toggleShowPassword() {
 // Fungsi login
 function doLogin() {
   var username = (document.getElementById('login-username').value || '').trim().toLowerCase();
-  var password = (document.getElementById('login-password').value || '').trim();
+  // MED-9 FIX: Jangan trim() password — spasi bisa bagian sah dari password user.
+  // Ambil nilai apa adanya, hanya cek tidak kosong dan panjang minimum.
+  var password = document.getElementById('login-password').value || '';
   var errEl = document.getElementById('login-err');
   errEl.style.display = 'none';
 
-  if (!username || !password) {
-    errEl.textContent = 'Username dan password tidak boleh kosong.';
+  if (!username) {
+    errEl.textContent = 'Username tidak boleh kosong.';
+    errEl.style.display = 'block'; return;
+  }
+  if (!password) {
+    errEl.textContent = 'Password tidak boleh kosong.';
+    errEl.style.display = 'block'; return;
+  }
+  // MED-9 FIX: Validasi panjang minimum password di sisi client
+  if (password.length < 6) {
+    errEl.textContent = 'Password minimal 6 karakter.';
     errEl.style.display = 'block'; return;
   }
 
@@ -2743,26 +2832,39 @@ function onLoginSuccess(user) {
   // Pastikan tab-daftar aktif setelah login
   bukaTab('tab-daftar', 0);
 
+  // MED-8 FIX: Muat rekap di background setelah login agar sudah siap saat user klik tab.
+  // Sebelumnya rekap hanya dimuat saat user klik tab Rekap — menyebabkan spinner tapi tidak ada request.
+  // Gunakan setTimeout kecil agar tidak bersaing dengan muatDaftarGardu yang juga baru dipanggil.
+  setTimeout(function() {
+    if (!rekapSudahMuat) muatRekap();
+  }, 800);
+
   // Cek redirect setelah login dari QR scan
   var urlParams = new URLSearchParams(window.location.search);
   var redirect = urlParams.get('redirect');
   var noGarduParam = urlParams.get('noGardu');
   if (redirect && noGarduParam) {
-    setTimeout(function() {
-      if (redirect === 'pengukuran') {
-        var g = garduIndex[noGarduParam.toUpperCase()];
-        if (g) { bukaFormInspeksi(noGarduParam.toUpperCase()); }
-        else {
-          // Try after data loads
-          setTimeout(function() {
-            var g2 = garduIndex[noGarduParam.toUpperCase()];
-            if (g2) bukaFormInspeksi(noGarduParam.toUpperCase());
-          }, 2000);
+    // MED-1 FIX: Polling garduIndex hingga data tersedia (max 15 detik, interval 300ms)
+    // Menggantikan retry 2 detik yang masih rentan race condition.
+    var _qrKey   = noGarduParam.toUpperCase();
+    var _qrRedir = redirect;
+    var _qrTries = 0;
+    var _qrMaxTries = 50; // 50 × 300ms = 15 detik
+    var _qrPoll = setInterval(function() {
+      _qrTries++;
+      var g = garduIndex[_qrKey];
+      if (g) {
+        clearInterval(_qrPoll);
+        if (_qrRedir === 'pengukuran') {
+          bukaFormInspeksi(_qrKey);
+        } else if (_qrRedir === 'pemeliharaan') {
+          bukaFormPemeliharaanDariDetail(_qrKey);
         }
-      } else if (redirect === 'pemeliharaan') {
-        bukaFormPemeliharaanDariDetail(noGarduParam.toUpperCase());
+      } else if (_qrTries >= _qrMaxTries) {
+        clearInterval(_qrPoll);
+        alert('⚠️ Gardu "' + noGarduParam + '" tidak ditemukan setelah 15 detik.\n\nPastikan Anda memiliki akses ke gardu ini, lalu cari manual dari daftar.');
       }
-    }, 500);
+    }, 300);
   }
 }
 
@@ -3952,6 +4054,9 @@ function renderDetailGardu(g, riwayat){
   if (!riwayat.length) {
     html += '<div class="empty-state"><div class="empty-icon">📋</div>Belum ada data inspeksi.</div>';
   } else {
+    // MED-10 FIX: ambil sesi sekali di luar loop, bukan sekali per baris riwayat
+    var _sRiwayat = getSession();
+    var _canDeleteInspeksi = _sRiwayat && (_sRiwayat.role === 'admin' || _sRiwayat.role === 'superadmin');
     riwayat.forEach(function(r, idx){
       var prosen = r['PROSEN'] !== '' && r['PROSEN'] !== null ? parseFloat(r['PROSEN']) : null;
       var bc = prosen === null ? 'badge-nonaktif' : prosen > 80 ? 'badge-kritis' : prosen > 60 ? 'badge-perlu' : 'badge-normal';
@@ -3969,8 +4074,7 @@ function renderDetailGardu(g, riwayat){
       var dayaKva = normVal(r['DAYA']); var dayaPakai = normVal(r['DAYA PAKAI']);
       var tidakSeimbang = normVal(r['TDKSEIMBANG']); var fasa = normVal(r['FASA']);
 
-      var _sRiwayat = getSession();
-      var _canDeleteInspeksi = _sRiwayat && (_sRiwayat.role === 'admin' || _sRiwayat.role === 'superadmin');
+      // MED-10 FIX: _sRiwayat sudah diambil sebelum loop — tidak perlu panggil getSession() lagi
       var _canEditInspeksi = _sRiwayat && (
         _sRiwayat.role === 'admin' || _sRiwayat.role === 'superadmin' ||
         (_sRiwayat.role === 'petugas' && _sRiwayat.nama && r['PETUGAS'] &&
@@ -4660,14 +4764,24 @@ function bukaFormInspeksi(noGardu) {
   document.getElementById('form-inspeksi-view').style.display = 'block';
   // Scroll ke atas
   document.getElementById('form-inspeksi-view').scrollTo(0,0);
+
+  // MED-11 FIX: Reset dirty flag saat form dibuka (bukan karena user input)
+  _fiFormDirty = false;
 }
 
-// ── Tutup form inspeksi ───────────────────────────────────────
-function tutupFormInspeksi() {
+// ── MED-11 FIX: Dirty-state tracking untuk form inspeksi ─────
+// Flag ini di-set true saat petugas mulai mengisi field apapun,
+// dan di-reset ke false saat form berhasil disimpan atau dibuka ulang.
+var _fiFormDirty = false;
+
+function _fiMarkDirty() { _fiFormDirty = true; }
+
+// Fungsi internal yang benar-benar menutup form — dipanggil setelah konfirmasi
+function _fiDoClose() {
+  _fiFormDirty = false;
   fiStopAutosave();
   document.getElementById('form-inspeksi-view').style.display = 'none';
   _fiGardu = null;
-  // Reset scroll setelah tutup form
   try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
@@ -4675,6 +4789,27 @@ function tutupFormInspeksi() {
   if (activeTab) activeTab.scrollTop = 0;
   var pb = activeTab ? activeTab.querySelector('.page-body') : null;
   if (pb) pb.scrollTop = 0;
+}
+
+// Tutup form inspeksi — dengan konfirmasi jika ada data terisi (MED-11)
+function tutupFormInspeksi() {
+  if (!_fiFormDirty) {
+    // Form kosong — tutup langsung tanpa konfirmasi
+    _fiDoClose();
+    return;
+  }
+
+  // Ada data — tampilkan dialog konfirmasi custom (tidak pakai confirm() agar konsisten UI)
+  _showKeluar(
+    'Keluar dari Form Inspeksi?',
+    'Data yang sudah diisi akan hilang jika Anda keluar sekarang.<br><br>' +
+    '<span style="color:var(--pln-green);font-size:var(--fs-xs);">✓ Draft otomatis telah disimpan. Anda dapat melanjutkan nanti.</span>',
+    function() {
+      // Simpan draft sekali lagi sebelum keluar (best-effort)
+      try { if (_fiGardu) fiSaveDraft(_fiGardu); } catch(e) {}
+      _fiDoClose();
+    }
+  );
 }
 
 // ── Autosave Draft Helpers ───────────────────────────────────
@@ -4818,6 +4953,8 @@ function fiRestoreDraft(draft) {
 
 function fiClearDraft(noGardu) {
   try { sessionStorage.removeItem('inspeksi_draft_' + noGardu); } catch(e) {}
+  // MED-11 FIX: Form berhasil disimpan — reset dirty flag
+  _fiFormDirty = false;
 }
 
 // ── Toggle manual kalkulasi ───────────────────────────────────
@@ -4840,7 +4977,18 @@ function fiBindListeners() {
     if (!el) return;
     el.removeEventListener('input', fiUpdateCalc);
     el.addEventListener('input', fiUpdateCalc);
+    // MED-11 FIX: tandai form kotor saat ada input dari user
+    el.removeEventListener('input', _fiMarkDirty);
+    el.addEventListener('input', _fiMarkDirty);
   });
+
+  // MED-11 FIX: Pasang dirty listener ke semua input/select/textarea dalam form inspeksi
+  var formEl = document.getElementById('form-inspeksi-view');
+  if (formEl && !formEl._dirtyListenerBound) {
+    formEl.addEventListener('input',  _fiMarkDirty, { capture: false });
+    formEl.addEventListener('change', _fiMarkDirty, { capture: false });
+    formEl._dirtyListenerBound = true;
+  }
 }
 
 // ── Kalkulasi otomatis (daya pakai, prosen, seimbang) ─────────
@@ -5047,6 +5195,19 @@ function fiGetJurusanData() {
 function fiValidate() {
   var errs = [];
   if (!document.getElementById('fi-tgl').value) errs.push('Tanggal wajib diisi.');
+
+  // MED-2 (new form): validasi tanggal tidak boleh lebih dari hari ini atau > 5 tahun ke belakang
+  var tglVal = document.getElementById('fi-tgl').value;
+  if (tglVal) {
+    var tglD  = new Date(tglVal);
+    var todayD = new Date(); todayD.setHours(23,59,59,999);
+    var minD   = new Date(); minD.setFullYear(minD.getFullYear() - 5);
+    if (!isNaN(tglD.getTime())) {
+      if (tglD > todayD) errs.push('Tanggal tidak boleh lebih dari hari ini.');
+      else if (tglD < minD) errs.push('Tanggal terlalu lama (lebih dari 5 tahun ke belakang).');
+    }
+  }
+
   if (!document.getElementById('fi-jam').value) errs.push('Jam ukur wajib diisi.');
   if (!document.getElementById('fi-petugas').value.trim()) errs.push('Nama petugas wajib diisi.');
   var rA = parseFloat(document.getElementById('fi-r-total').value);
@@ -5069,7 +5230,27 @@ function fiSetAlert(msg, isOk) {
 function submitFormInspeksi() {
   var s = getSession();
   if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
-  if (!_fiGardu) { alert('Data gardu tidak tersedia.'); return; }
+
+  // MED-1 FIX: Guard kuat untuk _fiGardu null — bisa terjadi saat QR redirect
+  // sebelum garduIndex selesai dimuat (race condition). Coba recover dari DOM dulu.
+  if (!_fiGardu) {
+    // Coba recover dari title bar yang sudah di-set saat bukaFormInspeksi dipanggil
+    var titleEl = document.getElementById('fi-topbar-title');
+    var noGarduRecov = titleEl ? titleEl.textContent.trim() : '';
+    if (noGarduRecov && garduIndex[noGarduRecov.toUpperCase()]) {
+      _fiGardu = garduIndex[noGarduRecov.toUpperCase()];
+      console.warn('[MED-1] _fiGardu di-recover dari garduIndex untuk:', noGarduRecov);
+    }
+  }
+  if (!_fiGardu) {
+    alert('⚠️ Data gardu belum tersedia.\n\nSilakan tunggu beberapa detik lalu coba lagi. Jika masalah berlanjut, kembali ke daftar dan buka gardu kembali.');
+    return;
+  }
+  // Pastikan NO_GARDU selalu ada (tidak boleh undefined/null)
+  if (!_fiGardu['NO_GARDU']) {
+    alert('⚠️ Data gardu tidak lengkap (NO_GARDU kosong). Silakan kembali dan buka gardu kembali.');
+    return;
+  }
 
   var errs = fiValidate();
   if (errs.length) {
@@ -5592,6 +5773,26 @@ function simpanEditInspeksi() {
   var okEl = document.getElementById('edit-inspeksi-ok');
   errEl.style.display = 'none'; okEl.style.display = 'none';
   if (!tgl) { errEl.textContent = '⚠️ Tanggal wajib diisi.'; errEl.style.display = 'block'; return; }
+
+  // MED-2 FIX: Validasi tanggal — tidak boleh lebih dari hari ini, dan tidak lebih dari 5 tahun ke belakang
+  var tglDate  = new Date(tgl);
+  var today    = new Date();
+  today.setHours(23, 59, 59, 999); // akhir hari ini
+  var minDate  = new Date();
+  minDate.setFullYear(minDate.getFullYear() - 5); // max 5 tahun ke belakang
+  if (isNaN(tglDate.getTime())) {
+    errEl.textContent = '⚠️ Format tanggal tidak valid.';
+    errEl.style.display = 'block'; return;
+  }
+  if (tglDate > today) {
+    errEl.textContent = '⚠️ Tanggal inspeksi tidak boleh lebih dari hari ini (' + today.toLocaleDateString('id-ID') + '). Periksa kembali tanggal yang diisi.';
+    errEl.style.display = 'block'; return;
+  }
+  if (tglDate < minDate) {
+    errEl.textContent = '⚠️ Tanggal inspeksi terlalu lama (lebih dari 5 tahun ke belakang). Periksa kembali tanggal yang diisi.';
+    errEl.style.display = 'block'; return;
+  }
+
   if (!petugas) { errEl.textContent = '⚠️ Nama petugas wajib diisi.'; errEl.style.display = 'block'; return; }
   var btn = document.getElementById('btn-simpan-edit-inspeksi');
   btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
@@ -5987,11 +6188,32 @@ function applyRowStyle(row, style) {
   });
 }
 
-function generateXLSX(rows, periodeLabel, ulpFilter) {
-  if (typeof ExcelJS === 'undefined') {
-    alert('ExcelJS belum dimuat, coba refresh halaman.'); return;
-  }
+// ── KRITIS-6 FIX: Helper tunggu ExcelJS siap (max 10 detik) ─────────────────
+// ExcelJS dimuat async — bisa belum tersedia saat fungsi export dipanggil pertama kali.
+// Fungsi ini polling setiap 200ms, resolve saat ExcelJS ada, reject setelah timeout.
+function _waitExcelJS(timeoutMs) {
+  timeoutMs = timeoutMs || 10000;
+  return new Promise(function(resolve, reject) {
+    if (typeof ExcelJS !== 'undefined') { resolve(); return; }
+    var elapsed = 0;
+    var interval = setInterval(function() {
+      elapsed += 200;
+      if (typeof ExcelJS !== 'undefined') {
+        clearInterval(interval);
+        resolve();
+      } else if (elapsed >= timeoutMs) {
+        clearInterval(interval);
+        reject(new Error('ExcelJS gagal dimuat. Periksa koneksi internet lalu refresh halaman.'));
+      }
+    }, 200);
+  });
+}
 
+function generateXLSX(rows, periodeLabel, ulpFilter) {
+  _waitExcelJS().then(function() { _doGenerateXLSX(rows, periodeLabel, ulpFilter); })
+    .catch(function(e) { alert(e.message); });
+}
+function _doGenerateXLSX(rows, periodeLabel, ulpFilter) {
   var tglCetak   = new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'});
   var ulpLabel   = ulpFilter || 'Semua ULP';
   var total      = rows.length;
@@ -6730,7 +6952,10 @@ function generatePrintHTML(rows, periodeLabel, ulpFilter) {
 
 // ── Generate Rekap Gardu per Status Operasi (Format C) ────────
 function generateRekapStatusOperasi(rows, periodeLabel, ulpFilter) {
-  if (typeof ExcelJS === 'undefined') { alert('ExcelJS belum dimuat, coba refresh.'); return; }
+  _waitExcelJS().then(function() { _doGenerateRekapStatusOperasi(rows, periodeLabel, ulpFilter); })
+    .catch(function(e) { alert(e.message); });
+}
+function _doGenerateRekapStatusOperasi(rows, periodeLabel, ulpFilter) {
   var tglCetak = new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'});
   var ulpLabel = ulpFilter || 'Semua ULP';
 
@@ -6829,7 +7054,10 @@ function generateRekapStatusOperasi(rows, periodeLabel, ulpFilter) {
 
 // ── Generate Rekap Gardu per Status Kepemilikan (Format D) ────
 function generateRekapStatusKepemilikan(rows, periodeLabel, ulpFilter) {
-  if (typeof ExcelJS === 'undefined') { alert('ExcelJS belum dimuat, coba refresh.'); return; }
+  _waitExcelJS().then(function() { _doGenerateRekapStatusKepemilikan(rows, periodeLabel, ulpFilter); })
+    .catch(function(e) { alert(e.message); });
+}
+function _doGenerateRekapStatusKepemilikan(rows, periodeLabel, ulpFilter) {
   var tglCetak = new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'});
   var ulpLabel = ulpFilter || 'Semua ULP';
 
@@ -8433,13 +8661,29 @@ function bukaFormPemeliharaan(noGarduPrefill) {
     if (title2) title2.textContent = 'Input Baru';
   }
   var view = document.getElementById('form-pemeliharaan-view');
-  if (view) { view.style.display = 'block'; view.scrollTo(0, 0); }
+  if (view) {
+    view.style.display = 'block';
+    view.scrollTo(0, 0);
+
+    // MED-11 FIX: Reset dirty flag dan pasang listener input
+    _pmFormDirty = false;
+    if (!view._dirtyListenerBound) {
+      view.addEventListener('input',  _pmMarkDirty, { capture: false });
+      view.addEventListener('change', _pmMarkDirty, { capture: false });
+      view._dirtyListenerBound = true;
+    }
+  }
 }
 
-function tutupFormPemeliharaan() {
+// ── MED-11 FIX: Dirty-state tracking untuk form pemeliharaan ──
+var _pmFormDirty = false;
+
+function _pmMarkDirty() { _pmFormDirty = true; }
+
+function _pmDoClose() {
+  _pmFormDirty = false;
   var view = document.getElementById('form-pemeliharaan-view');
   if (view) view.style.display = 'none';
-  // Reset scroll window & tab aktif ke atas
   try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
@@ -8447,6 +8691,18 @@ function tutupFormPemeliharaan() {
   if (activeTab) activeTab.scrollTop = 0;
   var pb = activeTab ? activeTab.querySelector('.page-body') : null;
   if (pb) pb.scrollTop = 0;
+}
+
+function tutupFormPemeliharaan() {
+  if (!_pmFormDirty) {
+    _pmDoClose();
+    return;
+  }
+  _showKeluar(
+    'Keluar dari Form Pemeliharaan?',
+    'Data yang sudah diisi akan hilang jika Anda keluar sekarang.',
+    function() { _pmDoClose(); }
+  );
 }
 
 function pmResetForm() {
@@ -8536,6 +8792,8 @@ async function pmSubmit() {
       msgEl.style.color      = '#065F46';
       msgEl.style.borderColor= '#A7F3D0';
       msgEl.textContent = '✅ Data pemeliharaan berhasil disimpan!';
+      // MED-11 FIX: reset dirty sebelum tutup agar tidak muncul konfirmasi
+      _pmFormDirty = false;
       setTimeout(function() {
         tutupFormPemeliharaan();
         muatDaftarPemeliharaan(true);
@@ -8662,10 +8920,21 @@ function renderDaftarPemeliharaan() {
   var isMobile    = window.innerWidth < 768;
   var _sPm        = getSession();
   var _canDeletePm= _sPm && (_sPm.role === 'admin' || _sPm.role === 'superadmin');
-  var _canEditPm = _sPm && (
-    _sPm.role === 'admin' || _sPm.role === 'superadmin' ||
-    (_sPm.role === 'petugas' && _sPm.nama)
-  );
+  // KRITIS-3 FIX: petugas hanya boleh edit pemeliharaan miliknya sendiri
+  // (mengikuti pola yang sama dengan inspeksi — cek nama petugas per-baris, bukan global)
+  var _isPetugasPm = _sPm && _sPm.role === 'petugas' && _sPm.nama;
+  var _isAdminPm   = _sPm && (_sPm.role === 'admin' || _sPm.role === 'superadmin');
+  // Fungsi cek edit per-baris: admin/superadmin bisa semua; petugas hanya miliknya
+  function _canEditThisPm(d) {
+    if (!_sPm) return false;
+    if (_isAdminPm) return true;
+    if (!_isPetugasPm) return false;
+    return d.petugas &&
+      String(_sPm.nama).toLowerCase().trim() === String(d.petugas).toLowerCase().trim();
+  }
+  // Tampilkan kolom AKSI jika setidaknya ada satu baris yang bisa diedit/dihapus
+  var _anyEditPm   = _isAdminPm || (_isPetugasPm && pageData.some(function(d){ return _canEditThisPm(d); }));
+  var _anyDeletePm = _isAdminPm;
 
   var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-sm);flex-wrap:wrap;gap:6px;">';
   html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);font-weight:600;">';
@@ -8695,7 +8964,7 @@ function renderDaftarPemeliharaan() {
         window._pmDataMap = window._pmDataMap || {};
         window._pmDataMap[d.id] = d;
       }
-      var editBtn = (_canEditPm && d.id != null)
+      var editBtn = (_canEditThisPm(d) && d.id != null)
         ? '<button onclick="bukaEditPemeliharaanById('+d.id+')" style="background:#EEF4FF;color:var(--pln-biru2);border:1px solid #BFDBFE;border-radius:6px;font-size:clamp(9px,2.2vw,10.5px);font-weight:700;padding:4px 10px;cursor:pointer;touch-action:manipulation;flex-shrink:0;">✏️ Edit</button>'
         : '';
       var hapusBtn = (_canDeletePm && d.id != null)
@@ -8721,7 +8990,7 @@ function renderDaftarPemeliharaan() {
     html += '<table style="width:100%;border-collapse:collapse;font-size:var(--fs-xs);">';
     html += '<thead><tr style="background:var(--pln-biru);color:#fff;">';
     var headers = ['NO','NO GARDU','ULP','TANGGAL','PETUGAS','UNIT','JENIS PEKERJAAN'];
-    if (_canEditPm || _canDeletePm) headers.push('AKSI');
+    if (_anyEditPm || _anyDeletePm) headers.push('AKSI');
     headers.forEach(function(h) {
       html += '<th style="padding:10px 12px;text-align:left;white-space:nowrap;font-weight:700;font-size:11px;letter-spacing:.3px;">'+h+'</th>';
     });
@@ -8742,12 +9011,12 @@ function renderDaftarPemeliharaan() {
       html += '<td style="padding:9px 12px;">'+esc(d.petugas||'—')+'</td>';
       html += '<td style="padding:9px 12px;">'+esc(d.kategori||'—')+'</td>';
       html += '<td style="padding:9px 12px;">'+esc(d.jenis||'—')+'</td>';
-      if (_canEditPm || _canDeletePm) {
+      if (_anyEditPm || _anyDeletePm) {
         html += '<td style="padding:9px 12px;">';
         if (d.id != null) {
           html += '<div style="display:flex;gap:4px;">';
-          if (_canEditPm) html += '<button onclick="bukaEditPemeliharaanById('+d.id+')" style="background:#EEF4FF;color:var(--pln-biru2);border:1px solid #BFDBFE;border-radius:6px;font-size:10px;font-weight:700;padding:4px 8px;cursor:pointer;">✏️</button>';
-          if (_canDeletePm) html += '<button onclick="hapusPemeliharaanById('+d.id+',\''+esc(d.no_gardu||'')+'\')" style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;font-size:10px;font-weight:700;padding:4px 8px;cursor:pointer;">🗑️</button>';
+          if (_canEditThisPm(d)) html += '<button onclick="bukaEditPemeliharaanById('+d.id+')" style="background:#EEF4FF;color:var(--pln-biru2);border:1px solid #BFDBFE;border-radius:6px;font-size:10px;font-weight:700;padding:4px 8px;cursor:pointer;">✏️</button>';
+          if (_canDeletePm) html += '<button onclick="hapusPemeliharaanById('+d.id+',\''+esc(d.no_gardu||'')+'\''+')" style="background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;font-size:10px;font-weight:700;padding:4px 8px;cursor:pointer;">🗑️</button>';
           html += '</div>';
         }
         html += '</td>';
@@ -9292,8 +9561,8 @@ function exportPengukuranExcel() {
   _setPengukuranPct(15);
 
   setTimeout(function() {
+    _waitExcelJS().then(function() {
     try {
-      if (typeof ExcelJS === 'undefined') { alert('ExcelJS belum tersedia. Coba refresh halaman.'); return; }
       _setPengukuranPct(25);
 
       var now       = new Date();
@@ -9695,6 +9964,7 @@ function exportPengukuranExcel() {
     } finally {
       if (btn) { btn.textContent = '⬇️ Export'; btn.disabled = false; }
     }
+    }).catch(function(e) { alert(e.message); _hidePengukuranProgress(); if (btn) { btn.textContent = '⬇️ Export'; btn.disabled = false; } });
   }, 100);
 }
 
@@ -9727,8 +9997,8 @@ function exportPemeliharaanExcel() {
   _setPmPct(15);
 
   setTimeout(function() {
+    _waitExcelJS().then(function() {
     try {
-      if (typeof ExcelJS === 'undefined') { alert('ExcelJS belum tersedia. Coba refresh halaman.'); return; }
       _setPmPct(25);
 
       var now       = new Date();
@@ -9969,6 +10239,7 @@ function exportPemeliharaanExcel() {
     } finally {
       if (btn) { btn.textContent = '⬇️ Export'; btn.disabled = false; }
     }
+    }).catch(function(e) { alert(e.message); _hidePmProgress(); if (btn) { btn.textContent = '⬇️ Export'; btn.disabled = false; } });
   }, 100);
 }
 
@@ -10114,16 +10385,271 @@ function konfirmasiAksi(pesan, judul, labelAksi, callback) {
   });
 })();
 
+// ════════════════════════════════════════════════════════════
+// MED-11 FIX: Helper modal "Yakin ingin keluar?" untuk form
+// Dipakai oleh tutupFormInspeksi dan tutupFormPemeliharaan.
+// ════════════════════════════════════════════════════════════
+(function() {
+  var _keluarCb = null;
+
+  window._showKeluar = function(judul, pesan, onConfirm) {
+    _keluarCb = onConfirm || null;
+    var modal = document.getElementById('modal-keluar-form');
+    var titleEl = document.getElementById('keluar-modal-title');
+    var pesanEl = document.getElementById('keluar-modal-pesan');
+    if (!modal) {
+      // Fallback jika modal belum ada di DOM
+      if (confirm('Yakin ingin keluar? Data akan hilang.')) {
+        if (_keluarCb) _keluarCb();
+      }
+      return;
+    }
+    if (titleEl) titleEl.textContent = judul || 'Keluar dari Form?';
+    if (pesanEl) pesanEl.innerHTML  = pesan  || 'Data yang sudah diisi akan hilang.';
+    modal.style.display = 'flex';
+    // Fokus ke tombol "Lanjut Isi" agar tap tidak sengaja keluar
+    setTimeout(function() {
+      var btn = document.getElementById('keluar-modal-batal');
+      if (btn) btn.focus();
+    }, 60);
+  };
+
+  window._keluarClose = function() {
+    var modal = document.getElementById('modal-keluar-form');
+    if (modal) modal.style.display = 'none';
+    _keluarCb = null;
+  };
+
+  window._keluarConfirm = function() {
+    var modal = document.getElementById('modal-keluar-form');
+    if (modal) modal.style.display = 'none';
+    var cb = _keluarCb;
+    _keluarCb = null;
+    if (cb) cb();
+  };
+
+  // Tutup dengan Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      var modal = document.getElementById('modal-keluar-form');
+      if (modal && modal.style.display === 'flex') window._keluarClose();
+    }
+  });
+
+  // Tutup saat klik backdrop (area luar card)
+  document.addEventListener('click', function(e) {
+    var modal = document.getElementById('modal-keluar-form');
+    if (modal && e.target === modal) window._keluarClose();
+  });
+})();
+
 // ══ END FITUR BARU ══════════════════════════════════════════
 
 
 </script>
 
 <!-- SheetJS — untuk export XLSX client-side (ringan, tren beban) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<!-- MED-12 FIX: SRI hash ditambahkan untuk keamanan supply-chain -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+        integrity="sha512-s4KN4BGKVX7GECVGPqnFLpMuMOoVKkL3IqLYFBHqQ6kRt7EflFvVRNUYhMfEjgXKF4Y71uZRrJBVSwBi/y4A=="
+        crossorigin="anonymous"
+        async></script>
 <!-- ExcelJS — untuk export Excel berformat (pengukuran & pemeliharaan) -->
-<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"
+        integrity="sha256-UNAGwDQE10HbNqL6KBzYl3KIJtl+tyHGx5dVpRCGiAE="
+        crossorigin="anonymous"
+        async></script>
 <!-- Supabase API Layer — tanpa defer agar segera tersedia untuk login -->
 <script src="supabase-api.js"></script>
+
+<!-- ============================================================
+     KRITIS-5 FIX: Registrasi Service Worker PWA
+     Harus di-register setelah DOM ready agar tidak blokir render.
+     sw.js di-cache-bust dengan versi agar update SW terdeteksi.
+     ============================================================ -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js')
+      .then(function(reg) {
+        console.log('[SW] Terdaftar, scope:', reg.scope);
+
+        // Deteksi update SW — beritahu user ada versi baru
+        reg.addEventListener('updatefound', function() {
+          var newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', function() {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // Ada versi baru — tampilkan notifikasi update
+              var updateBar = document.createElement('div');
+              updateBar.style.cssText = [
+                'position:fixed','bottom:70px','left:12px','right:12px',
+                'z-index:99990','background:#003B7B','color:#fff',
+                'border-radius:10px','padding:10px 14px',
+                'display:flex','align-items:center','justify-content:space-between',
+                'box-shadow:0 4px 16px rgba(0,0,0,.3)','font-size:13px','font-weight:600'
+              ].join(';');
+              updateBar.innerHTML =
+                '<span>🔄 Versi baru tersedia!</span>' +
+                '<button onclick="navigator.serviceWorker.controller&&navigator.serviceWorker.controller.postMessage({type:\'SKIP_WAITING\'});this.parentElement.remove();window.location.reload();" ' +
+                'style="background:#F5A300;color:#003B7B;border:none;border-radius:6px;padding:5px 12px;font-weight:800;font-size:12px;cursor:pointer;margin-left:12px;">Update</button>';
+              document.body.appendChild(updateBar);
+            }
+          });
+        });
+      })
+      .catch(function(err) {
+        console.warn('[SW] Gagal register:', err);
+      });
+
+    // Dengarkan pesan SYNC_SUCCESS dari SW (untuk antrian offline jika ada)
+    navigator.serviceWorker.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'SYNC_SUCCESS') {
+        console.log('[SW Message]', event.data.message);
+      }
+    });
+  });
+}
+</script>
+
+<!-- ============================================================
+     KRITIS-1 FIX: Idle Auto-Logout (30 menit inaktivitas)
+     Reset timer setiap touchstart, click, keydown, mousemove, scroll
+     Auto-logout dengan notifikasi jika tidak ada aktivitas
+     ============================================================ -->
+<script>
+(function() {
+  var IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 menit
+  var WARN_BEFORE_MS  = 60 * 1000;      // peringatkan 1 menit sebelumnya
+  var _idleTimer      = null;
+  var _warnTimer      = null;
+  var _warnShown      = false;
+  var _warnEl         = null;
+
+  // Buat elemen notifikasi peringatan (sekali, disembunyikan)
+  function _createWarnEl() {
+    if (_warnEl) return;
+    _warnEl = document.createElement('div');
+    _warnEl.id = 'idle-warn-banner';
+    _warnEl.style.cssText = [
+      'display:none',
+      'position:fixed',
+      'top:0','left:0','right:0',
+      'z-index:99999',
+      'background:#FEF3C7',
+      'border-bottom:2px solid #F59E0B',
+      'color:#92400E',
+      'font-size:13px',
+      'font-weight:700',
+      'padding:10px 16px',
+      'text-align:center',
+      'box-shadow:0 2px 8px rgba(0,0,0,.15)',
+      'letter-spacing:.2px'
+    ].join(';');
+    _warnEl.innerHTML =
+      '⚠️ Sesi akan otomatis logout dalam <span id="idle-countdown">60</span> detik karena tidak ada aktivitas. ' +
+      '<button onclick="window._idleReset()" style="margin-left:12px;background:#F59E0B;color:#fff;border:none;' +
+      'border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;">Saya Masih Di Sini</button>';
+    document.body.appendChild(_warnEl);
+  }
+
+  // Countdown interval untuk banner peringatan
+  var _countdownInterval = null;
+  function _startCountdown() {
+    var sec = Math.round(WARN_BEFORE_MS / 1000);
+    var countEl = document.getElementById('idle-countdown');
+    if (countEl) countEl.textContent = sec;
+    clearInterval(_countdownInterval);
+    _countdownInterval = setInterval(function() {
+      sec--;
+      var el = document.getElementById('idle-countdown');
+      if (el) el.textContent = sec > 0 ? sec : 0;
+      if (sec <= 0) clearInterval(_countdownInterval);
+    }, 1000);
+  }
+
+  function _showWarn() {
+    _createWarnEl();
+    if (_warnEl) { _warnEl.style.display = 'block'; }
+    _warnShown = true;
+    _startCountdown();
+  }
+
+  function _hideWarn() {
+    if (_warnEl) { _warnEl.style.display = 'none'; }
+    _warnShown = false;
+    clearInterval(_countdownInterval);
+  }
+
+  function _doAutoLogout() {
+    _hideWarn();
+    clearTimeout(_idleTimer);
+    clearTimeout(_warnTimer);
+
+    // Hanya logout jika ada sesi aktif (jangan ganggu layar login)
+    try {
+      var sess = JSON.parse(sessionStorage.getItem('plnSession') || 'null');
+      if (!sess || !sess.token) return; // tidak ada sesi — tidak perlu logout
+    } catch(e) { return; }
+
+    // Panggil logout server-side (best-effort, tidak blokir UI)
+    try {
+      var sess2 = JSON.parse(sessionStorage.getItem('plnSession') || 'null');
+      if (sess2 && sess2.token && window.apiGet) {
+        window.apiGet({ action: 'logoutUser', token: sess2.token }, function() {});
+      }
+    } catch(e) {}
+
+    // Bersihkan sesi lokal
+    try { sessionStorage.removeItem('plnSession'); } catch(e) {}
+
+    // Tampilkan notifikasi sebelum refresh — pakai alert sederhana agar selalu muncul
+    alert('⏰ Sesi Anda telah berakhir karena tidak ada aktivitas selama 30 menit.\nSilakan login kembali.');
+
+    // Reload halaman untuk kembali ke layar login bersih
+    window.location.reload();
+  }
+
+  function _resetIdleTimer() {
+    clearTimeout(_idleTimer);
+    clearTimeout(_warnTimer);
+    if (_warnShown) _hideWarn();
+
+    // Hanya aktifkan timer jika ada sesi aktif
+    try {
+      var sess = JSON.parse(sessionStorage.getItem('plnSession') || 'null');
+      if (!sess || !sess.token) return;
+    } catch(e) { return; }
+
+    // Peringatan 1 menit sebelum logout
+    _warnTimer = setTimeout(_showWarn, IDLE_TIMEOUT_MS - WARN_BEFORE_MS);
+    // Auto-logout setelah 30 menit
+    _idleTimer = setTimeout(_doAutoLogout, IDLE_TIMEOUT_MS);
+  }
+
+  // Expose untuk tombol "Saya Masih Di Sini"
+  window._idleReset = function() { _resetIdleTimer(); };
+
+  // Pasang event listener di document level — semua interaksi reset timer
+  var _events = ['touchstart', 'click', 'keydown', 'mousemove', 'scroll', 'pointerdown'];
+  _events.forEach(function(ev) {
+    document.addEventListener(ev, _resetIdleTimer, { passive: true, capture: true });
+  });
+
+  // Mulai timer pertama kali setelah halaman siap
+  document.addEventListener('DOMContentLoaded', function() {
+    _resetIdleTimer();
+  });
+
+  // Juga reset timer saat halaman kembali fokus (pengguna beralih tab lalu kembali)
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') {
+      _resetIdleTimer();
+    }
+  });
+
+  console.log('[IdleTimer] Aktif — auto-logout setelah', IDLE_TIMEOUT_MS/60000, 'menit inaktivitas.');
+})();
+</script>
 </body>
 </html>

@@ -1,33 +1,52 @@
 // ============================================================
-//  sw.js — Service Worker PWA  v9
+//  sw.js — Service Worker PWA  v10
 //  PLN UP3 Jayapura — Monitoring Gardu
 //
-//  Perubahan v9 (dari v8):
-//  - CACHE_NAME dinaikkan ke gardu-pln-v9 untuk force refresh
-//    setelah update index.html v36 (sistem auth token + PIN per user)
-//  - kirimAntrianInspeksi() pakai fetch POST + Content-Type: text/plain
-//    agar lolos CORS Apps Script tanpa preflight
-//  - Foto ikut dalam satu payload (tidak terpisah lagi)
-//  - Notifikasi SYNC_SUCCESS dikirim ke semua tab
+//  Perubahan v10 (dari v9):
+//  - KRITIS-5 FIX: SW sekarang aktif diregistrasikan dari index.html
+//  - Arsitektur disesuaikan untuk Supabase (bukan Apps Script)
+//  - Cache shell: index.html, manifest, QR scanner, supabase-api.js
+//  - Supabase REST/RPC → network-first, fallback cache (read-only)
+//  - CDN assets (ExcelJS, SheetJS) → cache-first setelah load pertama
+//  - Background sync dipertahankan untuk kompatibilitas (noop jika tidak ada antrian)
+//  - Update notification dikirim ke semua tab via postMessage
 // ============================================================
 
-var CACHE_NAME  = 'gardu-pln-v9';
+var CACHE_NAME  = 'gardu-pln-v10';
 var DB_NAME     = 'gardu-pln-db';
 var DB_VERSION  = 1;
 var QUEUE_STORE = 'gardu-sync-queue';
 var SYNC_TAG    = 'sync-inspeksi';
 
+// ── APP SHELL: file yang harus ada untuk offline dasar ───────
 var APP_SHELL = [
-  '/index.html',
-  '/manifest.json',
-  'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'
+  './index.html',
+  './manifest.json',
+  './supabase-api.js'
+];
+
+// ── CDN assets yang boleh di-cache setelah pertama dimuat ────
+var CDN_CACHEABLE = [
+  'unpkg.com/html5-qrcode',
+  'cdnjs.cloudflare.com/ajax/libs/xlsx',
+  'cdn.jsdelivr.net/npm/exceljs'
 ];
 
 // ── INSTALL ──────────────────────────────────────────────────
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(function(cache) { return cache.addAll(APP_SHELL); })
+      .then(function(cache) {
+        // Cache app shell satu per satu — jangan pakai addAll agar
+        // satu aset gagal tidak membatalkan semua (jaringan Papua tidak stabil)
+        return APP_SHELL.reduce(function(chain, url) {
+          return chain.then(function() {
+            return cache.add(url).catch(function(e) {
+              console.warn('[SW] Gagal cache:', url, e.message);
+            });
+          });
+        }, Promise.resolve());
+      })
       .then(function() { return self.skipWaiting(); })
   );
 });
@@ -38,7 +57,10 @@ self.addEventListener('activate', function(event) {
     caches.keys().then(function(keys) {
       return Promise.all(
         keys.filter(function(k) { return k !== CACHE_NAME; })
-            .map(function(k)   { return caches.delete(k); })
+            .map(function(k)   {
+              console.log('[SW] Hapus cache lama:', k);
+              return caches.delete(k);
+            })
       );
     }).then(function() { return self.clients.claim(); })
   );
@@ -46,100 +68,137 @@ self.addEventListener('activate', function(event) {
 
 // ── FETCH ─────────────────────────────────────────────────────
 self.addEventListener('fetch', function(event) {
-  var url = event.request.url;
+  var req = event.request;
+  var url = req.url;
 
-  // POST ke API jangan intercept (ditangani IndexedDB + sync)
-  if (event.request.method === 'POST') return;
+  // Abaikan non-GET dan chrome-extension
+  if (req.method !== 'GET') return;
+  if (url.startsWith('chrome-extension://')) return;
 
-  // GET ke Apps Script API → network-first, fallback cache
-  if (url.includes('script.google.com')) {
-    event.respondWith(networkFirstAPI(event.request));
+  // Supabase REST/RPC → network-first (data harus fresh)
+  // Fallback ke cache hanya untuk data read (GET)
+  if (url.includes('supabase.co/rest/') || url.includes('supabase.co/rpc/')) {
+    event.respondWith(networkFirstWithCache(req));
     return;
   }
 
-  // App shell → cache-first
-  event.respondWith(
-    caches.match(event.request).then(function(cached) {
-      return cached || fetch(event.request).then(function(response) {
-        if (response.ok && event.request.method === 'GET') {
-          caches.open(CACHE_NAME).then(function(cache) {
-            cache.put(event.request, response.clone());
-          });
-        }
-        return response;
-      });
-    })
-  );
+  // CDN assets (ExcelJS, SheetJS, QR scanner) → cache-first
+  var isCdn = CDN_CACHEABLE.some(function(host) { return url.includes(host); });
+  if (isCdn) {
+    event.respondWith(cacheFirstWithNetwork(req));
+    return;
+  }
+
+  // App shell dan aset lokal → cache-first, fallback network
+  event.respondWith(cacheFirstWithNetwork(req));
 });
 
-function networkFirstAPI(request) {
-  return fetch(request).then(function(response) {
+// ── Strategy: Network-first, simpan ke cache jika berhasil ──
+function networkFirstWithCache(request) {
+  return fetch(request.clone()).then(function(response) {
     if (response.ok) {
+      // Hanya cache GET Supabase yang tidak memerlukan auth khusus
+      var cloned = response.clone();
       caches.open(CACHE_NAME).then(function(cache) {
-        cache.put(request, response.clone());
+        cache.put(request, cloned);
       });
     }
     return response;
   }).catch(function() {
+    // Offline: kembalikan cache jika ada
     return caches.match(request).then(function(cached) {
       if (cached) return cached;
+      // Tidak ada cache → kembalikan respons offline standar
       return new Response(
-        JSON.stringify({ status: 'offline', message: 'Tidak ada koneksi. Menampilkan data terakhir.' }),
-        { headers: { 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          status: 'offline',
+          message: 'Tidak ada koneksi. Data terakhir ditampilkan jika tersedia di cache.'
+        }),
+        {
+          status: 503,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-SW-Offline': '1'
+          }
+        }
       );
     });
   });
 }
 
+// ── Strategy: Cache-first, fallback network ──────────────────
+function cacheFirstWithNetwork(request) {
+  return caches.match(request).then(function(cached) {
+    if (cached) return cached;
+    return fetch(request.clone()).then(function(response) {
+      if (response.ok && response.type !== 'opaque') {
+        var cloned = response.clone();
+        caches.open(CACHE_NAME).then(function(cache) {
+          cache.put(request, cloned);
+        });
+      }
+      return response;
+    }).catch(function() {
+      // Offline dan tidak ada cache untuk aset ini
+      // Untuk HTML → kembalikan index.html (SPA fallback)
+      if (request.headers.get('Accept') && request.headers.get('Accept').includes('text/html')) {
+        return caches.match('./index.html');
+      }
+      return new Response('', { status: 503 });
+    });
+  });
+}
+
 // ── BACKGROUND SYNC ──────────────────────────────────────────
+// Dipertahankan untuk kompatibilitas — berguna jika di masa depan
+// ada fitur antrian offline yang dikirim ke endpoint tertentu.
 self.addEventListener('sync', function(event) {
   if (event.tag === SYNC_TAG) {
     event.waitUntil(kirimAntrianInspeksi());
   }
 });
 
-// ── Kirim semua antrian dari IndexedDB ke Apps Script ────────
+// ── Kirim antrian dari IndexedDB (jika ada) ──────────────────
 function kirimAntrianInspeksi() {
   return bukaDB().then(function(db) {
     return getAllQueue(db).then(function(items) {
-      if (!items || !items.length) return;
-      // Kirim satu per satu berurutan agar tidak membebani Apps Script
+      if (!items || !items.length) return; // tidak ada antrian
       return items.reduce(function(chain, item) {
         return chain.then(function() { return kirimSatu(db, item); });
       }, Promise.resolve());
     });
+  }).catch(function(e) {
+    console.warn('[SW] kirimAntrianInspeksi error:', e);
   });
 }
 
 function kirimSatu(db, item) {
+  if (!item.apiUrl || !item.payload) return Promise.resolve();
   return fetch(item.apiUrl, {
     method:  'POST',
-    headers: { 'Content-Type': 'text/plain' },
+    headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(item.payload)
   })
   .then(function(r) { return r.json(); })
   .then(function(res) {
-    if (res.status === 'ok') {
+    if (res && res.status === 'ok') {
       return hapusQueue(db, item.id).then(function() {
         return self.clients.matchAll({ includeUncontrolled: true }).then(function(clients) {
           clients.forEach(function(c) {
             c.postMessage({
               type:    'SYNC_SUCCESS',
-              idGardu: item.payload.idGardu,
-              message: '☁️ Inspeksi ' + item.payload.idGardu + ' berhasil dikirim ke server' +
-                       (item.payload.foto && item.payload.foto.length
-                         ? ' beserta ' + item.payload.foto.length + ' foto.'
-                         : '.')
+              idGardu: item.payload.idGardu || item.id,
+              message: '☁️ Data ' + (item.payload.idGardu || '') + ' berhasil dikirim ke server.'
             });
           });
         });
       });
     } else {
-      console.log('[SW] Server menolak:', res.message);
+      console.log('[SW] Server menolak:', res && res.message);
     }
   })
   .catch(function(err) {
-    console.log('[SW] Gagal kirim (akan retry):', err.message);
+    console.log('[SW] Gagal kirim (akan retry saat online):', err.message);
   });
 }
 
@@ -177,6 +236,16 @@ function hapusQueue(db, id) {
 // ── MESSAGE dari halaman ──────────────────────────────────────
 self.addEventListener('message', function(event) {
   if (!event.data) return;
-  if (event.data.type === 'SKIP_WAITING') self.skipWaiting();
-  if (event.data.type === 'SYNC_NOW')     kirimAntrianInspeksi();
+  if (event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  if (event.data.type === 'SYNC_NOW') {
+    kirimAntrianInspeksi();
+  }
+  // Notifikasi ke semua tab bahwa SW aktif
+  if (event.data.type === 'PING') {
+    event.source && event.source.postMessage({ type: 'PONG', cache: CACHE_NAME });
+  }
 });
+
+console.log('[SW v10] Aktif. Cache:', CACHE_NAME);
