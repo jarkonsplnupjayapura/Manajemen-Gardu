@@ -101,8 +101,11 @@ function sbRpc(funcName, params, signal) {
 async function rpcCall(funcName, params, signal) {
   var res = await sbRpc(funcName, params, signal);
   if (!res.ok) {
-    var errTxt = await res.text().catch(function() { return res.status; });
-    return { status: 'error', message: 'Server error ' + res.status + ': ' + errTxt };
+    var errTxt = await res.text().catch(function() { return String(res.status); });
+    // Saring pesan teknis agar tidak bocor langsung ke UI
+    // (index.html akan menyaring lebih lanjut via userFriendlyError)
+    var technicalMsg = 'Server error ' + res.status + ': ' + errTxt;
+    return { status: 'error', message: technicalMsg, _technical: true };
   }
   var data = await res.json();
   if (!data) return { status: 'error', message: 'Response kosong dari server.' };

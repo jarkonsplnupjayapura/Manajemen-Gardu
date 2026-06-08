@@ -402,8 +402,11 @@ input[type=number]{-moz-appearance:textfield;}
 .divider{border:none;border-top:1px solid var(--pln-border);margin:var(--sp-sm) 0;}
 
 .search-wrap{position:relative;margin-bottom:var(--sp-sm);}
-.search-wrap input{padding-left:clamp(34px,9vw,40px);background:#fff;}
-.search-icon{position:absolute;left:clamp(10px,2.5vw,13px);top:50%;transform:translateY(-50%);font-size:var(--fs-md);color:var(--pln-text3);}
+.search-wrap input{padding-left:clamp(34px,9vw,40px);padding-right:36px;background:#fff;}
+.search-icon{position:absolute;left:clamp(10px,2.5vw,13px);top:50%;transform:translateY(-50%);font-size:var(--fs-md);color:var(--pln-text3);pointer-events:none;}
+.search-clear-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;background:var(--pln-text3);border:none;cursor:pointer;display:none;align-items:center;justify-content:center;color:#fff;font-size:13px;line-height:1;font-weight:700;padding:0;transition:background .15s;}
+.search-clear-btn:hover{background:var(--pln-red);}
+.search-wrap.has-value .search-clear-btn{display:flex;}
 
 .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--sp-sm);}
 .tag{
@@ -1182,9 +1185,10 @@ if (typeof L === 'undefined') {
       <div class="freshness-text" id="freshness-text">Memuat info data...</div>
       <button class="freshness-refresh" onclick="muatDaftarGardu(true)">↻ Refresh</button>
     </div>
-    <div class="search-wrap">
+    <div class="search-wrap" id="search-daftar-wrap">
       <span class="search-icon">🔍</span>
-      <input id="search-daftar" class="form-input" placeholder="Cari ID, ULP, penyulang, alamat..." oninput="handleSearchDaftar(this.value)">
+      <input id="search-daftar" class="form-input" placeholder="Cari ID, ULP, penyulang, alamat..." oninput="handleSearchDaftar(this.value)" autocomplete="off">
+      <button class="search-clear-btn" id="search-daftar-clear" onclick="clearSearchDaftar()" title="Hapus pencarian" aria-label="Hapus pencarian">✕</button>
     </div>
     <div id="filter-ulp-row" class="tag-row"><span class="tag active" onclick="setFilterULP('')">Semua</span></div>
     <div class="tag-row" id="filter-status-row">
@@ -1526,8 +1530,8 @@ if (typeof L === 'undefined') {
         <div class="topbar-sub">Form Inspeksi</div>
         <div class="topbar-title" id="fi-topbar-title">—</div>
       </div>
-      <div id="fi-saving-indicator" style="display:none;color:rgba(255,255,255,.7);font-size:var(--fs-xs);font-weight:600;flex-shrink:0;">
-        <div class="spinner" style="width:14px;height:14px;border-width:2px;border-top-color:#fff;display:inline-block;vertical-align:middle;margin-right:4px;"></div>Menyimpan...
+      <div id="fi-saving-indicator" style="display:none;color:rgba(255,255,255,.85);font-size:var(--fs-xs);font-weight:600;flex-shrink:0;align-items:center;gap:4px;">
+        <span>💾</span><span>Draft tersimpan</span>
       </div>
     </div>
 
@@ -3041,7 +3045,7 @@ function simpanUser() {
       showMsg('User berhasil disimpan.', false);
       setTimeout(function() { renderUserList(); tutupFormUser(); }, 1200);
     } else {
-      showMsg(res.message || 'Gagal menyimpan user.', true);
+      showMsg(userFriendlyError(res.message, 'Gagal menyimpan user.'), true);
     }
   });
 }
@@ -3055,7 +3059,7 @@ function hapusUser(username, nama) {
       var s = getSession();
       apiGet({ action: 'hapusUser', token: s ? s.token : '', username: username }, function(res) {
         if (res.status === 'ok') { renderUserList(); }
-        else { alert('Gagal hapus: ' + (res.message || 'error')); }
+        else { alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.')); }
       });
     }
   );
@@ -3218,7 +3222,7 @@ function simpanUserULP() {
       showMsg('User berhasil disimpan!', false);
       setTimeout(function() { renderUserListULP(); tutupFormUserULP(); }, 1200);
     } else {
-      showMsg(res.message || 'Gagal menyimpan user.', true);
+      showMsg(userFriendlyError(res.message, 'Gagal menyimpan user.'), true);
     }
   });
 }
@@ -3232,7 +3236,7 @@ function hapusUserULP(username, nama) {
       var s = getSession();
       apiGet({ action: 'hapusUser', token: s ? s.token : '', username: username }, function(res) {
         if (res.status === 'ok') { renderUserListULP(); }
-        else { alert('Gagal hapus: ' + (res.message || 'error')); }
+        else { alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.')); }
       });
     }
   );
@@ -3315,7 +3319,7 @@ function submitResetPassword() {
       showMsg('✅ Password "' + _rpTargetUsername + '" berhasil direset.', true);
       setTimeout(tutupModalResetPassword, 1800);
     } else {
-      showMsg('❌ ' + (res.message || 'Gagal reset password.'), false);
+      showMsg('❌ ' + userFriendlyError(res.message, 'Gagal reset password.'), false);
     }
   });
 }
@@ -3333,7 +3337,7 @@ function resetPinULP(username) {
       alert('✅ PIN "' + username + '" berhasil direset.');
       renderUserListULP();
     } else {
-      alert('Gagal reset PIN:\n' + (res.message || 'error'));
+      alert('❌ ' + userFriendlyError(res.message, 'Gagal reset PIN.'));
     }
   });
     } // end konfirmasiAksi callback
@@ -3354,7 +3358,7 @@ function toggleAktifULP(username, aktifkan) {
     if (res.status === 'ok') {
       renderUserListULP();
     } else {
-      alert('Gagal ' + aksi + ' user:\n' + (res.message || 'error'));
+      alert('❌ ' + userFriendlyError(res.message, 'Gagal memproses aksi user.'));
     }
   });
     } // end konfirmasiAksi callback
@@ -3602,7 +3606,18 @@ function setFilterULP(ulp){
   document.querySelectorAll('#filter-ulp-row .tag').forEach(function(t){ t.classList.toggle('active', t.textContent.trim()===(ulp||'Semua')); });
   applyDaftarFilter();
 }
-function handleSearchDaftar(kw){ applyDaftarFilter(); }
+function handleSearchDaftar(kw){
+  var wrap = document.getElementById('search-daftar-wrap');
+  if (wrap) wrap.classList.toggle('has-value', !!(kw && kw.length > 0));
+  applyDaftarFilter();
+}
+function clearSearchDaftar(){
+  var inp = document.getElementById('search-daftar');
+  if (inp) { inp.value = ''; inp.focus(); }
+  var wrap = document.getElementById('search-daftar-wrap');
+  if (wrap) wrap.classList.remove('has-value');
+  applyDaftarFilter();
+}
 function gotoFilterDaftar(status){
   bukaTab('tab-daftar',0);
   activeFilterULP='';
@@ -4620,6 +4635,27 @@ function bukaFormInspeksi(noGardu) {
   // Pasang event listener real-time kalkulasi
   fiBindListeners();
 
+  // ── Draft restore: cek apakah ada draft tersimpan untuk gardu ini ──
+  var draftKey = 'inspeksi_draft_' + noGardu;
+  try {
+    var savedDraft = sessionStorage.getItem(draftKey);
+    if (savedDraft) {
+      var draft = JSON.parse(savedDraft);
+      if (draft && draft._noGardu === noGardu) {
+        setTimeout(function() {
+          if (confirm('\u{1F4BE} Ada draft pengisian yang belum disimpan untuk gardu ini.\n\nLanjutkan dari draft? (Pilih Batal untuk mulai dari awal)')) {
+            fiRestoreDraft(draft);
+          } else {
+            sessionStorage.removeItem(draftKey);
+          }
+        }, 100);
+      }
+    }
+  } catch(e) {}
+
+  // ── Autosave draft setiap 30 detik ──
+  fiStartAutosave(noGardu);
+
   // Tampilkan form (sembunyikan detail-view jangan ditutup agar bisa kembali)
   document.getElementById('form-inspeksi-view').style.display = 'block';
   // Scroll ke atas
@@ -4628,6 +4664,7 @@ function bukaFormInspeksi(noGardu) {
 
 // ── Tutup form inspeksi ───────────────────────────────────────
 function tutupFormInspeksi() {
+  fiStopAutosave();
   document.getElementById('form-inspeksi-view').style.display = 'none';
   _fiGardu = null;
   // Reset scroll setelah tutup form
@@ -4638,6 +4675,149 @@ function tutupFormInspeksi() {
   if (activeTab) activeTab.scrollTop = 0;
   var pb = activeTab ? activeTab.querySelector('.page-body') : null;
   if (pb) pb.scrollTop = 0;
+}
+
+// ── Autosave Draft Helpers ───────────────────────────────────
+var _fiAutosaveTimer = null;
+
+function fiStartAutosave(noGardu) {
+  fiStopAutosave();
+  _fiAutosaveTimer = setInterval(function() {
+    fiSaveDraft(noGardu);
+  }, 30000);
+}
+
+function fiStopAutosave() {
+  if (_fiAutosaveTimer) { clearInterval(_fiAutosaveTimer); _fiAutosaveTimer = null; }
+}
+
+function fiCollectFormData(noGardu) {
+  function gv(id) { var el = document.getElementById(id); return el ? el.value : ''; }
+  var data = {
+    _noGardu:    noGardu,
+    _savedAt:    new Date().toISOString(),
+    tgl:         gv('fi-tgl'),
+    jam:         gv('fi-jam'),
+    petugas:     gv('fi-petugas'),
+    fasa:        gv('fi-fasa'),
+    rTotal:      gv('fi-r-total'),
+    sTotal:      gv('fi-s-total'),
+    tTotal:      gv('fi-t-total'),
+    nTotal:      gv('fi-n-total'),
+    vRN:         gv('fi-v-rn'),
+    vSN:         gv('fi-v-sn'),
+    vTN:         gv('fi-v-tn'),
+    vRS:         gv('fi-v-rs'),
+    vST:         gv('fi-v-st'),
+    vRT:         gv('fi-v-rt'),
+    thdR:        gv('fi-thd-r'),
+    thdS:        gv('fi-thd-s'),
+    thdT:        gv('fi-thd-t'),
+    ipeakR:      gv('fi-ipeak-r'),
+    ipeakS:      gv('fi-ipeak-s'),
+    ipeakT:      gv('fi-ipeak-t'),
+    tpfR:        gv('fi-tpf-r'),
+    tpfS:        gv('fi-tpf-s'),
+    tpfT:        gv('fi-tpf-t'),
+    dayaPakai:   gv('fi-daya-pakai'),
+    prosen:      gv('fi-prosen'),
+    tdkSeimbang: gv('fi-tdk-seimbang'),
+    manualCalc:  !!window._fiManualCalc,
+    jurusan:     (function() {
+      try { return fiGetJurusanData(); } catch(e) { return []; }
+    })(),
+    jurusanCount: window._fiJurusanCount || 0
+  };
+  return data;
+}
+
+function fiSaveDraft(noGardu) {
+  try {
+    var data = fiCollectFormData(noGardu);
+    sessionStorage.setItem('inspeksi_draft_' + noGardu, JSON.stringify(data));
+    // Tampilkan indikator saving singkat
+    var ind = document.getElementById('fi-saving-indicator');
+    if (ind) {
+      ind.style.display = 'flex';
+      clearTimeout(ind._hideTimer);
+      ind._hideTimer = setTimeout(function() { ind.style.display = 'none'; }, 2000);
+    }
+  } catch(e) {
+    console.warn('[Draft] Gagal menyimpan draft:', e);
+  }
+}
+
+function fiRestoreDraft(draft) {
+  function sv(id, val) { var el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; }
+  sv('fi-tgl',         draft.tgl);
+  sv('fi-jam',         draft.jam);
+  sv('fi-petugas',     draft.petugas);
+  sv('fi-fasa',        draft.fasa);
+  sv('fi-r-total',     draft.rTotal);
+  sv('fi-s-total',     draft.sTotal);
+  sv('fi-t-total',     draft.tTotal);
+  sv('fi-n-total',     draft.nTotal);
+  sv('fi-v-rn',        draft.vRN);
+  sv('fi-v-sn',        draft.vSN);
+  sv('fi-v-tn',        draft.vTN);
+  sv('fi-v-rs',        draft.vRS);
+  sv('fi-v-st',        draft.vST);
+  sv('fi-v-rt',        draft.vRT);
+  sv('fi-thd-r',       draft.thdR);
+  sv('fi-thd-s',       draft.thdS);
+  sv('fi-thd-t',       draft.thdT);
+  sv('fi-ipeak-r',     draft.ipeakR);
+  sv('fi-ipeak-s',     draft.ipeakS);
+  sv('fi-ipeak-t',     draft.ipeakT);
+  sv('fi-tpf-r',       draft.tpfR);
+  sv('fi-tpf-s',       draft.tpfS);
+  sv('fi-tpf-t',       draft.tpfT);
+  sv('fi-daya-pakai',  draft.dayaPakai);
+  sv('fi-prosen',      draft.prosen);
+  sv('fi-tdk-seimbang',draft.tdkSeimbang);
+
+  // Restore manual calc mode
+  if (draft.manualCalc && !window._fiManualCalc) fiToggleManualCalc();
+
+  // Restore jurusan
+  if (draft.jurusan && draft.jurusan.length > 0) {
+    // Clear existing
+    document.getElementById('fi-jurusan-list').innerHTML = '';
+    window._fiJurusanCount = 0;
+    draft.jurusan.forEach(function() { fiAddJurusan(); });
+    // Now populate each card
+    draft.jurusan.forEach(function(j, idx) {
+      var n = idx + 1;
+      function sjv(id, val) { var el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; }
+      sjv('fi-jur'+n+'-nama',   j.nama);
+      sjv('fi-jur'+n+'-titik',  j.titik);
+      sjv('fi-jur'+n+'-r',      j.r_total);
+      sjv('fi-jur'+n+'-s',      j.s_total);
+      sjv('fi-jur'+n+'-t',      j.t_total);
+      sjv('fi-jur'+n+'-n',      j.n_total);
+      sjv('fi-jur'+n+'-rn',     j.v_r_n);
+      sjv('fi-jur'+n+'-sn',     j.v_s_n);
+      sjv('fi-jur'+n+'-tn',     j.v_t_n);
+      sjv('fi-jur'+n+'-rs',     j.v_r_s);
+      sjv('fi-jur'+n+'-st',     j.v_s_t);
+      sjv('fi-jur'+n+'-rt',     j.v_r_t);
+      sjv('fi-jur'+n+'-thdr',   j.thd_r);
+      sjv('fi-jur'+n+'-thds',   j.thd_s);
+      sjv('fi-jur'+n+'-thdt',   j.thd_t);
+      sjv('fi-jur'+n+'-ipeakr', j.ipeak_r);
+      sjv('fi-jur'+n+'-ipeaks', j.ipeak_s);
+      sjv('fi-jur'+n+'-ipeakt', j.ipeak_t);
+      sjv('fi-jur'+n+'-tpfr',   j.tpf_r);
+      sjv('fi-jur'+n+'-tpfs',   j.tpf_s);
+      sjv('fi-jur'+n+'-tpft',   j.tpf_t);
+    });
+  }
+  // Trigger recalculation
+  try { fiUpdateCalc(); } catch(e) {}
+}
+
+function fiClearDraft(noGardu) {
+  try { sessionStorage.removeItem('inspeksi_draft_' + noGardu); } catch(e) {}
 }
 
 // ── Toggle manual kalkulasi ───────────────────────────────────
@@ -4991,17 +5171,18 @@ function submitFormInspeksi() {
     btnSimpan.innerHTML = '💾 Simpan Inspeksi';
 
     if (res.status !== 'ok') {
-      fiSetAlert(res.message || 'Gagal menyimpan inspeksi.', false);
+      fiSetAlert(userFriendlyError(res.message, 'Gagal menyimpan inspeksi.'), false);
       return;
     }
 
-    // Sukses
+    // Sukses — hapus draft yang tersimpan
+    var noGardu = _fiGardu['NO_GARDU'];
+    fiClearDraft(noGardu);
     fiSetAlert('Inspeksi berhasil disimpan! ' + (res.message||''), true);
     btnSimpan.textContent = '✅ Tersimpan';
     btnSimpan.style.background = 'var(--pln-green)';
 
     // Update cache gardu agar last-inspeksi diperbarui
-    var noGardu = _fiGardu['NO_GARDU'];
     var gCached = garduIndex[noGardu];
     if (gCached) {
       var tgl = document.getElementById('fi-tgl').value;
@@ -5027,7 +5208,7 @@ function hapusInspeksiById(id, tglLabel) {
 
   apiGet({ action: 'hapusInspeksi', token: s.token, id: id }, function(res) {
     if (res.status !== 'ok') {
-      alert('Gagal menghapus: ' + (res.message || 'Error tidak diketahui.'));
+      alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
       return;
     }
     // Ambil no_gardu dari topbar detail-view lalu reload
@@ -5450,7 +5631,7 @@ function simpanEditInspeksi() {
   }, function(res) {
     btn.disabled = false; btn.textContent = '💾 Simpan Perubahan';
     if (res.status !== 'ok') {
-      errEl.textContent = '❌ ' + (res.message || 'Gagal menyimpan.');
+      errEl.textContent = '❌ ' + userFriendlyError(res.message, 'Gagal menyimpan.');
       errEl.style.display = 'block'; return;
     }
     okEl.textContent = '✅ Data berhasil diperbarui!';
@@ -5513,7 +5694,7 @@ function hapusInspeksiDariPengukuran(id, tglLabel) {
   if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
   apiGet({ action: 'hapusInspeksi', token: s.token, id: id }, function(res) {
     if (res.status !== 'ok') {
-      alert('Gagal menghapus: ' + (res.message || 'Error tidak diketahui.'));
+      alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
       return;
     }
     _ukurSudahMuat = false;
@@ -5592,7 +5773,7 @@ function simpanEditPemeliharaan() {
   }, function(res) {
     btn.disabled = false; btn.textContent = '💾 Simpan Perubahan';
     if (res.status !== 'ok') {
-      errEl.textContent = '❌ ' + (res.message || 'Gagal menyimpan.');
+      errEl.textContent = '❌ ' + userFriendlyError(res.message, 'Gagal menyimpan.');
       errEl.style.display = 'block'; return;
     }
     okEl.textContent = '✅ Data pemeliharaan berhasil diperbarui!';
@@ -5716,7 +5897,7 @@ function doExport() {
   }
   apiGet(exportParams, function(res) {
     _showExportLoading(false);
-    if (res.status !== 'ok' || !res.data) { alert('Gagal memuat data: '+(res.message||'')); return; }
+    if (res.status !== 'ok' || !res.data) { alert('❌ ' + userFriendlyError(res.message, 'Gagal memuat data.')); return; }
 
     // Filter periode (berdasarkan tglUkur)
     // Untuk rekap: kita mau tampilkan SEMUA gardu, tapi data inspeksinya dibatasi periode
@@ -6980,7 +7161,7 @@ function muatGarduKritis() {
     if (res.status !== 'ok') {
       el.innerHTML = '<div class="alert alert-err" style="margin:var(--sp-sm);">' +
         '<span class="alert-icon">&#10060;</span>' +
-        '<span class="alert-text">' + esc(res.message || 'Gagal memuat data kritis.') + ' ' +
+        '<span class="alert-text">' + esc(userFriendlyError(res.message, 'Gagal memuat data kritis.')) + ' ' +
         '<button class="btn btn-outline" style="margin-top:8px;min-width:120px;" onclick="muatGarduKritis()">&#8635; Coba Lagi</button>' +
         '</span></div>';
       return;
@@ -7178,6 +7359,42 @@ function esc(s) {
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+// ── Centralized user-friendly error messages ──────────────────
+// Menyaring pesan teknis dari server dan menampilkan pesan yang ramah pengguna.
+// technicalMsg: string error dari server (res.message)
+// fallback:     pesan fallback jika tidak ada pola yang cocok (opsional)
+function userFriendlyError(technicalMsg, fallback) {
+  var map = {
+    'duplicate key':            'Data sudah terdaftar. Periksa kembali nomor gardu atau data yang dimasukkan.',
+    'not found':                'Data tidak ditemukan.',
+    'permission denied':        'Anda tidak memiliki akses untuk tindakan ini.',
+    'insufficient_privilege':   'Anda tidak memiliki akses untuk tindakan ini.',
+    'timeout':                  'Koneksi timeout. Periksa jaringan lalu coba lagi.',
+    'invalid token':            'Sesi tidak valid atau telah berakhir. Silakan login ulang.',
+    'token expired':            'Sesi telah berakhir. Silakan login ulang.',
+    'invalid input':            'Data yang dimasukkan tidak valid. Periksa kembali isian form.',
+    'violates foreign key':     'Data terkait tidak ditemukan. Periksa nomor gardu.',
+    'violates not-null':        'Ada kolom wajib yang belum diisi.',
+    'value too long':           'Data yang dimasukkan terlalu panjang.',
+    'server error 500':         'Terjadi kesalahan pada server. Coba lagi beberapa saat.',
+    'server error 502':         'Server sedang tidak tersedia. Coba lagi beberapa saat.',
+    'server error 503':         'Server sedang tidak tersedia. Coba lagi beberapa saat.',
+    'failed to fetch':          'Gagal terhubung ke server. Periksa koneksi internet.',
+    'networkerror':             'Gagal terhubung ke server. Periksa koneksi internet.',
+    'koneksi timeout':          'Koneksi timeout. Periksa jaringan lalu coba lagi.',
+    'login gagal':              'Username atau password salah.',
+    'pin salah':                'PIN yang dimasukkan salah.',
+    'gagal':                    fallback || 'Terjadi kesalahan. Coba lagi.'
+  };
+  var technical = (technicalMsg || '').toLowerCase();
+  for (var key in map) {
+    if (map.hasOwnProperty(key) && technical.includes(key)) {
+      return map[key];
+    }
+  }
+  return fallback || 'Terjadi kesalahan. Coba lagi.';
+}
+
 // ══ SCANNER FUNCTIONS ════════════════════════════════════════
 
 function bukaFormTambahGardu() {
@@ -7323,7 +7540,7 @@ function submitTambahGardu() {
         msgEl.style.background='#D1FAE5'; msgEl.style.color='#065F46'; msgEl.textContent=res.message;
         setTimeout(function(){ document.getElementById('modal-tambah-gardu').style.display='none'; muatDaftarGardu(true); }, 1500);
       } else {
-        msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B'; msgEl.textContent=res.message||'Gagal menambahkan gardu.';
+        msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B'; msgEl.textContent=userFriendlyError(res.message, 'Gagal menambahkan gardu.');
       }
     });
   }
@@ -7466,7 +7683,7 @@ function submitEditGardu() {
         msgEl.style.background='#D1FAE5'; msgEl.style.color='#065F46'; msgEl.textContent=res.message;
         setTimeout(function(){ document.getElementById('modal-edit-gardu').style.display='none'; muatDaftarGardu(true); }, 1500);
       } else {
-        msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B'; msgEl.textContent=res.message||'Gagal mengedit gardu.';
+        msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B'; msgEl.textContent=userFriendlyError(res.message, 'Gagal mengedit gardu.');
       }
     });
   });
@@ -8327,7 +8544,7 @@ async function pmSubmit() {
       msgEl.style.background = '#FEE2E2';
       msgEl.style.color      = '#991B1B';
       msgEl.style.borderColor= '#FECACA';
-      msgEl.textContent = '❌ ' + (res.message || 'Gagal menyimpan. Coba lagi.');
+      msgEl.textContent = '❌ ' + userFriendlyError(res.message, 'Gagal menyimpan. Coba lagi.');
     }
   });
 }
@@ -8567,7 +8784,7 @@ function hapusPemeliharaanById(id, noGardu) {
 
   apiGet({ action: 'hapusPemeliharaan', token: s.token, id: id }, function(res) {
     if (res.status !== 'ok') {
-      alert('Gagal menghapus: ' + (res.message || 'Error tidak diketahui.'));
+      alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
       return;
     }
     _pmSudahMuat = false;
