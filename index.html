@@ -1075,7 +1075,794 @@ input[type=number]{-moz-appearance:textfield;}
 .pm-status-selesai{background:#D1FAE5;color:#065F46;}
 .pm-status-proses{background:#FEF3C7;color:#92400E;}
 .pm-status-tunda{background:#FEE2E2;color:#991B1B;}
+
+
+/* ── CI Import: Toast area (global, outside modal scope) ── */
+.ci-toast-area {
+  position: fixed; bottom: 80px; right: 24px;
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 9700;
+  pointer-events: none;
+}
+.ci-toast-area .toast {
+  background: #191d27;
+  border: 1px solid #2f3649;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  max-width: 340px;
+  animation: ciSlideIn 0.3s ease;
+  display: flex; gap: 10px; align-items: center;
+  color: #e2e8f0;
+  pointer-events: all;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+}
+.ci-toast-area .toast.success { border-color: #166534; }
+.ci-toast-area .toast.error   { border-color: #7f1d1d; }
+.ci-toast-area .toast.warn    { border-color: #78350f; }
+@keyframes ciSlideIn {
+  from { transform: translateX(20px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* ── CI Import Modal: edit-modal-overlay (scoped) ── */
+#modal-csv-import .edit-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 9600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+#modal-csv-import .edit-modal-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
 </style>
+<style id="ci-import-styles">
+#ci-modal-body {
+    --ci-bg:        #0d0f14;
+    --ci-surface:   #13161d;
+    --ci-card:      #191d27;
+    --ci-border:    #252a38;
+    --ci-border2:   #2f3649;
+    --ci-accent:    #3b82f6;
+    --ci-accent2:   #60a5fa;
+    --ci-success:   #22c55e;
+    --ci-warn:      #f59e0b;
+    --ci-danger:    #ef4444;
+    --ci-skip:      #6b7280;
+    --ci-text:      #e2e8f0;
+    --ci-text2:     #94a3b8;
+    --ci-text3:     #64748b;
+    --ci-mono:      'IBM Plex Mono', monospace;
+    --ci-sans:      'IBM Plex Sans', sans-serif;
+  }
+#ci-modal-body { box-sizing: border-box; margin: 0; padding: 0; }
+#ci-modal-body {
+    background: var(--ci-bg);
+    color: var(--ci-text);
+    font-family: var(--ci-sans);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+#ci-modal-body .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+#ci-modal-body .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--ci-accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--ci-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+#ci-modal-body .logo-text {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--ci-text);
+  }
+#ci-modal-body .logo-sub {
+    font-size: 12px;
+    color: var(--ci-text3);
+    font-family: var(--ci-mono);
+  }
+#ci-modal-body header .spacer { flex: 1; }
+#ci-modal-body .header-badge {
+    background: #1e3a5f;
+    color: var(--ci-accent2);
+    font-family: var(--ci-mono);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    border: 1px solid #2a5080;
+  }
+#ci-modal-body .panel-title {
+    font-family: var(--ci-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ci-text3);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+#ci-modal-body .panel-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px; height: 12px;
+    background: var(--ci-accent);
+    border-radius: 2px;
+  }
+#ci-modal-body .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+#ci-modal-body .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+#ci-modal-body .form-group { display: flex; flex-direction: column; gap: 6px; }
+#ci-modal-body .form-group.full { grid-column: 1/-1; }
+#ci-modal-body label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ci-text3);
+    font-family: var(--ci-mono);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+#ci-modal-body input[type="text"], #ci-modal-body input[type="password"], #ci-modal-body input[type="url"] {
+    background: var(--ci-surface);
+    border: 1px solid var(--ci-border);
+    border-radius: 6px;
+    color: var(--ci-text);
+    font-family: var(--ci-mono);
+    font-size: 13px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+#ci-modal-body input:focus { border-color: var(--ci-accent); }
+#ci-modal-body input::placeholder { color: var(--ci-text3); }
+#ci-modal-body .upload-zone:hover, #ci-modal-body .upload-zone.drag { 
+    border-color: var(--ci-accent); 
+    background: #0f1829;
+  }
+#ci-modal-body .upload-zone.has-file {
+    border-style: solid;
+    border-color: var(--ci-success);
+    background: #0a1f10;
+  }
+#ci-modal-body .upload-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+    display: block;
+  }
+#ci-modal-body .upload-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--ci-text);
+    margin-bottom: 6px;
+  }
+#ci-modal-body .upload-sub {
+    font-size: 13px;
+    color: var(--ci-text3);
+  }
+#ci-modal-body .upload-file-info {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-family: var(--ci-mono);
+    font-size: 13px;
+  }
+#ci-modal-body .upload-zone.has-file .upload-file-info { display: flex; }
+#ci-modal-body .upload-zone.has-file .upload-prompt { display: none; }
+#ci-modal-body #file-input { display: none; }
+#ci-modal-body .preview-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--ci-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+#ci-modal-body .preview-stats {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+#ci-modal-body .stat-chip {
+    font-family: var(--ci-mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+#ci-modal-body .stat-chip.total { background: #1e293b; color: var(--ci-accent2); }
+#ci-modal-body .stat-chip.valid { background: #14291e; color: var(--ci-success); }
+#ci-modal-body .stat-chip.skip { background: #1f2937; color: var(--ci-skip); }
+#ci-modal-body .stat-chip.error { background: #2a1515; color: var(--ci-danger); }
+#ci-modal-body .table-wrap {
+    overflow-x: auto;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+#ci-modal-body table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--ci-mono);
+    font-size: 12px;
+  }
+#ci-modal-body thead th {
+    background: #0d0f14;
+    color: var(--ci-text3);
+    font-weight: 500;
+    padding: 8px 12px;
+    text-align: left;
+    position: sticky;
+    top: 0;
+    border-bottom: 1px solid var(--ci-border);
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+    font-size: 11px;
+  }
+#ci-modal-body tbody tr { border-bottom: 1px solid var(--ci-border); transition: background 0.1s; }
+#ci-modal-body tbody tr:last-child { border-bottom: none; }
+#ci-modal-body tbody tr:hover { background: #1e2433; }
+#ci-modal-body tbody td {
+    padding: 7px 12px;
+    color: var(--ci-text2);
+    white-space: nowrap;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+#ci-modal-body .row-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+#ci-modal-body .row-status.insert { background: #14291e; color: var(--ci-success); }
+#ci-modal-body .row-status.skip { background: #1f2937; color: var(--ci-skip); }
+#ci-modal-body .row-status.error { background: #2a1515; color: var(--ci-danger); }
+#ci-modal-body .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 7px;
+    font-family: var(--ci-sans);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+#ci-modal-body .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+#ci-modal-body .btn-primary {
+    background: var(--ci-accent);
+    color: #fff;
+  }
+#ci-modal-body .btn-primary:hover:not(:disabled) { background: #2563eb; }
+#ci-modal-body .btn-outline {
+    background: transparent;
+    border: 1px solid var(--ci-border2);
+    color: var(--ci-text2);
+  }
+#ci-modal-body .btn-outline:hover:not(:disabled) { border-color: var(--ci-accent); color: var(--ci-accent); }
+#ci-modal-body .btn-danger {
+    background: transparent;
+    border: 1px solid #7f1d1d;
+    color: var(--ci-danger);
+  }
+#ci-modal-body .btn-danger:hover:not(:disabled) { background: #2a1515; }
+#ci-modal-body .action-spacer { flex: 1; }
+#ci-modal-body .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--ci-mono);
+    font-size: 12px;
+    color: var(--ci-text2);
+    margin-bottom: 10px;
+  }
+#ci-modal-body .progress-bar {
+    height: 6px;
+    background: var(--ci-border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+#ci-modal-body .progress-fill {
+    height: 100%;
+    background: var(--ci-accent);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+#ci-modal-body .progress-log {
+    background: var(--ci-surface);
+    border: 1px solid var(--ci-border);
+    border-radius: 6px;
+    padding: 12px;
+    max-height: 160px;
+    overflow-y: auto;
+    font-family: var(--ci-mono);
+    font-size: 12px;
+  }
+#ci-modal-body .log-line {
+    padding: 2px 0;
+    border-bottom: 1px solid #1a1f2e;
+    display: flex;
+    gap: 10px;
+  }
+#ci-modal-body .log-line:last-child { border-bottom: none; }
+#ci-modal-body .log-time { color: var(--ci-text3); min-width: 60px; }
+#ci-modal-body .log-msg.ok { color: var(--ci-success); }
+#ci-modal-body .log-msg.warn { color: var(--ci-warn); }
+#ci-modal-body .log-msg.err { color: var(--ci-danger); }
+#ci-modal-body .log-msg.info { color: var(--ci-accent2); }
+#ci-modal-body .result-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+#ci-modal-body .result-card {
+    background: var(--ci-surface);
+    border: 1px solid var(--ci-border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+#ci-modal-body .result-card .num {
+    font-family: var(--ci-mono);
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+#ci-modal-body .result-card .lbl { font-size: 12px; color: var(--ci-text3); }
+#ci-modal-body .result-card.inserted .num { color: var(--ci-success); }
+#ci-modal-body .result-card.skipped .num { color: var(--ci-skip); }
+#ci-modal-body .result-card.errored .num { color: var(--ci-danger); }
+#ci-modal-body .result-card.total .num { color: var(--ci-accent2); }
+#ci-modal-body .error-list {
+    background: #1a0f0f;
+    border: 1px solid #5c1a1a;
+    border-radius: 8px;
+    padding: 16px;
+    max-height: 320px;
+    overflow-y: auto;
+    font-family: var(--ci-mono);
+    font-size: 12px;
+    display: none;
+  }
+#ci-modal-body .error-list .err-row {
+    padding: 8px 0;
+    border-bottom: 1px solid #2a1515;
+    color: var(--ci-danger);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+#ci-modal-body .error-list .err-row:last-child { border-bottom: none; }
+#ci-modal-body .err-row .row-num { color: var(--ci-text3); min-width: 50px; flex-shrink: 0; }
+#ci-modal-body .err-row-body { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+#ci-modal-body .err-row-main { color: var(--ci-danger); }
+#ci-modal-body .err-row-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 2px;
+    width: fit-content;
+  }
+#ci-modal-body .err-badge-time { background: #2a1a08; color: #f59e0b; border: 1px solid #78350f; }
+#ci-modal-body .err-badge-date { background: #1a1522; color: #a78bfa; border: 1px solid #5b3a9e; }
+#ci-modal-body .err-badge-field { background: #0f1f2a; color: #38bdf8; border: 1px solid #0c4a6e; }
+#ci-modal-body .err-badge-auth { background: #2a0f1a; color: #f472b6; border: 1px solid #9d174d; }
+#ci-modal-body .err-badge-network { background: #1a1a0a; color: #d97706; border: 1px solid #78350f; }
+#ci-modal-body .err-badge-unknown { background: #1f2937; color: var(--ci-text3); border: 1px solid #374151; }
+#ci-modal-body .err-badge-fixed { background: #0a1f10; color: var(--ci-success); border: 1px solid #166534; }
+#ci-modal-body .btn-edit-retry {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: #1e293b;
+    border: 1px solid #2f3649;
+    border-radius: 5px;
+    color: var(--ci-accent2);
+    font-family: var(--ci-mono);
+    font-size: 11px;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 4px;
+    transition: all 0.15s;
+    width: fit-content;
+  }
+#ci-modal-body .btn-edit-retry:hover { background: #1e3a5f; border-color: var(--ci-accent); }
+#ci-modal-body .btn-edit-retry:disabled { opacity: 0.4; cursor: not-allowed; }
+#ci-modal-body .edit-modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+#ci-modal-body .edit-modal {
+    background: var(--ci-card);
+    border: 1px solid var(--ci-border2);
+    border-radius: 12px;
+    padding: 28px;
+    width: 480px;
+    max-width: 95vw;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+  }
+#ci-modal-body .edit-modal-title {
+    font-family: var(--ci-mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ci-text);
+    margin-bottom: 6px;
+  }
+#ci-modal-body .edit-modal-subtitle {
+    font-size: 12px;
+    color: var(--ci-text3);
+    margin-bottom: 20px;
+    font-family: var(--ci-mono);
+  }
+#ci-modal-body .edit-field-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ci-text3);
+    font-family: var(--ci-mono);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: block;
+  }
+#ci-modal-body .edit-field-hint {
+    font-size: 11px;
+    color: var(--ci-warn);
+    font-family: var(--ci-mono);
+    margin-top: 5px;
+    margin-bottom: 14px;
+  }
+#ci-modal-body .edit-modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+#ci-modal-body ::-webkit-scrollbar-track { background: var(--ci-surface); }
+#ci-modal-body ::-webkit-scrollbar-thumb { background: var(--ci-border2); border-radius: 3px; }
+#ci-modal-body .toast {
+    background: var(--ci-card);
+    border: 1px solid var(--ci-border2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    max-width: 320px;
+    animation: slideIn 0.3s ease;
+    display: flex; gap: 10px; align-items: center;
+  }
+#ci-modal-body .toast.success { border-color: #166534; }
+#ci-modal-body .toast.error { border-color: #7f1d1d; }
+#ci-modal-body from { transform: translateX(20px); opacity: 0; }
+#ci-modal-body to { transform: translateX(0);    opacity: 1; }
+#ci-modal-body .info-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--ci-text3);
+    font-family: var(--ci-mono);
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: var(--ci-surface);
+    border: 1px solid var(--ci-border);
+    border-radius: 6px;
+  }
+#ci-modal-body .note-box {
+    background: #111827;
+    border: 1px solid #1e3a5f;
+    border-left: 3px solid var(--ci-accent);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--ci-text2);
+    margin-bottom: 24px;
+    line-height: 1.8;
+  }
+#ci-modal-body .note-box strong { color: var(--ci-accent2); }
+#ci-modal-body .date-detect-panel.visible { display: flex; }
+#ci-modal-body .date-detect-title {
+    font-family: var(--ci-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ci-text3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    width: 100%;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+#ci-modal-body .date-detect-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px; height: 12px;
+    background: var(--ci-warn);
+    border-radius: 2px;
+  }
+#ci-modal-body .dd-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-family: var(--ci-mono);
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid;
+  }
+#ci-modal-body .dd-badge.certain { background: #14291e; color: var(--ci-success); border-color: #166534; }
+#ci-modal-body .dd-badge.inferred { background: #1c1a0a; color: var(--ci-warn); border-color: #78350f; }
+#ci-modal-body .dd-badge.ambiguous { background: #2a1515; color: var(--ci-danger); border-color: #7f1d1d; }
+#ci-modal-body .dd-badge.period { background: #1e293b; color: var(--ci-accent2); border-color: #1e3a5f; }
+#ci-modal-body .dd-info {
+    font-size: 12px;
+    color: var(--ci-text2);
+    flex: 1;
+    min-width: 200px;
+  }
+#ci-modal-body .dd-info .dd-detail {
+    color: var(--ci-text3);
+    font-family: var(--ci-mono);
+    font-size: 11px;
+    margin-top: 3px;
+  }
+#ci-modal-body .dd-anomaly {
+    width: 100%;
+    background: #1a1008;
+    border: 1px solid #92400e;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: var(--ci-mono);
+    font-size: 11px;
+    color: var(--ci-warn);
+  }
+#ci-modal-body .dd-anomaly-title { font-weight: 600; margin-bottom: 4px; color: #f59e0b; }
+#ci-modal-body .dd-anomaly-row { padding: 1px 0; color: #d97706; }
+#ci-modal-body .tgl-fixed { color: var(--ci-success) !important; }
+#ci-modal-body .tgl-infer { color: var(--ci-warn) !important; }
+#ci-modal-body .tgl-ambig { color: var(--ci-danger) !important; }
+#ci-modal-body .review-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--ci-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+#ci-modal-body .review-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--ci-border);
+  }
+#ci-modal-body .rev-card {
+    background: var(--ci-surface);
+    border: 1px solid var(--ci-border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: default;
+    transition: border-color 0.15s;
+  }
+#ci-modal-body .rev-card.clickable { cursor: pointer; }
+#ci-modal-body .rev-card.clickable:hover { border-color: var(--ci-accent); }
+#ci-modal-body .rev-card.active { border-color: var(--ci-accent); background: #0f1829; }
+#ci-modal-body .rev-card.warn-card { border-color: #78350f; }
+#ci-modal-body .rev-card.error-card { border-color: #7f1d1d; }
+#ci-modal-body .rev-card .rev-num {
+    font-family: var(--ci-mono);
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1;
+  }
+#ci-modal-body .rev-card .rev-lbl { font-size: 11px; color: var(--ci-text3); }
+#ci-modal-body .rev-card .rev-sub { font-size: 10px; color: var(--ci-text3); font-family: var(--ci-mono); margin-top: 2px; }
+#ci-modal-body .rev-num.ok { color: var(--ci-success); }
+#ci-modal-body .rev-num.warn { color: var(--ci-warn); }
+#ci-modal-body .rev-num.danger { color: var(--ci-danger); }
+#ci-modal-body .rev-num.info { color: var(--ci-accent2); }
+#ci-modal-body .review-toolbar {
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--ci-border);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+#ci-modal-body .filter-btn {
+    font-family: var(--ci-mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--ci-border2);
+    background: transparent;
+    color: var(--ci-text2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+#ci-modal-body .filter-btn:hover { border-color: var(--ci-accent); color: var(--ci-accent); }
+#ci-modal-body .filter-btn.active { background: var(--ci-accent); border-color: var(--ci-accent); color: #fff; }
+#ci-modal-body .sort-select {
+    background: var(--ci-surface);
+    border: 1px solid var(--ci-border);
+    border-radius: 5px;
+    color: var(--ci-text2);
+    font-family: var(--ci-mono);
+    font-size: 11px;
+    padding: 4px 8px;
+    outline: none;
+    margin-left: auto;
+  }
+#ci-modal-body .sort-select:focus { border-color: var(--ci-accent); }
+#ci-modal-body .review-count {
+    font-family: var(--ci-mono);
+    font-size: 11px;
+    color: var(--ci-text3);
+    margin-left: 4px;
+  }
+#ci-modal-body .review-table-wrap {
+    overflow-x: auto;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+#ci-modal-body .review-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--ci-mono);
+    font-size: 12px;
+  }
+#ci-modal-body .review-table thead th {
+    background: #0d0f14;
+    color: var(--ci-text3);
+    font-weight: 500;
+    padding: 7px 12px;
+    text-align: left;
+    position: sticky;
+    top: 0;
+    border-bottom: 1px solid var(--ci-border);
+    white-space: nowrap;
+    font-size: 11px;
+    letter-spacing: 0.3px;
+  }
+#ci-modal-body .review-table tbody tr { border-bottom: 1px solid var(--ci-border); }
+#ci-modal-body .review-table tbody tr:last-child { border-bottom: none; }
+#ci-modal-body .review-table tbody tr:hover { background: #1e2433; }
+#ci-modal-body .review-table tbody td {
+    padding: 6px 12px;
+    color: var(--ci-text2);
+    white-space: nowrap;
+  }
+#ci-modal-body .review-table tr.flag-intradup td { background: #1a1508; }
+#ci-modal-body .review-table tr.flag-norm td { background: #0d1520; }
+#ci-modal-body .review-table tr.flag-warn-tgl td { background: #1a1508; }
+#ci-modal-body .flag-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+#ci-modal-body .flag-badge.dup { background: #3d2000; color: #f59e0b; border: 1px solid #78350f; }
+#ci-modal-body .flag-badge.norm { background: #0c1e38; color: var(--ci-accent2); border: 1px solid #1e3a5f; }
+#ci-modal-body .flag-badge.tgl { background: #1a1508; color: #d97706; border: 1px solid #78350f; }
+#ci-modal-body .review-confirm-bar {
+    padding: 14px 20px;
+    border-top: 1px solid var(--ci-border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--ci-surface);
+  }
+#ci-modal-body .review-confirm-bar .confirm-note {
+    font-size: 12px;
+    color: var(--ci-text3);
+    flex: 1;
+  }
+#ci-modal-body .btn-confirm {
+    background: var(--ci-success);
+    color: #fff;
+    border: none;
+  }
+#ci-modal-body .btn-confirm:hover:not(:disabled) { background: #16a34a; }
+#ci-modal-body .btn-confirm:disabled { opacity: 0.35; cursor: not-allowed; }
+#ci-modal-body .checked-indicator {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--ci-success);
+    font-family: var(--ci-mono);
+  }
+#ci-modal-body .checked-indicator.show { display: flex; }
+#ci-modal-body .gardu-edit-input {
+    background: #1a0f0f;
+    border: 1px solid var(--ci-danger);
+    border-radius: 4px;
+    color: #f87171;
+    font-family: var(--ci-mono);
+    font-size: 12px;
+    padding: 3px 7px;
+    width: 90px;
+    outline: none;
+  }
+#ci-modal-body .gardu-edit-input:focus { border-color: var(--ci-warn); color: var(--ci-warn); }
+#ci-modal-body .gardu-edit-btn {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid;
+    cursor: pointer;
+    font-family: var(--ci-mono);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+#ci-modal-body .gardu-edit-btn.ok { background: #14291e; border-color: #166534; color: var(--ci-success); }
+#ci-modal-body .gardu-edit-btn.ok:hover { background: #166534; color: #fff; }
+#ci-modal-body .gardu-edit-btn.ign { background: #1a0f0f; border-color: #7f1d1d; color: var(--ci-danger); }
+#ci-modal-body .gardu-edit-btn.ign:hover { background: #7f1d1d; color: #fff; }
+#ci-modal-body .sugg-btn {
+    font-size: 10px; padding: 2px 7px; border-radius: 3px; border: 1px solid #166534;
+    background: #0a1f10; color: var(--ci-success); cursor: pointer; text-align: left;
+    font-family: var(--ci-mono); line-height: 1.5; white-space: normal;
+    transition: background 0.15s;
+  }
+#ci-modal-body .sugg-btn:hover { background: #166534; color: #fff; }
+#ci-modal-body .recheck-banner.show { display: flex; }
+#ci-modal-body .recheck-banner .rb-text { flex: 1; }
+#ci-modal-body .btn-recheck {
+    background: #78350f;
+    color: #fcd34d;
+    border: 1px solid #92400e;
+    font-size: 13px;
+    padding: 8px 16px;
+    white-space: nowrap;
+  }
+#ci-modal-body .btn-recheck:hover:not(:disabled) { background: #92400e; color: #fff; }
+#ci-modal-body .btn-recheck:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+
 <!-- ============================================================
      MED-12 FIX: SRI (Subresource Integrity) Hash pada semua CDN
      Melindungi dari supply-chain attack jika CDN dikompromikan.
@@ -3003,6 +3790,7 @@ function _tampilkanPanelAdmin(s) {
       // Superadmin: semua fitur
       actionsEl.innerHTML =
         '<button class="btn btn-blue" onclick="bukaFormTambahGardu()">➕ Tambah Gardu Baru</button>' +
+        '<button class="btn btn-outline" onclick="bukaModalCsvImport()">📥 Import Bulk Inspeksi</button>' +
         '<button class="btn btn-outline" onclick="bukaFormEditGardu()">✏️ Edit Gardu</button>' +
         '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalExport()">📊 Export Laporan</button>' +
         '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalUser()">👥 Kelola User</button>' +
@@ -10651,6 +11439,2098 @@ if ('serviceWorker' in navigator) {
 
   console.log('[IdleTimer] Aktif — auto-logout setelah', IDLE_TIMEOUT_MS/60000, 'menit inaktivitas.');
 })();
+</script>
+
+
+<!-- ============================================================
+     MODAL: Import Bulk Inspeksi (Superadmin Only)
+     Terintegrasi dari csv-importer-inspeksi.html
+     ============================================================ -->
+<div id="modal-csv-import" style="display:none;position:fixed;inset:0;z-index:9500;background:#0d0f14;flex-direction:column;overflow:hidden;">
+  <!-- Header modal -->
+  <div style="background:#13161d;border-bottom:1px solid #252a38;padding:0 20px;height:52px;display:flex;align-items:center;gap:14px;flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:10px;flex:1;">
+      <div style="background:#3b82f6;border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;font-family:monospace;">PLN</div>
+      <div>
+        <div style="font-size:14px;font-weight:600;color:#e2e8f0;">Import Bulk Inspeksi</div>
+        <div style="font-size:11px;color:#64748b;font-family:monospace;">UP3 Jayapura — CSV / XLS / XLSX Uploader</div>
+      </div>
+    </div>
+    <div style="background:#1e3a5f;color:#60a5fa;font-family:monospace;font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid #2a5080;">🔒 Superadmin Only</div>
+    <button onclick="tutupModalCsvImport()" title="Tutup" style="background:#1e293b;border:1px solid #2f3649;border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;color:#94a3b8;display:flex;align-items:center;justify-content:center;">✕</button>
+  </div>
+  <!-- Body: scrollable container -->
+  <div id="ci-modal-body" style="flex:1;overflow-y:auto;padding:28px 24px;max-width:1140px;width:100%;margin:0 auto;box-sizing:border-box;">
+    <!-- Supabase credentials auto-filled — hidden -->
+    <input type="hidden" id="supa-url" />
+    <input type="hidden" id="supa-key" />
+
+    <!-- NOTE BOX -->
+    <div class="note-box" style="background:#1e293b;border:1px solid #2f3649;border-radius:8px;padding:14px 18px;margin-bottom:22px;font-size:12px;color:#94a3b8;font-family:'IBM Plex Mono',monospace;line-height:1.7;">
+      <strong style="color:#e2e8f0;">Cara kerja import:</strong><br>
+      • CSV kolom <code style="background:#0d0f14;padding:1px 5px;border-radius:3px;">NOGARDU</code> dengan suffix (<code style="background:#0d0f14;padding:1px 5px;border-radius:3px;">-1</code>, <code style="background:#0d0f14;padding:1px 5px;border-radius:3px;">-K</code> dll) akan di-strip otomatis ke kode gardu induk.<br>
+      • Klik <strong style="color:#e2e8f0;">🔍 Cek Duplikat DB</strong> sebelum import untuk melihat baris mana yang sudah ada (SKIP).<br>
+      • Duplikat dicegah di level database via <code style="background:#0d0f14;padding:1px 5px;border-radius:3px;">ON CONFLICT DO NOTHING</code> berdasarkan <strong style="color:#e2e8f0;">(no_gardu + tgl_ukur + jam_ukur + petugas)</strong>.<br>
+      • File <strong style="color:#e2e8f0;">.xls / .xlsx</strong> dari PLN langsung didukung — tidak perlu convert ke CSV.
+    </div>
+
+    <!-- UPLOAD ZONE -->
+    <div class="upload-zone" id="upload-zone">
+      <div class="upload-prompt">
+        <span class="upload-icon">📂</span>
+        <div class="upload-title">Drag & drop file di sini</div>
+        <div class="upload-sub">atau klik untuk pilih file · <strong style="color:var(--ci-accent2)">.xls · .xlsx · .csv</strong> — Laporan Pengukuran Bulanan PLN</div>
+      </div>
+      <div class="upload-file-info">
+        <span style="font-size:24px">✅</span>
+        <span id="file-name-display" style="color:var(--ci-success)"></span>
+        <span style="color:var(--ci-text3)" id="file-size-display"></span>
+      </div>
+      <input type="file" id="file-input" accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+    </div>
+
+    <!-- DATE DETECTION PANEL -->
+    <div class="date-detect-panel" id="date-detect-panel">
+      <div class="date-detect-title">🗓 Deteksi Format Tanggal Otomatis</div>
+      <div id="dd-badge-container"></div>
+      <div class="dd-info" id="dd-info"></div>
+      <div id="dd-anomaly-container"></div>
+      <div id="dd-override-container" style="width:100%;margin-top:6px;display:none">
+        <div style="font-size:11px;color:var(--ci-text3);margin-bottom:6px;font-family:var(--ci-mono)">OVERRIDE FORMAT MANUAL:</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="filter-btn" id="dd-override-ddmm" onclick="overrideDateFormat('DD/MM')" title="Paksa DD/MM/YYYY">Paksa DD/MM/YYYY</button>
+          <button class="filter-btn" id="dd-override-mmdd" onclick="overrideDateFormat('MM/DD')" title="Paksa MM/DD/YYYY">Paksa MM/DD/YYYY</button>
+          <span id="dd-override-status" style="font-size:11px;color:var(--ci-text3);font-family:var(--ci-mono)"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PREVIEW TABLE -->
+    <div class="preview-panel" id="preview-panel">
+      <div class="preview-header">
+        <div class="panel-title" style="margin:0">Preview Data</div>
+        <div class="preview-stats">
+          <span class="stat-chip total" id="chip-total">0 baris</span>
+          <span class="stat-chip valid" id="chip-insert">0 baru</span>
+          <span class="stat-chip skip" id="chip-skip">0 skip</span>
+          <span class="stat-chip error" id="chip-error">0 error</span>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#CSV</th><th>STATUS</th><th>NO GARDU</th><th>TGL UKUR</th>
+              <th>JAM UKUR</th><th>PETUGAS</th><th>DAYA</th><th>PROSEN%</th>
+              <th>TDK SEIMBANG%</th><th>PENYULANG / ALAMAT / SARAN</th>
+            </tr>
+          </thead>
+          <tbody id="preview-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ACTION BAR -->
+    <div class="action-bar" id="action-bar" style="display:none">
+      <button class="btn btn-outline" onclick="resetAll()">↩ Reset</button>
+      <div class="action-spacer"></div>
+      <button class="btn btn-outline" id="btn-check" onclick="checkDuplicates()" title="Cek ke database sebelum import">
+        🔍 Cek Duplikat DB
+      </button>
+      <button class="btn btn-primary" id="btn-import" onclick="startImport()" disabled title="Klik Review Data terlebih dahulu">
+        ⬆ Import ke Supabase
+      </button>
+    </div>
+
+    <!-- REVIEW PANEL -->
+    <div class="review-panel" id="review-panel">
+      <div class="review-header">
+        <div class="panel-title" style="margin:0">🔎 Review Sebelum Import</div>
+        <div style="font-size:12px;color:var(--ci-text3)">Periksa data yang akan dimasukkan. Klik kartu untuk filter tampilan.</div>
+      </div>
+      <div class="review-summary-grid" id="rev-summary-grid"></div>
+      <div class="review-toolbar">
+        <button class="filter-btn active" id="rf-all"           onclick="setReviewFilter('all')">Semua</button>
+        <button class="filter-btn"        id="rf-pending"        onclick="setReviewFilter('pending')">Akan INSERT</button>
+        <button class="filter-btn"        id="rf-unknown_gardu"  onclick="setReviewFilter('unknown_gardu')">🚫 Gardu Tidak Dikenal</button>
+        <button class="filter-btn"        id="rf-dup"            onclick="setReviewFilter('intradup')">⚠ Duplikat Internal</button>
+        <button class="filter-btn"        id="rf-norm"           onclick="setReviewFilter('norm')">✎ Normalisasi</button>
+        <button class="filter-btn"        id="rf-tgl"            onclick="setReviewFilter('tglwarn')">📅 Tgl Perlu Cek</button>
+        <button class="filter-btn"        id="rf-skip"           onclick="setReviewFilter('skip')">⊘ Skip (DB)</button>
+        <span class="review-count" id="rev-count"></span>
+        <select class="sort-select" id="rev-sort" onchange="renderReviewTable()">
+          <option value="csv">Urut: Baris CSV</option>
+          <option value="gardu">Urut: No Gardu A→Z</option>
+          <option value="tgl">Urut: Tanggal</option>
+          <option value="status">Urut: Status</option>
+          <option value="flag">Urut: Perlu Perhatian Dulu</option>
+        </select>
+      </div>
+      <div class="recheck-banner" id="recheck-banner">
+        <span class="rb-text">⚠ Ada perubahan data sejak cek terakhir. Disarankan cek ulang ke database sebelum konfirmasi import.</span>
+        <button class="btn btn-recheck" id="btn-recheck-inline" onclick="recheckFromReview()">🔄 Cek Ulang Duplikat DB</button>
+      </div>
+      <div class="review-table-wrap">
+        <table class="review-table">
+          <thead>
+            <tr>
+              <th>#CSV</th><th>STATUS</th><th>NO GARDU</th><th>TGL UKUR</th>
+              <th>JAM UKUR</th><th>PETUGAS</th><th>FLAG / CATATAN</th>
+            </tr>
+          </thead>
+          <tbody id="rev-tbody"></tbody>
+        </table>
+      </div>
+      <div class="review-confirm-bar">
+        <div class="confirm-note" id="rev-confirm-note">Periksa data di atas, terutama yang berbendera ⚠. Setelah yakin, klik tombol di kanan untuk lanjut import.</div>
+        <div class="checked-indicator" id="rev-checked-indicator">✓ Data sudah diperiksa</div>
+        <button class="btn btn-confirm" id="btn-review-confirm" onclick="confirmReview()">✓ Sudah Diperiksa — Lanjut Import</button>
+        <button class="btn btn-primary" id="btn-import-inline" onclick="startImport()" disabled style="background:var(--ci-success);display:none">⬆ Import ke Supabase</button>
+      </div>
+    </div>
+
+    <!-- PROGRESS -->
+    <div class="progress-panel" id="progress-panel">
+      <div class="panel-title">Proses Import</div>
+      <div class="progress-label">
+        <span id="prog-text">Mempersiapkan...</span>
+        <span id="prog-pct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+      <div class="progress-log" id="prog-log"></div>
+    </div>
+
+    <!-- RESULT -->
+    <div class="result-panel" id="result-panel">
+      <div class="panel-title">Hasil Import</div>
+      <div class="result-grid">
+        <div class="result-card total"><div class="num" id="res-total">0</div><div class="lbl">Total Diproses</div></div>
+        <div class="result-card inserted"><div class="num" id="res-insert">0</div><div class="lbl">Berhasil INSERT</div></div>
+        <div class="result-card skipped"><div class="num" id="res-skip">0</div><div class="lbl">Dilewati (sudah ada)</div></div>
+        <div class="result-card errored"><div class="num" id="res-err">0</div><div class="lbl">Gagal / Error</div></div>
+      </div>
+      <div class="error-list" id="error-list"></div>
+      <div style="margin-top:16px;display:flex;gap:12px">
+        <button class="btn btn-outline" onclick="resetAll()">Import File Baru</button>
+        <button class="btn btn-outline" id="btn-export-errors" onclick="exportErrors()" style="display:none">⬇ Export Error CSV</button>
+      </div>
+    </div>
+  </div><!-- end #ci-modal-body -->
+</div>
+
+<!-- EDIT & RETRY MODAL (untuk csv importer, z-index di atas modal utama) -->
+<div class="edit-modal-overlay" id="edit-modal-overlay" style="z-index:9600;">
+  <div class="edit-modal">
+    <div class="edit-modal-title" id="em-title">Edit & Import Ulang</div>
+    <div class="edit-modal-subtitle" id="em-subtitle"></div>
+    <div id="em-error-badge" style="margin-bottom:16px"></div>
+    <div id="em-fields"></div>
+    <div class="edit-modal-actions">
+      <button class="btn btn-outline" onclick="closeEditModal()">Batal</button>
+      <button class="btn btn-primary" id="em-btn-save" onclick="saveEditAndRetry()">⬆ Simpan & Import Ulang</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast area untuk csv importer (harus ada di luar modal karena z-index) -->
+<div class="ci-toast-area" id="ci-toast-area"></div>
+
+
+<script id="ci-import-script">
+// ============================================================
+//  CSV IMPORTER INSPEKSI — Integrated into PLN Manajemen Gardu
+//  Superadmin only — dipanggil dari admin panel
+// ============================================================
+(function() {
+'use strict';
+
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let parsedRows = [];   // all parsed rows [{no_gardu, tgl_ukur, ...}]
+let rowStatuses = [];  // 'pending' | 'insert' | 'skip' | 'error'
+let errorLog = [];     // [{row, msg}]
+let abortFlag = false;
+let _needsRecheck = false; // true setelah ada perubahan data di review panel
+
+// ══════════════════════════════════════════
+// DRAG & DROP / FILE INPUT
+// ══════════════════════════════════════════
+let zone, fileInput;
+// Initialize file input listeners after DOM is ready (modal may be hidden but elements exist in DOM)
+function _ciInitFileListeners() {
+  zone = document.getElementById('upload-zone');
+  fileInput = document.getElementById('file-input');
+  if (!zone || !fileInput) return;
+  
+  zone.addEventListener('click', () => fileInput.click());
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag');
+    const f = e.dataTransfer.files[0];
+    if (f && isAcceptedFile(f)) handleFile(f);
+    else toast('Format tidak didukung. Gunakan .xls, .xlsx, atau .csv', 'error');
+  });
+  fileInput.addEventListener('change', e => {
+    if (e.target.files[0]) handleFile(e.target.files[0]);
+  });
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _ciInitFileListeners);
+} else {
+  _ciInitFileListeners();
+}
+
+function isAcceptedFile(file) {
+  const name = file.name.toLowerCase();
+  return name.endsWith('.csv') || name.endsWith('.xls') || name.endsWith('.xlsx');
+}
+
+function handleFile(file) {
+  zone.classList.add('has-file');
+  document.getElementById('file-name-display').textContent = file.name;
+  document.getElementById('file-size-display').textContent = formatBytes(file.size);
+
+  const name = file.name.toLowerCase();
+  const reader = new FileReader();
+
+  if (name.endsWith('.csv')) {
+    reader.onload = e => parseCSV(e.target.result);
+    reader.readAsText(file, 'UTF-8');
+  } else if (name.endsWith('.xls')) {
+    // File .xls dari PLN biasanya HTML-yang-di-rename — baca sebagai teks dulu
+    reader.onload = e => {
+      const text = e.target.result;
+      // Deteksi: apakah ini HTML palsu atau XLS beneran?
+      const trimmed = text.trimStart();
+      if (trimmed.startsWith('<') || trimmed.startsWith('\t<') || trimmed.includes('<html')) {
+        // HTML-XLS: parse tabel HTML langsung
+        try {
+          const csv = parseHtmlXlsToCsv(text);
+          toast('📊 XLS (HTML format) berhasil dibaca — data ditemukan', 'success');
+          parseCSV(csv);
+        } catch (err) {
+          toast(`Gagal parse HTML-XLS: ${err.message}`, 'error');
+          resetAll();
+        }
+      } else {
+        // XLS beneran — coba via SheetJS ArrayBuffer
+        toast('⚙ Membaca XLS biner...', 'info');
+        const reader2 = new FileReader();
+        reader2.onload = e2 => {
+          try {
+            const csv = xlsxToCsv(new Uint8Array(e2.target.result), name);
+            toast('📊 XLS berhasil dibaca via SheetJS', 'success');
+            parseCSV(csv);
+          } catch (err) {
+            toast(`Gagal baca XLS: ${err.message}`, 'error');
+            resetAll();
+          }
+        };
+        reader2.readAsArrayBuffer(file);
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+  } else {
+    // XLSX — selalu biner, pakai SheetJS
+    reader.onload = e => {
+      try {
+        const csv = xlsxToCsv(new Uint8Array(e.target.result), name);
+        toast('📊 XLSX berhasil dibaca', 'success');
+        parseCSV(csv);
+      } catch (err) {
+        toast(`Gagal membaca XLSX: ${err.message}`, 'error');
+        resetAll();
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+// ── HTML-XLS Parser ────────────────────────────────────────────────────────
+// File .xls dari PLN adalah HTML biasa yang di-rename.
+// Ada 3 tabel: [0]=UIW/UP3/ULP info, [1]=judul laporan, [2]=DATA utama
+// Kita ambil tabel yang mengandung kolom NOGARDU.
+function parseHtmlXlsToCsv(htmlText) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlText, 'text/html');
+  const tables = doc.querySelectorAll('table');
+
+  // Cari tabel yang header-nya mengandung NOGARDU
+  let dataTable = null;
+  for (const tbl of tables) {
+    const firstRow = tbl.querySelector('tr');
+    if (!firstRow) continue;
+    const text = firstRow.textContent.toUpperCase();
+    if (text.includes('NOGARDU')) { dataTable = tbl; break; }
+  }
+  if (!dataTable) throw new Error('Tabel data (kolom NOGARDU) tidak ditemukan di file HTML-XLS');
+
+  // Juga kumpulkan teks header laporan dari tabel lain (untuk period hint)
+  // Inject sebagai baris komentar di awal CSV agar extractPeriodHint bisa baca
+  let periodLine = '';
+  for (const tbl of tables) {
+    const txt = tbl.textContent;
+    if (txt.includes('PERIODE')) { periodLine = txt.replace(/\s+/g, ' ').trim(); break; }
+  }
+
+  // Konversi tabel data ke CSV
+  const rows = dataTable.querySelectorAll('tr');
+  const csvLines = [];
+
+  // Tambahkan period info sebagai baris pertama agar extractPeriodHint tangkap
+  if (periodLine) csvLines.push(periodLine);
+
+  for (const tr of rows) {
+    const cells = tr.querySelectorAll('th, td');
+    const cols = Array.from(cells).map(td => {
+      let val = td.textContent.trim();
+      // Escape koma dan newline untuk CSV
+      if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+        val = '"' + val.replace(/"/g, '""') + '"';
+      }
+      return val;
+    });
+    if (cols.length > 0) csvLines.push(cols.join(','));
+  }
+
+  return csvLines.join('\n');
+}
+
+// ── SheetJS XLSX/XLS biner ────────────────────────────────────────────────
+function xlsxToCsv(uint8arr, name) {
+  const workbook = XLSX.read(uint8arr, {
+    type: 'array',
+    cellDates: false,
+    raw: false,
+    dateNF: 'dd/mm/yyyy'
+  });
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  return XLSX.utils.sheet_to_csv(sheet, { blankrows: false, rawNumbers: false });
+}
+
+// ══════════════════════════════════════════
+// CSV PARSER
+// ══════════════════════════════════════════
+function parseCSV(text) {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+
+  // Find header row (contains "NOGARDU")
+  let headerIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('NOGARDU') || lines[i].includes('NO,UNITUP')) {
+      headerIdx = i; break;
+    }
+  }
+  if (headerIdx === -1) { toast('Header CSV tidak ditemukan', 'error'); return; }
+
+  const headers = csvParseLine(lines[headerIdx]).map(h => h.trim().toUpperCase());
+
+  // ── SMART DATE DETECTION ──────────────────────────────────
+  const periodHint = extractPeriodHint(lines);
+  const tglColIdx  = headers.indexOf('TGLUKUR');
+  const allRawDates = [];
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const ln = lines[i].trim();
+    if (!ln) continue;
+    const cc = csvParseLine(ln);
+    if (!cc[0] || isNaN(parseInt(cc[0]))) continue;
+    if (tglColIdx >= 0 && cc[tglColIdx]) {
+      const d = cc[tglColIdx].trim();
+      if (d) allRawDates.push(d);
+    }
+  }
+  _dateFormatDecision = analyzeDateFormat(allRawDates, periodHint);
+  renderDateDetectionPanel(_dateFormatDecision, [...new Set(allRawDates)]);
+  // ─────────────────────────────────────────────────────────
+
+  parsedRows = [];
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const cols = csvParseLine(line);
+    if (!cols[0] || !cols[0].trim() || isNaN(parseInt(cols[0]))) continue; // skip non-data
+
+    const get = (col) => {
+      const idx = headers.indexOf(col);
+      if (idx === -1) return null;
+      const v = (cols[idx] || '').trim().replace(/^'/, ''); // strip Excel ' prefix
+      return v === '' ? null : v;
+    };
+
+    // Normalisasi NO GARDU (lihat fungsi normalizeGardu untuk aturan lengkap)
+    const rawGardu = get('NOGARDU') || '';
+    const { noGardu, garduNormNote } = normalizeGardu(rawGardu);
+    if (!noGardu) continue;
+
+    // Parse date with smart detection
+    const tglRaw = get('TGLUKUR') || '';
+    const tglMeta = parseTglWithMeta(tglRaw);
+    const tglParsed = tglMeta ? tglMeta.iso : null;
+    if (!tglParsed) continue;
+
+    const jamRaw = get('JAM UKUR') || null;
+
+    // Parse jurusan columns
+    const jurusan = parseJurusan(cols, headers);
+
+    parsedRows.push({
+      _csvRow: i + 1,
+      _noGarduRaw: rawGardu,
+      _garduNormNote: garduNormNote,
+      _tglConf: tglMeta ? tglMeta.confidence : 'ambiguous',
+      _tglRaw: tglRaw,
+      _csvAlamat:   (get('ALAMAT') || '').toUpperCase(),
+      _csvPenyulang:(get('PENYULANG') || '').toUpperCase(),
+      no_gardu:     noGardu,
+      tgl_ukur:     tglParsed,
+      jam_ukur:     jamRaw,
+      petugas:      get('PETUGAS'),
+      daya:         parseNum(get('DAYA')),
+      fasa:         get('FASA'),
+      daya_pakai:   parseNum(get('DAYA PAKAI')),
+      prosen:       parseNum(get('PROSEN')),
+      tdk_seimbang: parseNum(get('TDKSEIMBANG')),
+      r_total:      parseNum(get('R TOTAL')),
+      s_total:      parseNum(get('S TOTAL')),
+      t_total:      parseNum(get('T TOTAL')),
+      n_total:      parseNum(get('N TOTAL')),
+      v_r_n:        parseNum(getByAlias(cols, headers, ['R - N', 'R-N'])),
+      v_s_n:        parseNum(getByAlias(cols, headers, ['S - N', 'S-N'])),
+      v_t_n:        parseNum(getByAlias(cols, headers, ['T - N', 'T-N'])),
+      v_r_s:        parseNum(getByAlias(cols, headers, ['R - S', 'R-S'])),
+      v_s_t:        parseNum(getByAlias(cols, headers, ['S - T', 'S-T'])),
+      v_r_t:        parseNum(getByAlias(cols, headers, ['R - T', 'R-T'])),
+      thd_r:        parseNum(get('THD-R')),
+      thd_s:        parseNum(get('THD-S')),
+      thd_t:        parseNum(get('THD-T')),
+      ipeak_r:      parseNum(get('IPEAK-R')),
+      ipeak_s:      parseNum(get('IPEAK-S')),
+      ipeak_t:      parseNum(get('IPEAK-T')),
+      tpf_r:        parseNum(get('TPF-R')),
+      tpf_s:        parseNum(get('TPF-S')),
+      tpf_t:        parseNum(get('TPF-T')),
+      jurusan:      jurusan,
+    });
+  }
+
+  rowStatuses = parsedRows.map(() => 'pending');
+  renderPreview();
+  document.getElementById('preview-panel').style.display = 'block';
+  document.getElementById('action-bar').style.display = 'flex';
+
+  const normCount = parsedRows.filter(r => r._garduNormNote).length;
+  const normMsg = normCount > 0 ? ` (${normCount} no_gardu dinormalisasi ✎)` : '';
+  toast(`${parsedRows.length} baris data berhasil diparsing${normMsg}`, 'success');
+
+  // Tampilkan tombol override format tanggal
+  document.getElementById('dd-override-container').style.display = 'block';
+  updateDateOverrideBtns();
+}
+
+// ══════════════════════════════════════════
+// NORMALISASI NO GARDU
+// ══════════════════════════════════════════
+/*
+ * Aturan normalisasi (diterapkan urut):
+ * 1. Uppercase & trim whitespace luar
+ * 2. Hapus semua spasi di dalam  → "ABE 001" → "ABE001"
+ * 3. Strip suffix non-numerik setelah kode gardu:
+ *    a. Suffix dengan separator: "ABE001-K", "ABE001_2", "ABE001-1B" → "ABE001"
+ *    b. Suffix huruf di belakang angka (tanpa separator): "ABE001K" → "ABE001"
+ *       (pola: [HURUF]+[ANGKA]+[HURUF]* → strip bagian huruf di ujung)
+ *
+ * Format kode gardu PLN yang valid setelah normalisasi:
+ *   [2-5 huruf][3-4 angka]   contoh: ABE001, GYM122, TMLK001, UP3001
+ *
+ * Return: { noGardu: string|null, garduNormNote: string|null }
+ *   noGardu = null → baris di-skip (kosong)
+ *   garduNormNote = null → tidak ada perubahan
+ *   garduNormNote = string → catatan transformasi yang dilakukan
+ */
+function normalizeGardu(raw) {
+  if (!raw || !raw.trim()) return { noGardu: null, garduNormNote: null };
+
+  const original = raw.trim();
+  let s = original.toUpperCase().trim();
+
+  const notes = [];
+
+  // Step 1: hapus spasi di dalam kode → "ABE 001" → "ABE001"
+  const noSpace = s.replace(/\s+/g, '');
+  if (noSpace !== s) {
+    notes.push(`spasi dihapus: "${s}" → "${noSpace}"`);
+    s = noSpace;
+  }
+
+  // Step 2a: strip suffix dengan separator (- atau _) → "ABE001-K", "ABE001-1", "ABE001_B2"
+  const withSep = s.replace(/[-_][0-9A-Za-z]+$/, '');
+  if (withSep !== s) {
+    notes.push(`suffix "${s.slice(withSep.length)}" dihapus`);
+    s = withSep;
+  }
+
+  // Step 2b: strip trailing huruf setelah angka (tanpa separator) → "ABE001K" → "ABE001"
+  // Hanya berlaku jika pola dasar sudah benar: huruf diikuti angka di tengah
+  const noTrailAlpha = s.replace(/^([A-Z]{2,6}\d{2,4})[A-Z]+$/, '$1');
+  if (noTrailAlpha !== s) {
+    notes.push(`huruf ekor "${s.slice(noTrailAlpha.length)}" dihapus`);
+    s = noTrailAlpha;
+  }
+
+  const garduNormNote = notes.length > 0 ? notes.join('; ') : null;
+  return { noGardu: s, garduNormNote };
+}
+
+function parseJurusan(cols, headers) {
+  const jurGroups = [];
+  const jurNames = ['JURUSAN 1','JURUSAN 2','JURUSAN 3','JURUSAN 4','JURUSAN 5','JURUSAN 6'];
+
+  for (const jurName of jurNames) {
+    const startIdx = headers.indexOf(jurName);
+    if (startIdx === -1) continue;
+
+    // TITIK UKUR is 17 cols after JURUSAN header (cols: r,s,t,n, voltages*3, thd*3, ipeak*3, tpf*3, titik)
+    const titikIdx = headers.indexOf(`TITIK UKUR JUR ${jurName.slice(-1)}`, startIdx);
+
+    const nama = cols[startIdx] ? cols[startIdx].trim() : null;
+    if (!nama || nama === '0') continue;
+
+    const jur = { nama };
+    const fields = [
+      ['r_total',  startIdx+1], ['s_total', startIdx+2], ['t_total', startIdx+3], ['n_total', startIdx+4],
+      ['thd_r',    startIdx+5], ['thd_s',   startIdx+6], ['thd_t',   startIdx+7],
+      ['ipeak_r',  startIdx+8], ['ipeak_s', startIdx+9], ['ipeak_t', startIdx+10],
+      ['tpf_r',    startIdx+11],['tpf_s',  startIdx+12], ['tpf_t',  startIdx+13],
+    ];
+    for (const [key, idx] of fields) {
+      const v = parseNum((cols[idx] || '').replace(/^'/,'').trim());
+      if (v !== null && v !== 0) jur[key] = v;
+    }
+    if (titikIdx > 0 && cols[titikIdx]) {
+      const t = cols[titikIdx].trim();
+      if (t && t !== '0') jur.titik_ukur = t;
+    }
+    jurGroups.push(jur);
+  }
+
+  return jurGroups.length > 0 ? jurGroups : null;
+}
+
+function getByAlias(cols, headers, aliases) {
+  for (const alias of aliases) {
+    const idx = headers.indexOf(alias);
+    if (idx !== -1) return (cols[idx] || '').replace(/^'/,'').trim() || null;
+  }
+  return null;
+}
+
+// ══════════════════════════════════════════
+// SMART DATE DETECTION ENGINE
+// ══════════════════════════════════════════
+
+/*
+ * Strategy (priority order):
+ * 1. If one part > 12 → that part MUST be the day. Format is deterministic.
+ * 2. If both parts ≤ 12 (ambiguous) → use report period from CSV header.
+ * 3. If no period hint → use majority vote across all dates in file.
+ * 4. If still tied → assume DD/MM/YYYY (Indonesian standard) with warning.
+ *
+ * Result per date string: { iso: 'YYYY-MM-DD', confidence: 'certain'|'inferred'|'ambiguous', note: '' }
+ */
+
+let _dateFormatDecision = null; // global for current file: { mode: 'DD/MM'|'MM/DD', confidence, reason, periodMonth }
+
+function analyzeDateFormat(rawDateStrings, periodHint) {
+  const parsed = rawDateStrings.map(s => {
+    const m = s && s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    return m ? { a: parseInt(m[1]), b: parseInt(m[2]), yyyy: parseInt(m[3]), raw: s } : null;
+  }).filter(Boolean);
+
+  if (parsed.length === 0) {
+    return { mode: 'DD/MM', confidence: 'certain', reason: 'Tidak ada data tanggal ditemukan.' };
+  }
+
+  // ── Step 1: Deterministic mutually exclusive ──────────────────────────────
+  // Jika a > 12 → a PASTI hari → DD/MM (angka bulan tidak mungkin > 12)
+  // Jika b > 12 → b PASTI hari → MM/DD
+  const forcedDDMM = parsed.filter(p => p.a > 12);
+  const forcedMMDD = parsed.filter(p => p.b > 12);
+
+  if (forcedDDMM.length > 0 && forcedMMDD.length === 0) {
+    return { mode: 'DD/MM', confidence: 'certain',
+      reason: `${forcedDDMM.length} tanggal punya hari > 12 di posisi pertama → pasti DD/MM/YYYY.` };
+  }
+  if (forcedMMDD.length > 0 && forcedDDMM.length === 0) {
+    // Ini sangat jarang dari PLN — tandai dengan warning
+    return { mode: 'MM/DD', confidence: 'certain',
+      reason: `⚠ ${forcedMMDD.length} tanggal punya hari > 12 di posisi kedua → pasti MM/DD/YYYY. Tidak biasa untuk PLN — pastikan file benar.` };
+  }
+  if (forcedDDMM.length > 0 && forcedMMDD.length > 0) {
+    // Konflik — default DD/MM, tandai anomali
+    return { mode: 'DD/MM', confidence: 'ambiguous',
+      reason: `⚠ Konflik: sebagian tanggal hanya valid DD/MM, sebagian lain MM/DD. Default DD/MM (standar PLN Indonesia).`,
+      mixed: true, forcedDDMM, forcedMMDD };
+  }
+
+  // ── Step 2: Semua a,b ≤ 12 (ambiguous) ──────────────────────────────────
+  // PENTING: PLN Indonesia SELALU pakai DD/MM/YYYY.
+  // MM/DD hanya dipilih jika ada bukti SANGAT kuat dari period hint.
+  // Tanpa bukti kuat → default DD/MM, tidak perlu majority vote yang bisa salah.
+
+  if (periodHint && periodHint.month) {
+    const pm = periodHint.month;
+    const src = periodHint.source ? ` (${periodHint.source})` : '';
+
+    // Hitung cocok di masing-masing format
+    const ddmmMatches = parsed.filter(p => p.b === pm).length; // DD/MM: posisi bulan = b
+    const mmddMatches = parsed.filter(p => p.a === pm).length; // MM/DD: posisi bulan = a
+
+    // Hanya pilih MM/DD jika: semua tanggal cocok MM/DD DAN tidak ada satupun yang cocok DD/MM
+    // (bukti kuat = eksklusif, bukan sekedar lebih banyak)
+    if (mmddMatches === parsed.length && ddmmMatches === 0) {
+      return { mode: 'MM/DD', confidence: 'inferred', periodMonth: pm,
+        reason: `Semua ${parsed.length} tanggal cocok bulan ${pm} hanya jika MM/DD/YYYY${src}. Tidak ada yang cocok DD/MM.` };
+    }
+
+    // DD/MM cocok majority → DD/MM (atau tie → DD/MM sebagai default Indonesia)
+    return { mode: 'DD/MM', confidence: 'inferred', periodMonth: pm,
+      reason: `DD/MM/YYYY: ${ddmmMatches}/${parsed.length} tanggal cocok bulan ${pm}${src}. Default DD/MM (standar PLN Indonesia).` };
+  }
+
+  // ── Step 3: Tidak ada period hint — DEFAULT DD/MM tanpa majority vote ────
+  // Majority vote di step ini terlalu berisiko salah (seperti bug GYM038).
+  // PLN Indonesia tidak pernah pakai MM/DD, jadi default aman.
+  return {
+    mode: 'DD/MM',
+    confidence: 'inferred',
+    reason: `Tidak ada header periode. Default DD/MM/YYYY (standar PLN Indonesia). Semua angka ≤ 12 — tidak bisa dibuktikan secara deterministik.`,
+    periodMonth: null
+  };
+}
+
+function isValidDate(yyyy, month, day) {
+  if (month < 1 || month > 12 || day < 1) return false;
+  const d = new Date(yyyy, month - 1, day);
+  return d.getFullYear() === yyyy && d.getMonth() === month - 1 && d.getDate() === day;
+}
+
+function excelSerialToDate(serial) {
+  // Excel serial: jumlah hari sejak 1 Jan 1900 (dengan bug tahun 1900 = leap year)
+  if (typeof serial !== 'number' || serial < 1) return null;
+  const utcDays = Math.floor(serial - 25569); // 25569 = days from 1900-01-01 to 1970-01-01
+  const ms = utcDays * 86400 * 1000;
+  const d = new Date(ms);
+  if (isNaN(d.getTime())) return null;
+  const dd = String(d.getUTCDate()).padStart(2,'0');
+  const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+  const yyyy = d.getUTCFullYear();
+  return `${yyyy}-${mm}-${dd}`; // langsung ISO, tidak perlu deteksi format
+}
+
+function parseTgl(str) {
+  if (!str && str !== 0) return null;
+
+  // Excel serial number (dari SheetJS tanpa cellDates)
+  const num = Number(str);
+  if (!isNaN(num) && num > 1000 && String(str).indexOf('/') === -1) {
+    return excelSerialToDate(num);
+  }
+
+  // YYYY-MM-DD passthrough
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+  const m = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+
+  const a = parseInt(m[1]), b = parseInt(m[2]), yyyy = parseInt(m[3]);
+
+  if (_dateFormatDecision && _dateFormatDecision.mode === 'MM/DD') {
+    return `${yyyy}-${String(a).padStart(2,'0')}-${String(b).padStart(2,'0')}`;
+  }
+  // Default DD/MM
+  return `${yyyy}-${String(b).padStart(2,'0')}-${String(a).padStart(2,'0')}`;
+}
+
+function parseTglWithMeta(str) {
+  if (!str && str !== 0) return null;
+
+  // Excel serial number — format sudah pasti (tidak ambigu)
+  const num = Number(str);
+  if (!isNaN(num) && num > 1000 && String(str).indexOf('/') === -1) {
+    const iso = excelSerialToDate(num);
+    return iso ? { iso, confidence: 'certain', raw: String(str) } : null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return { iso: str, confidence: 'certain', raw: str };
+
+  const m = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const a = parseInt(m[1]), b = parseInt(m[2]);
+
+  let conf = _dateFormatDecision ? _dateFormatDecision.confidence : 'ambiguous';
+  if (a > 12 || b > 12) conf = 'certain';
+
+  const iso = parseTgl(str);
+  return { iso, confidence: conf, raw: str };
+}
+
+function extractPeriodHint(lines) {
+  // Strategy 1: cari pola "PERIODE : DD/MM/YYYY" (format CSV lama)
+  for (let i = 0; i < Math.min(lines.length, 15); i++) {
+    const m = lines[i].match(/PERIODE\s*[:：]\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/i);
+    if (m) {
+      return { day: parseInt(m[1]), month: parseInt(m[2]), year: parseInt(m[3]), source: 'PERIODE header' };
+    }
+  }
+
+  // Strategy 2: cari pola tanggal di baris header atas (UIW/UP3/ULP block)
+  // Kadang ada teks seperti "BULAN MEI 2026" atau "PERIODE MEI 2026"
+  const bulanMap = {
+    'JAN':1,'JANUARI':1,'FEB':2,'FEBRUARI':2,'MAR':3,'MARET':3,
+    'APR':4,'APRIL':4,'MEI':5,'MAY':5,'JUN':6,'JUNI':6,
+    'JUL':7,'JULI':7,'AGU':8,'AGUSTUS':8,'AUG':8,'SEP':9,'SEPTEMBER':9,
+    'OKT':10,'OKTOBER':10,'OCT':10,'NOV':11,'NOVEMBER':11,'DES':12,'DESEMBER':12,'DEC':12
+  };
+  for (let i = 0; i < Math.min(lines.length, 15); i++) {
+    const upper = lines[i].toUpperCase();
+    for (const [name, num] of Object.entries(bulanMap)) {
+      if (upper.includes(name)) {
+        const yearM = upper.match(/20\d{2}/);
+        return { month: num, year: yearM ? parseInt(yearM[0]) : new Date().getFullYear(), source: `teks "${name}"` };
+      }
+    }
+  }
+
+  // Strategy 3: tidak ada hint teks — kembalikan null, biarkan majority vote dari data tanggal
+  return null;
+}
+
+function renderDateDetectionPanel(decision, rawDates) {
+  const panel = document.getElementById('date-detect-panel');
+  const badgeCont = document.getElementById('dd-badge-container');
+  const infoCont = document.getElementById('dd-info');
+  const anomCont = document.getElementById('dd-anomaly-container');
+
+  panel.classList.add('visible');
+
+  const confLabel = { certain: '✓ Pasti', inferred: '⚡ Disimpulkan', ambiguous: '⚠ Ambigu' };
+  const confClass = { certain: 'certain', inferred: 'inferred', ambiguous: 'ambiguous' };
+  const modeLabel = decision.mode === 'DD/MM' ? 'DD/MM/YYYY' : 'MM/DD/YYYY';
+
+  badgeCont.innerHTML =
+    `<span class="dd-badge ${confClass[decision.confidence]}">${confLabel[decision.confidence]} — ${modeLabel}</span>` +
+    (decision.periodMonth ? `&nbsp;<span class="dd-badge period">📅 Periode Bulan ${decision.periodMonth}</span>` : '');
+
+  infoCont.innerHTML =
+    `<div>${decision.reason}</div>` +
+    `<div class="dd-detail">Contoh konversi: ${rawDates.slice(0,3).map(d => {
+      const r = parseTglWithMeta(d);
+      return r ? `${d} → ${r.iso}` : d;
+    }).join(' &nbsp;|&nbsp; ')}</div>`;
+
+  // Anomaly report for mixed-format files
+  if (decision.mixed) {
+    const rows = [
+      ...(decision.forcedDDMM||[]).map(p => `${p.raw} → hari=${p.a} (>12), format DD/MM`),
+      ...(decision.forcedMMDD||[]).map(p => `${p.raw} → hari=${p.b} (>12), format MM/DD`),
+    ].slice(0, 10);
+    anomCont.innerHTML = `<div class="dd-anomaly">
+      <div class="dd-anomaly-title">⚠ KONFLIK FORMAT TANGGAL TERDETEKSI — periksa sumber data!</div>
+      ${rows.map(r => `<div class="dd-anomaly-row">${r}</div>`).join('')}
+    </div>`;
+  } else {
+    anomCont.innerHTML = '';
+  }
+}
+
+// Override format tanggal manual oleh petugas
+// Mengubah _dateFormatDecision dan re-parse semua tgl_ukur di parsedRows
+function overrideDateFormat(mode) {
+  if (!_dateFormatDecision) return;
+  if (_dateFormatDecision.mode === mode && _dateFormatDecision._manualOverride) return;
+
+  const prevMode = _dateFormatDecision.mode;
+  _dateFormatDecision = {
+    ..._dateFormatDecision,
+    mode,
+    confidence: 'certain',
+    _manualOverride: true,
+    reason: `⚙ Diubah manual oleh petugas ke ${mode}/YYYY (sebelumnya: ${prevMode}/YYYY).`,
+  };
+
+  // Re-parse semua tgl_ukur di parsedRows
+  let changed = 0;
+  for (const r of parsedRows) {
+    const newMeta = parseTglWithMeta(r._tglRaw);
+    if (newMeta && newMeta.iso !== r.tgl_ukur) {
+      r.tgl_ukur = newMeta.iso;
+      r._tglConf = 'certain';
+      changed++;
+    }
+  }
+
+  // Update badge & info di panel
+  const badgeCont = document.getElementById('dd-badge-container');
+  badgeCont.innerHTML = `<span class="dd-badge certain">⚙ Override Manual — ${mode}/YYYY</span>`;
+  document.getElementById('dd-info').innerHTML =
+    `<div>${_dateFormatDecision.reason}</div>` +
+    `<div class="dd-detail">${changed} tanggal di-re-parse ulang.</div>`;
+
+  updateDateOverrideBtns();
+  renderPreview();
+
+  // Reset review & import jika sudah di-check sebelumnya
+  _reviewChecked = false;
+  document.getElementById('review-panel').style.display = 'none';
+  const btnImport = document.getElementById('btn-import');
+  btnImport.disabled = true;
+  btnImport.title = 'Klik Review Data terlebih dahulu sebelum import';
+
+  toast(`✓ Format tanggal diubah ke ${mode}/YYYY — ${changed} baris diperbarui. Jalankan ulang Cek Duplikat DB jika perlu.`, 'success');
+}
+
+function updateDateOverrideBtns() {
+  const mode = _dateFormatDecision ? _dateFormatDecision.mode : 'DD/MM';
+  const btnDDMM = document.getElementById('dd-override-ddmm');
+  const btnMMDD = document.getElementById('dd-override-mmdd');
+  if (btnDDMM) btnDDMM.classList.toggle('active', mode === 'DD/MM');
+  if (btnMMDD) btnMMDD.classList.toggle('active', mode === 'MM/DD');
+  const status = document.getElementById('dd-override-status');
+  if (status) {
+    status.textContent = _dateFormatDecision?._manualOverride
+      ? `(diubah manual ke ${mode}/YYYY)`
+      : `(deteksi otomatis: ${mode}/YYYY)`;
+  }
+}
+
+function parseNum(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = parseFloat(String(v).replace(/^'/,''));
+  return isNaN(n) ? null : n;
+}
+
+function csvParseLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"' && inQ && line[i+1] === '"') { cur += '"'; i++; }
+    else if (c === '"') { inQ = !inQ; }
+    else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+    else cur += c;
+  }
+  result.push(cur);
+  return result;
+}
+
+// ══════════════════════════════════════════
+// RENDER PREVIEW
+// ══════════════════════════════════════════
+function renderPreview() {
+  const tbody = document.getElementById('preview-body');
+  tbody.innerHTML = '';
+
+  let cInsert = 0, cSkip = 0, cErr = 0;
+  for (let i = 0; i < parsedRows.length; i++) {
+    const r = parsedRows[i];
+    const st = rowStatuses[i];
+    if (st === 'skip') cSkip++;
+    else if (st === 'error') cErr++;
+    else cInsert++;
+
+    const tr = document.createElement('tr');
+    const stLabel = st === 'skip'   ? '<span class="row-status skip">⊘ SKIP</span>' :
+                    st === 'error'  ? '<span class="row-status error">✕ ERROR</span>' :
+                                      '<span class="row-status insert">＋ INSERT</span>';
+    const tglClass = r._tglConf === 'certain' ? 'tgl-fixed' : r._tglConf === 'inferred' ? 'tgl-infer' : 'tgl-ambig';
+    const tglTitle = r._tglRaw ? `title="Asli: ${r._tglRaw}"` : '';
+    const garduNormAttr = r._garduNormNote
+      ? `title="RAW: ${r._noGarduRaw} → ${r.no_gardu}\n(${r._garduNormNote})" style="text-decoration:underline dotted var(--warn);cursor:help"`
+      : `title="${r._noGarduRaw}"`;
+    const garduCell = r._garduNormNote
+      ? `<span ${garduNormAttr}>${r.no_gardu} <span style="color:var(--warn);font-size:10px">✎</span></span>`
+      : `<span ${garduNormAttr}>${r.no_gardu}</span>`;
+
+    // Kolom keterangan: info alamat/penyulang untuk known, saran untuk unknown
+    let keteranganCell = '-';
+    if (st === 'error' && _unknownGarduSet.has(r.no_gardu)) {
+      const suggs = _garduSuggestMap.get(r.no_gardu) || [];
+      const csvParts = [r._csvPenyulang, r._csvAlamat].filter(Boolean);
+      const csvLine = csvParts.length > 0
+        ? `<span style="color:#93c5fd;font-size:10px;display:block">📄 CSV: ${csvParts.join(' / ')}</span>`
+        : '';
+      if (suggs.length > 0) {
+        const s = suggs[0];
+        const info = [s.penyulang, s.alamat].filter(Boolean).join(' / ');
+        keteranganCell = `<span style="color:var(--danger);font-size:11px">🚫 Tidak dikenal</span>`
+          + (csvLine ? `<br>${csvLine}` : '')
+          + (info
+            ? `<br><span style="color:#fcd34d;font-size:10px">💡 Mungkin: <strong>${s.no_gardu}</strong> (${info})</span>`
+            : `<br><span style="color:#fcd34d;font-size:10px">💡 Mungkin: <strong>${s.no_gardu}</strong></span>`);
+      } else {
+        keteranganCell = `<span style="color:var(--danger);font-size:11px">🚫 Tidak dikenal di DB</span>`
+          + (csvLine ? `<br>${csvLine}` : '');
+      }
+    } else {
+      const info = _garduInfoMap.get(r.no_gardu);
+      if (info) {
+        const parts = [info.penyulang, info.alamat].filter(Boolean);
+        if (parts.length > 0) keteranganCell = `<span style="color:var(--text3);font-size:11px">${parts.join(' · ')}</span>`;
+      }
+    }
+    tr.innerHTML = `
+      <td>${r._csvRow}</td>
+      <td>${stLabel}</td>
+      <td>${garduCell}</td>
+      <td class="${tglClass}" ${tglTitle}>${r.tgl_ukur}</td>
+      <td>${r.jam_ukur || '-'}</td>
+      <td>${r.petugas || '-'}</td>
+      <td>${r.daya ?? '-'}</td>
+      <td>${r.prosen ?? '-'}</td>
+      <td>${r.tdk_seimbang ?? '-'}</td>
+      <td style="max-width:220px;white-space:normal;line-height:1.4">${keteranganCell}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  const total = parsedRows.length;
+  document.getElementById('chip-total').textContent  = `${total} baris`;
+  document.getElementById('chip-insert').textContent = `${cInsert} baru`;
+  document.getElementById('chip-skip').textContent   = `${cSkip} skip`;
+  document.getElementById('chip-error').textContent  = `${cErr} error`;
+}
+
+// ══════════════════════════════════════════
+// REVIEW PANEL
+// ══════════════════════════════════════════
+let _reviewFilter = 'all';
+let _reviewChecked = false;
+
+/*
+ * Flag setiap row:
+ *  intradup      — duplikat di dalam file sendiri (gardu+tgl+jam+petugas sama)
+ *  tglwarn       — confidence tanggal bukan 'certain'
+ *  norm          — no_gardu dinormalisasi dari raw CSV
+ *  unknown_gardu — no_gardu tidak ditemukan di tabel gardu DB (diisi oleh checkDuplicates)
+ */
+let _unknownGarduSet = new Set(); // diisi saat checkDuplicates
+let _garduInfoMap    = new Map(); // no_gardu → { alamat, penyulang } untuk semua gardu dikenal
+let _garduSuggestMap = new Map(); // no_gardu_tidak_dikenal → [{ no_gardu, alamat, penyulang, score }]
+function computeRowFlags() {
+  // Duplikat internal: key = no_gardu|tgl_ukur|jam_norm|petugas_norm
+  const seen = new Map(); // key → first index
+  const flags = parsedRows.map(() => new Set());
+
+  for (let i = 0; i < parsedRows.length; i++) {
+    const r = parsedRows[i];
+    const jamN = normalizeJam(r.jam_ukur) || '';
+    const petN = (r.petugas || '').trim().toLowerCase();
+    const k = `${r.no_gardu}|${r.tgl_ukur}|${jamN}|${petN}`;
+    if (seen.has(k)) {
+      flags[i].add('intradup');
+      flags[seen.get(k)].add('intradup'); // tandai juga baris pertama
+    } else {
+      seen.set(k, i);
+    }
+    if (r._garduNormNote) flags[i].add('norm');
+    if (r._tglConf && r._tglConf !== 'certain') flags[i].add('tglwarn');
+    if (_unknownGarduSet.has(r.no_gardu)) flags[i].add('unknown_gardu');
+  }
+  return flags;
+}
+
+function buildReviewPanel() {
+  const flags = computeRowFlags();
+  _reviewFlags = flags;
+
+  // ── SYNC flags → rowStatuses ──────────────────────────────────────────────
+  syncFlagsToStatuses();
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const pending = parsedRows.filter((_, i) => rowStatuses[i] !== 'skip' && rowStatuses[i] !== 'error').length;
+  const skipped = parsedRows.filter((_, i) => rowStatuses[i] === 'skip').length;
+  const errored = parsedRows.filter((_, i) => rowStatuses[i] === 'error').length;
+  const nIntradup     = flags.filter(f => f.has('intradup')).length;
+  const nNorm         = flags.filter(f => f.has('norm')).length;
+  const nTglwarn      = flags.filter(f => f.has('tglwarn')).length;
+  const nUnknown      = flags.filter(f => f.has('unknown_gardu')).length;
+  const hasWarnings   = nIntradup > 0 || nNorm > 0 || nTglwarn > 0 || nUnknown > 0;
+
+  // Summary cards
+  const grid = document.getElementById('rev-summary-grid');
+  grid.innerHTML = `
+    <div class="rev-card">
+      <div class="rev-num info">${parsedRows.length}</div>
+      <div class="rev-lbl">Total Baris</div>
+    </div>
+    <div class="rev-card">
+      <div class="rev-num ok">${pending}</div>
+      <div class="rev-lbl">Akan di-INSERT</div>
+      <div class="rev-sub">Belum ada di DB</div>
+    </div>
+    <div class="rev-card">
+      <div class="rev-num" style="color:var(--skip)">${skipped}</div>
+      <div class="rev-lbl">Akan di-SKIP</div>
+      <div class="rev-sub">Sudah ada di DB</div>
+    </div>
+    ${errored > 0 ? `<div class="rev-card error-card">
+      <div class="rev-num danger">${errored}</div>
+      <div class="rev-lbl">Error</div>
+      <div class="rev-sub">No gardu tidak dikenal</div>
+    </div>` : ''}
+    <div class="rev-card ${nUnknown > 0 ? 'error-card clickable' : ''}" onclick="${nUnknown > 0 ? "setReviewFilter('unknown_gardu')" : ''}">
+      <div class="rev-num ${nUnknown > 0 ? 'danger' : 'ok'}">${nUnknown}</div>
+      <div class="rev-lbl">🚫 Gardu Tidak Dikenal</div>
+      <div class="rev-sub">Tidak ada di tabel gardu</div>
+    </div>
+    <div class="rev-card ${nIntradup > 0 ? 'warn-card clickable' : ''}" onclick="${nIntradup > 0 ? "setReviewFilter('intradup')" : ''}">
+      <div class="rev-num ${nIntradup > 0 ? 'warn' : 'ok'}">${nIntradup}</div>
+      <div class="rev-lbl">⚠ Duplikat Internal</div>
+      <div class="rev-sub">Double di file ini</div>
+    </div>
+    <div class="rev-card ${nNorm > 0 ? 'clickable' : ''}" onclick="${nNorm > 0 ? "setReviewFilter('norm')" : ''}">
+      <div class="rev-num ${nNorm > 0 ? 'info' : 'ok'}">${nNorm}</div>
+      <div class="rev-lbl">✎ Dinormalisasi</div>
+      <div class="rev-sub">No gardu disesuaikan</div>
+    </div>
+    <div class="rev-card ${nTglwarn > 0 ? 'warn-card clickable' : ''}" onclick="${nTglwarn > 0 ? "setReviewFilter('tglwarn')" : ''}">
+      <div class="rev-num ${nTglwarn > 0 ? 'warn' : 'ok'}">${nTglwarn}</div>
+      <div class="rev-lbl">📅 Tanggal Disimpulkan</div>
+      <div class="rev-sub">Bukan format eksplisit</div>
+    </div>
+  `;
+
+  // Confirm note
+  const note = document.getElementById('rev-confirm-note');
+  if (nUnknown > 0) {
+    note.innerHTML = `<span style="color:var(--danger)">🚫 ${nUnknown} no_gardu tidak ditemukan di database.</span> Baris ini akan <strong>error</strong> saat import. Periksa apakah kode gardu sudah benar sebelum melanjutkan.`;
+  } else if (hasWarnings) {
+    note.innerHTML = `<span style="color:var(--warn)">⚠ Ada ${nIntradup + nNorm + nTglwarn} baris yang perlu diperhatikan.</span> Klik kartu atau filter untuk lihat detail, lalu konfirmasi jika sudah yakin.`;
+  } else {
+    note.innerHTML = `<span style="color:var(--success)">✓ Tidak ada anomali terdeteksi.</span> Data siap diimport.`;
+  }
+
+  _reviewChecked = false;
+  document.getElementById('rev-checked-indicator').classList.remove('show');
+  document.getElementById('btn-review-confirm').textContent = '✓ Sudah Diperiksa — Lanjut Import';
+  document.getElementById('btn-review-confirm').classList.remove('btn-primary');
+
+  _needsRecheck = false;
+  showRecheckBanner(false);
+
+  // Reset inline import button
+  const btnImportInline = document.getElementById('btn-import-inline');
+  if (btnImportInline) { btnImportInline.style.display = 'none'; btnImportInline.disabled = true; }
+
+  _reviewFilter = 'all';
+  setReviewFilter('all', true);
+
+  document.getElementById('review-panel').style.display = 'block';
+  document.getElementById('review-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+let _reviewFlags = [];
+
+function setReviewFilter(filter, skipRender) {
+  _reviewFilter = filter;
+  // Update active button
+  ['all','pending','intradup','norm','tglwarn','skip','unknown_gardu'].forEach(f => {
+    const btn = document.getElementById('rf-' + f);
+    if (btn) btn.classList.toggle('active', f === filter);
+  });
+  if (!skipRender) renderReviewTable();
+}
+
+function renderReviewTable() {
+  const tbody = document.getElementById('rev-tbody');
+  tbody.innerHTML = '';
+
+  const sortVal = document.getElementById('rev-sort').value;
+
+  // Build index list filtered
+  let indices = parsedRows.map((_, i) => i);
+
+  if (_reviewFilter === 'pending')        indices = indices.filter(i => rowStatuses[i] !== 'skip' && rowStatuses[i] !== 'error');
+  if (_reviewFilter === 'skip')           indices = indices.filter(i => rowStatuses[i] === 'skip');
+  if (_reviewFilter === 'intradup')       indices = indices.filter(i => _reviewFlags[i]?.has('intradup'));
+  if (_reviewFilter === 'norm')           indices = indices.filter(i => _reviewFlags[i]?.has('norm'));
+  if (_reviewFilter === 'tglwarn')        indices = indices.filter(i => _reviewFlags[i]?.has('tglwarn'));
+  if (_reviewFilter === 'unknown_gardu')  indices = indices.filter(i => _reviewFlags[i]?.has('unknown_gardu'));
+
+  // Sort
+  if (sortVal === 'gardu')  indices.sort((a, b) => parsedRows[a].no_gardu.localeCompare(parsedRows[b].no_gardu));
+  if (sortVal === 'tgl')    indices.sort((a, b) => (parsedRows[a].tgl_ukur||'').localeCompare(parsedRows[b].tgl_ukur||''));
+  if (sortVal === 'status') indices.sort((a, b) => (rowStatuses[a]||'').localeCompare(rowStatuses[b]||''));
+  if (sortVal === 'flag') {
+    const score = i => {
+      let s = 0;
+      if (_reviewFlags[i]?.has('unknown_gardu')) s += 1000;
+      if (_reviewFlags[i]?.has('intradup'))      s += 100;
+      if (_reviewFlags[i]?.has('tglwarn'))       s += 10;
+      if (_reviewFlags[i]?.has('norm'))          s += 1;
+      return -s;
+    };
+    indices.sort((a, b) => score(a) - score(b));
+  }
+
+  document.getElementById('rev-count').textContent = `${indices.length} baris`;
+
+  for (const i of indices) {
+    const r = parsedRows[i];
+    const st = rowStatuses[i];
+    const f = _reviewFlags[i] || new Set();
+
+    const stBadge = st === 'skip'
+      ? '<span class="row-status skip">⊘ SKIP</span>'
+      : st === 'error'
+      ? '<span class="row-status error">✕ ERROR</span>'
+      : '<span class="row-status insert">＋ INSERT</span>';
+
+    // No Gardu cell: jika unknown → tampilkan input edit inline
+    let garduCell;
+    if (f.has('unknown_gardu')) {
+      // Info dari CSV (alamat & penyulang yang tertulis di file)
+      const csvInfoParts = [r._csvPenyulang, r._csvAlamat].filter(Boolean);
+      const csvInfoHtml = csvInfoParts.length > 0
+        ? `<div style="font-size:10px;color:#93c5fd;font-family:var(--mono);padding:3px 6px;background:#0c1e38;border:1px solid #1e3a5f;border-radius:4px;margin-bottom:4px">
+            📄 CSV: <strong>${csvInfoParts.join(' / ')}</strong>
+           </div>`
+        : '';
+      // Bangun pill saran fuzzy
+      const suggs = _garduSuggestMap.get(r.no_gardu) || [];
+      const suggBtns = suggs.map(s => {
+        const info = s.alamat || s.penyulang ? ` (${[s.penyulang, s.alamat].filter(Boolean).join(' / ')})` : '';
+        return `<button class="gardu-edit-btn ok" style="font-size:10px;padding:2px 7px;margin-top:3px;white-space:normal;text-align:left;height:auto;line-height:1.4"
+          onclick="applyGarduEdit(${i}, '${s.no_gardu}')" title="Terapkan: ${s.no_gardu}${info}">
+          ✓ ${s.no_gardu}${info}
+        </button>`;
+      }).join('');
+      garduCell = `
+        <span class="gardu-edit-wrap" data-idx="${i}" style="flex-direction:column;align-items:flex-start;gap:3px">
+          ${csvInfoHtml}
+          <div style="display:flex;gap:4px;align-items:center">
+            <input class="gardu-edit-input" value="${r.no_gardu}"
+              title="Edit no_gardu lalu tekan Enter atau klik ✓"
+              onkeydown="if(event.key==='Enter') applyGarduEdit(${i}, this.value)"
+            />
+            <button class="gardu-edit-btn ok"  onclick="applyGarduEdit(${i}, this.closest('.gardu-edit-wrap').querySelector('input').value)" title="Terapkan">✓</button>
+            <button class="gardu-edit-btn ign" onclick="ignoreUnknownGardu(${i})" title="Abaikan — tetap error, tidak diimport">✕</button>
+          </div>
+          ${suggBtns ? `<div style="display:flex;flex-direction:column;gap:2px">${suggBtns}</div>` : ''}
+        </span>`;
+    } else {
+      garduCell = `<span style="color:var(--text)">${r.no_gardu}</span>`;
+    }
+
+    // Flag badges
+    let flagHtml = '';
+    if (f.has('unknown_gardu')) {
+      const suggs = _garduSuggestMap.get(r.no_gardu) || [];
+      // Info dari CSV
+      const csvParts = [r._csvPenyulang, r._csvAlamat].filter(Boolean);
+      const csvLine = csvParts.length > 0
+        ? `<span style="color:#93c5fd;font-size:10px;display:block;margin-bottom:3px">📄 Di CSV: <strong>${csvParts.join(' / ')}</strong></span>`
+        : '';
+      let suggText = '';
+      if (suggs.length > 0) {
+        const s = suggs[0];
+        const info = [s.penyulang, s.alamat].filter(Boolean).join(' / ');
+        suggText = `<span style="color:#fcd34d;font-size:10px;display:block;margin-top:3px">
+          💡 Mungkin maksud <strong style="color:#fbbf24">${s.no_gardu}</strong>${info ? `? <span style="color:var(--text3)">${info}</span>` : '?'}
+        </span>`;
+        if (suggs.length > 1) {
+          const rest = suggs.slice(1).map(x => `<strong style="color:#fbbf24">${x.no_gardu}</strong>`).join(', ');
+          suggText += `<span style="color:var(--text3);font-size:10px;display:block">atau ${rest}?</span>`;
+        }
+      } else if (_garduInfoMap.size > 0) {
+        suggText = `<span style="color:var(--text3);font-size:10px;display:block;margin-top:2px">Tidak ada gardu serupa di DB</span>`;
+      }
+      flagHtml += `<span class="flag-badge" style="background:#3d0808;color:#f87171;border:1px solid #7f1d1d;white-space:normal;display:block;padding:4px 8px">
+        🚫 TIDAK DIKENAL${csvLine}${suggText}
+      </span>`;
+    }
+    if (f.has('intradup'))      flagHtml += '<span class="flag-badge dup">⚠ DUPLIKAT — baris ini di-SKIP</span>';
+    if (f.has('norm'))          flagHtml += `<span class="flag-badge norm" title="${r._garduNormNote}">✎ ${r._noGarduRaw} → ${r.no_gardu}</span>`;
+    if (f.has('tglwarn'))       flagHtml += `<span class="flag-badge tgl" title="Raw: ${r._tglRaw}">📅 ${r._tglConf}</span>`;
+
+    // Row class
+    let trClass = '';
+    if (f.has('unknown_gardu'))   trClass = 'flag-intradup';
+    else if (f.has('intradup'))   trClass = 'flag-intradup';
+    else if (f.has('tglwarn'))    trClass = 'flag-warn-tgl';
+    else if (f.has('norm'))       trClass = 'flag-norm';
+
+    const tglColor = r._tglConf === 'certain' ? 'var(--success)' : r._tglConf === 'inferred' ? 'var(--warn)' : 'var(--danger)';
+
+    const tr = document.createElement('tr');
+    tr.className = trClass;
+    tr.dataset.rowIdx = i;
+    tr.innerHTML = `
+      <td style="color:var(--text3)">${r._csvRow}</td>
+      <td>${stBadge}</td>
+      <td>${garduCell}</td>
+      <td style="color:${tglColor}">${r.tgl_ukur}</td>
+      <td>${r.jam_ukur || '<span style="color:var(--text3)">—</span>'}</td>
+      <td>${r.petugas || '<span style="color:var(--text3)">—</span>'}</td>
+      <td>${flagHtml || '<span style="color:var(--text3);font-size:11px">—</span>'}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  if (indices.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="7" style="text-align:center;padding:24px;color:var(--text3)">Tidak ada baris untuk filter ini</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function confirmReview() {
+  if (_needsRecheck) {
+    toast('⚠ Ada perubahan data sejak cek terakhir. Klik "Cek Ulang Duplikat DB" terlebih dahulu sebelum konfirmasi.', 'error');
+    document.getElementById('recheck-banner')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  _reviewChecked = true;
+  document.getElementById('rev-checked-indicator').classList.add('show');
+  document.getElementById('btn-review-confirm').textContent = '✓ Sudah Dikonfirmasi';
+  document.getElementById('btn-review-confirm').classList.add('btn-primary');
+  document.getElementById('btn-review-confirm').disabled = true;
+
+  // Enable tombol import di action bar (atas)
+  const btnImport = document.getElementById('btn-import');
+  btnImport.disabled = false;
+  btnImport.title = '';
+  btnImport.classList.add('btn-primary');
+
+  // Tampilkan & aktifkan tombol import inline di review panel (bawah)
+  const btnImportInline = document.getElementById('btn-import-inline');
+  if (btnImportInline) {
+    btnImportInline.style.display = 'inline-flex';
+    btnImportInline.disabled = false;
+    btnImportInline.title = '';
+  }
+
+  toast('✓ Data sudah dikonfirmasi. Klik "⬆ Import ke Supabase" untuk mulai import.', 'success');
+}
+
+// Edit no_gardu inline dari review table
+function applyGarduEdit(idx, newVal) {
+  const val = (newVal || '').trim().toUpperCase();
+  if (!val) { toast('No gardu tidak boleh kosong', 'error'); return; }
+
+  const r = parsedRows[idx];
+  const oldVal = r.no_gardu;
+  r.no_gardu = val;
+
+  // Hapus dari unknownGarduSet jika sudah diperbaiki
+  // (akan di-revalidasi saat rebuild flags)
+  // Tandai status kembali pending agar bisa diinsert
+  rowStatuses[idx] = 'pending';
+
+  // Rebuild flags & re-render
+  _reviewChecked = false;
+  _needsRecheck = true;
+  showRecheckBanner(true);
+  document.getElementById('rev-checked-indicator').classList.remove('show');
+  document.getElementById('btn-review-confirm').textContent = '✓ Sudah Diperiksa — Lanjut Import';
+  document.getElementById('btn-review-confirm').classList.remove('btn-primary');
+  document.getElementById('btn-review-confirm').disabled = false;
+  document.getElementById('btn-import').disabled = true;
+
+  // Jika val tidak ada di _unknownGarduSet, hapus flag unknown_gardu untuk baris ini
+  // Jika masih unknown, flag tetap
+  if (!_unknownGarduSet.has(val)) {
+    _reviewFlags[idx]?.delete('unknown_gardu');
+  }
+
+  // Re-compute flags karena intradup mungkin berubah
+  _reviewFlags = computeRowFlags();
+  // Sync status lagi
+  syncFlagsToStatuses();
+
+  renderReviewTable();
+  renderPreview();
+  // Update summary cards
+  refreshReviewSummary();
+
+  toast(`✓ No gardu baris ${r._csvRow} diubah: ${oldVal} → ${val}${_unknownGarduSet.has(val) ? ' — masih tidak dikenal di DB, perlu Cek Duplikat DB ulang' : ''}`, _unknownGarduSet.has(val) ? 'error' : 'success');
+}
+
+// Abaikan baris unknown_gardu — tetap error, tidak diimport
+function ignoreUnknownGardu(idx) {
+  rowStatuses[idx] = 'error';
+  renderReviewTable();
+  renderPreview();
+  toast(`Baris ${parsedRows[idx]._csvRow} ditandai error — tidak akan diimport`, 'info');
+}
+
+// Sync flags → rowStatuses (extracted dari buildReviewPanel agar bisa dipanggil ulang)
+function syncFlagsToStatuses() {
+  const firstSeen = new Set();
+  for (let i = 0; i < parsedRows.length; i++) {
+    const f = _reviewFlags[i];
+    const r = parsedRows[i];
+    if (!f) continue;
+    if (f.has('unknown_gardu')) {
+      rowStatuses[i] = 'error';
+    } else if (f.has('intradup')) {
+      const jamN = normalizeJam(r.jam_ukur) || '';
+      const petN = (r.petugas || '').trim().toLowerCase();
+      const k = `${r.no_gardu}|${r.tgl_ukur}|${jamN}|${petN}`;
+      if (firstSeen.has(k)) {
+        rowStatuses[i] = 'skip';
+      } else {
+        firstSeen.add(k);
+        if (rowStatuses[i] === 'error' || rowStatuses[i] === 'skip') rowStatuses[i] = 'pending';
+      }
+    } else {
+      // Flag bersih — kalau sebelumnya error karena unknown, reset ke pending
+      if (rowStatuses[i] === 'error') rowStatuses[i] = 'pending';
+    }
+  }
+}
+
+// Refresh hanya bagian summary cards & confirm note tanpa re-render full panel
+function refreshReviewSummary() {
+  const flags = _reviewFlags;
+  const pending = parsedRows.filter((_, i) => rowStatuses[i] !== 'skip' && rowStatuses[i] !== 'error').length;
+  const skipped = parsedRows.filter((_, i) => rowStatuses[i] === 'skip').length;
+  const errored = parsedRows.filter((_, i) => rowStatuses[i] === 'error').length;
+  const nUnknown  = flags.filter(f => f?.has('unknown_gardu')).length;
+  const nIntradup = flags.filter(f => f?.has('intradup')).length;
+  const nTglwarn  = flags.filter(f => f?.has('tglwarn')).length;
+  const nNorm     = flags.filter(f => f?.has('norm')).length;
+
+  // Chip total di preview
+  document.getElementById('chip-total').textContent  = `${parsedRows.length} baris`;
+  document.getElementById('chip-insert').textContent = `${pending} baru`;
+  document.getElementById('chip-skip').textContent   = `${skipped} skip`;
+  document.getElementById('chip-error').textContent  = `${errored} error`;
+
+  // Confirm note
+  const note = document.getElementById('rev-confirm-note');
+  if (nUnknown > 0) {
+    note.innerHTML = `<span style="color:var(--danger)">🚫 ${nUnknown} no_gardu masih tidak dikenal.</span> Edit no_gardu atau jalankan ulang Cek Duplikat DB setelah diperbaiki.`;
+  } else if (nIntradup > 0 || nTglwarn > 0 || nNorm > 0) {
+    note.innerHTML = `<span style="color:var(--warn)">⚠ Ada item yang perlu diperhatikan.</span> Periksa lalu konfirmasi jika sudah yakin.`;
+  } else {
+    note.innerHTML = `<span style="color:var(--success)">✓ Tidak ada anomali.</span> Data siap diimport.`;
+  }
+}
+
+
+// ── RECHECK BANNER ───────────────────────────────────────────────────────────
+function showRecheckBanner(show) {
+  const banner = document.getElementById('recheck-banner');
+  if (banner) banner.classList.toggle('show', !!show);
+}
+
+// Cek ulang duplikat DB langsung dari review panel
+async function recheckFromReview() {
+  const btn = document.getElementById('btn-recheck-inline');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Mengecek...'; }
+
+  try {
+    await checkDuplicates(); // fungsi utama — sudah handle semua state & rebuild review
+    _needsRecheck = false;
+    showRecheckBanner(false);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Cek Ulang Duplikat DB'; }
+  }
+}
+
+
+// ══════════════════════════════════════════
+// FUZZY MATCH GARDU
+// ══════════════════════════════════════════
+
+// Levenshtein distance (case-insensitive)
+function levenshtein(a, b) {
+  a = a.toUpperCase(); b = b.toUpperCase();
+  const m = a.length, n = b.length;
+  const dp = Array.from({length: m+1}, (_, i) => Array.from({length: n+1}, (_, j) => j === 0 ? i : 0));
+  for (let j = 1; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1]
+        : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[m][n];
+}
+
+// Cari gardu-gardu mirip dari _garduInfoMap untuk satu no_gardu yang tidak dikenal
+// Mengembalikan array [{no_gardu, alamat, penyulang, dist}] sorted by dist, max 3 saran
+function findSimilarGardu(unknown, maxSuggestions = 3, maxDist = 4) {
+  const candidates = [];
+  for (const [kg, info] of _garduInfoMap.entries()) {
+    const dist = levenshtein(unknown, kg);
+    // Juga cek: jika panjang mirip, beri bobot lebih jika prefix sama
+    const sim = dist / Math.max(unknown.length, kg.length);
+    if (dist <= maxDist || sim <= 0.45) {
+      candidates.push({ no_gardu: kg, alamat: info.alamat, penyulang: info.penyulang, dist });
+    }
+  }
+  candidates.sort((a, b) => a.dist - b.dist);
+  return candidates.slice(0, maxSuggestions);
+}
+
+async function checkDuplicates() {
+  const url = document.getElementById('supa-url').value.trim().replace(/\/$/, '');
+  const key = document.getElementById('supa-key').value.trim();
+  if (!url || !key) { toast('Isi Supabase URL dan API Key terlebih dahulu', 'error'); return; }
+  if (parsedRows.length === 0) { toast('Tidak ada data untuk dicek', 'error'); return; }
+
+  const btn = document.getElementById('btn-check');
+  btn.disabled = true;
+  btn.textContent = '⏳ Mengecek...';
+  toast('Mengambil data dari database untuk mendeteksi duplikat...', 'info');
+
+  try {
+    // ── STEP 1: Validasi no_gardu ke tabel gardu di DB ──────────────────────
+    btn.textContent = '⏳ Validasi gardu...';
+    _unknownGarduSet.clear();
+    _garduInfoMap.clear();
+    _garduSuggestMap.clear();
+    const garduSet = [...new Set(parsedRows.map(r => r.no_gardu))];
+    const tglSet   = [...new Set(parsedRows.map(r => r.tgl_ukur))];
+    const CHUNK = 100;
+
+    const knownGarduSet = new Set();
+    let garduTableMissing = false;
+
+    // Fetch semua gardu dari DB (untuk fuzzy match & info alamat/penyulang)
+    // Kita ambil no_gardu, alamat, penyulang dari seluruh tabel gardu
+    try {
+      let allGarduRows = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const qAll = `${url}/rest/v1/gardu?select=no_gardu,alamat,penyulang&order=no_gardu`;
+        const rAll = await fetch(qAll, {
+          headers: {
+            'apikey': key, 'Authorization': `Bearer ${key}`,
+            'Prefer': 'count=none', 'Range': `${from}-${from + pageSize - 1}`
+          }
+        });
+        if (!rAll.ok) {
+          if (rAll.status === 404 || rAll.status === 400) { garduTableMissing = true; break; }
+          throw new Error(`Query gardu gagal (${rAll.status}): ${await rAll.text()}`);
+        }
+        const page = await rAll.json();
+        allGarduRows.push(...page);
+        if (page.length < pageSize) break;
+        from += pageSize;
+      }
+      if (!garduTableMissing) {
+        for (const g of allGarduRows) {
+          knownGarduSet.add(g.no_gardu);
+          _garduInfoMap.set(g.no_gardu, { alamat: g.alamat || '', penyulang: g.penyulang || '' });
+        }
+      }
+    } catch(e) {
+      toast('ⓘ Gagal mengambil data gardu — validasi dilewati: ' + e.message, 'info');
+      garduTableMissing = true;
+    }
+
+    if (garduTableMissing) {
+      // Anggap semua valid, skip validasi
+      garduSet.forEach(g => knownGarduSet.add(g));
+      toast('ⓘ Tabel gardu tidak ditemukan di DB — validasi no_gardu dilewati', 'info');
+    }
+
+    // Tandai no_gardu yang tidak ada di DB & bangun saran fuzzy
+    for (const g of garduSet) {
+      if (!knownGarduSet.has(g)) {
+        _unknownGarduSet.add(g);
+        // Cari kandidat mirip dari seluruh DB
+        if (_garduInfoMap.size > 0) {
+          const suggestions = findSimilarGardu(g);
+          if (suggestions.length > 0) _garduSuggestMap.set(g, suggestions);
+        }
+      }
+    }
+    if (_unknownGarduSet.size > 0) {
+      toast(`⚠ ${_unknownGarduSet.size} no_gardu tidak ditemukan di tabel gardu: ${[..._unknownGarduSet].slice(0,5).join(', ')}${_unknownGarduSet.size > 5 ? '...' : ''}`, 'error');
+    }
+
+    // ── STEP 2: Cek duplikat di tabel inspeksi ──────────────────────────────
+    btn.textContent = '⏳ Cek duplikat...';
+    const existingKeys = new Set();
+
+    for (let gi = 0; gi < garduSet.length; gi += CHUNK) {
+      const garduChunk = garduSet.slice(gi, gi + CHUNK);
+      let query = `${url}/rest/v1/inspeksi?select=no_gardu,tgl_ukur,jam_ukur,petugas`;
+      query += `&no_gardu=in.(${garduChunk.map(g => encodeURIComponent(g)).join(',')})`;
+      // filter tgl juga untuk mempersempit hasil
+      if (tglSet.length <= CHUNK) {
+        query += `&tgl_ukur=in.(${tglSet.map(t => encodeURIComponent(t)).join(',')})`;
+      }
+
+      const resp = await fetch(query, {
+        headers: {
+          'apikey': key,
+          'Authorization': `Bearer ${key}`,
+          'Prefer': 'count=none',
+          'Range': '0-9999',
+        }
+      });
+      if (!resp.ok) throw new Error(`Query gagal (${resp.status}): ${await resp.text()}`);
+      const rows = await resp.json();
+      for (const r of rows) {
+        const jamNorm = normalizeJam(r.jam_ukur) || '';
+        const petNorm = (r.petugas || '').trim().toLowerCase();
+        existingKeys.add(`${r.no_gardu}|${r.tgl_ukur}|${jamNorm}|${petNorm}`);
+      }
+    }
+
+    // Tandai rowStatuses berdasarkan hasil cek
+    let cSkip = 0, cNew = 0;
+    for (let i = 0; i < parsedRows.length; i++) {
+      const r = parsedRows[i];
+      const jamNorm = normalizeJam(r.jam_ukur) || '';
+      const petNorm = (r.petugas || '').trim().toLowerCase();
+      const key2 = `${r.no_gardu}|${r.tgl_ukur}|${jamNorm}|${petNorm}`;
+      if (existingKeys.has(key2)) {
+        rowStatuses[i] = 'skip';
+        cSkip++;
+      } else {
+        rowStatuses[i] = 'pending';
+        cNew++;
+      }
+    }
+
+    renderPreview();
+    toast(`✓ Cek selesai: ${cNew} baru, ${cSkip} sudah ada di DB (akan di-skip)`, 'success');
+
+    // Tampilkan panel review
+    buildReviewPanel();
+  } catch (err) {
+    toast(`Gagal cek duplikat: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 Cek Duplikat DB';
+  }
+}
+
+// ══════════════════════════════════════════
+// IMPORT
+// ══════════════════════════════════════════
+async function startImport() {
+  const url = document.getElementById('supa-url').value.trim().replace(/\/$/, '');
+  const key = document.getElementById('supa-key').value.trim();
+
+  if (!url || !key) { toast('Isi Supabase URL dan API Key terlebih dahulu', 'error'); return; }
+  if (parsedRows.length === 0) { toast('Tidak ada data untuk diimport', 'error'); return; }
+  if (!_reviewChecked) { toast('Harap review dan konfirmasi data terlebih dahulu sebelum import', 'error'); return; }
+
+  document.getElementById('btn-import').disabled = true;
+  document.getElementById('progress-panel').style.display = 'block';
+  document.getElementById('result-panel').style.display = 'none';
+  document.getElementById('prog-log').innerHTML = '';
+  errorLog = [];
+  abortFlag = false;
+
+  let inserted = 0, skipped = 0, errored = 0;
+  const total = parsedRows.length;
+
+  for (let i = 0; i < parsedRows.length; i++) {
+    if (abortFlag) break;
+    const row = parsedRows[i];
+    const pct = Math.round(((i+1)/total)*100);
+
+    updateProgress(pct, `Memproses baris ${i+1} / ${total}`, i+1, total);
+
+    // Jika sudah ditandai skip dari pre-check → langsung lewati tanpa query ke DB
+    if (rowStatuses[i] === 'skip') {
+      skipped++;
+      addLog(`Baris ${row._csvRow}: ${row.no_gardu} ${row.tgl_ukur} — sudah ada (pre-check skip)`, 'warn');
+      continue;
+    }
+
+    try {
+      const result = await upsertRow(url, key, row);
+      if (result === 'skip') {
+        skipped++;
+        rowStatuses[i] = 'skip';
+        addLog(`Baris ${row._csvRow}: ${row.no_gardu} ${row.tgl_ukur} ${row.jam_ukur || ''} — dilewati`, 'warn');
+      } else {
+        inserted++;
+        rowStatuses[i] = 'insert';
+        addLog(`Baris ${row._csvRow}: ${row.no_gardu} ${row.tgl_ukur} — berhasil INSERT`, 'ok');
+      }
+    } catch (err) {
+      errored++;
+      rowStatuses[i] = 'error';
+      errorLog.push({ csvRow: row._csvRow, rowIndex: i, no_gardu: row.no_gardu, no_gardu_raw: row._noGarduRaw, tgl: row.tgl_ukur, jam: row.jam_ukur, msg: err.message });
+      addLog(`Baris ${row._csvRow}: ${row.no_gardu}${row._noGarduRaw !== row.no_gardu ? ` (raw: ${row._noGarduRaw})` : ''} — ERROR: ${err.message}`, 'err');
+    }
+
+    // Re-render every 20 rows for performance
+    if (i % 20 === 0 || i === total - 1) renderPreview();
+  }
+
+  renderPreview();
+  showResult(total, inserted, skipped, errored);
+  document.getElementById('btn-import').disabled = false;
+}
+
+async function upsertRow(baseUrl, key, row) {
+  // Normalisasi jam_ukur: pastikan format HH:MM (buang detik jika ada, e.g. "18:14:00" → "18:14")
+  const jamNorm = normalizeJam(row.jam_ukur);
+
+  // Gunakan Supabase upsert dengan onConflict → ON CONFLICT DO NOTHING di level DB
+  // Ini jauh lebih aman dari SELECT+INSERT (tidak ada race condition, tidak ada format mismatch)
+  const body = buildBody({ ...row, jam_ukur: jamNorm });
+
+  const insertResp = await fetch(`${baseUrl}/rest/v1/inspeksi?on_conflict=no_gardu,tgl_ukur,jam_ukur,petugas`, {
+    method: 'POST',
+    headers: {
+      'apikey': key,
+      'Authorization': `Bearer ${key}`,
+      'Content-Type': 'application/json',
+      // ignoreDuplicates=true → ON CONFLICT DO NOTHING, return 200 bukan 409
+      'Prefer': 'return=representation,resolution=ignore-duplicates',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!insertResp.ok) {
+    const errTxt = await insertResp.text();
+    throw new Error(`Insert gagal (${insertResp.status}): ${errTxt.slice(0, 160)}`);
+  }
+
+  // Supabase: jika duplikat di-ignore, response body kosong []
+  // Jika berhasil INSERT, response berisi array dengan 1 item
+  const result = await insertResp.json();
+  return (Array.isArray(result) && result.length === 0) ? 'skip' : 'insert';
+}
+
+function normalizeJam(jam) {
+  if (!jam) return null;
+  const s = String(jam).trim().replace(/['"]/g, '');
+  if (!s) return null;
+
+  // Format HH:MM atau HH:MM:SS  →  ambil HH:MM
+  let m = s.match(/^(\d{1,2}):(\d{2})/);
+  if (m) return m[1].padStart(2, '0') + ':' + m[2];
+
+  // Format HH.MM atau HH.MM.SS  →  konversi titik ke titik dua
+  m = s.match(/^(\d{1,2})\.(\d{2})/);
+  if (m) return m[1].padStart(2, '0') + ':' + m[2];
+
+  // Format HHMM (4 digit tanpa pemisah, e.g. '0858')
+  m = s.match(/^(\d{2})(\d{2})$/);
+  if (m) return m[1] + ':' + m[2];
+
+  // Fallback: kembalikan apa adanya
+  return s;
+}
+
+function buildBody(row) {
+  const body = {};
+  const fields = [
+    'no_gardu','tgl_ukur','jam_ukur','petugas','daya','fasa','daya_pakai',
+    'prosen','tdk_seimbang','r_total','s_total','t_total','n_total',
+    'v_r_n','v_s_n','v_t_n','v_r_s','v_s_t','v_r_t',
+    'thd_r','thd_s','thd_t','ipeak_r','ipeak_s','ipeak_t',
+    'tpf_r','tpf_s','tpf_t','jurusan',
+  ];
+  for (const f of fields) {
+    if (row[f] !== undefined && row[f] !== null) body[f] = row[f];
+  }
+  return body;
+}
+
+// ══════════════════════════════════════════
+// UI HELPERS
+// ══════════════════════════════════════════
+function updateProgress(pct, text) {
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-text').textContent = text;
+  document.getElementById('prog-pct').textContent = pct + '%';
+}
+
+function addLog(msg, type = 'info') {
+  const log = document.getElementById('prog-log');
+  const now = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const div = document.createElement('div');
+  div.className = 'log-line';
+  div.innerHTML = `<span class="log-time">${now}</span><span class="log-msg ${type}">${msg}</span>`;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ── Error classifier ──────────────────────────────────────────────────────
+function classifyError(msg) {
+  if (!msg) return { type: 'unknown', label: '⚠ Error tidak diketahui', hint: '', fields: [] };
+
+  // Supabase error code 22007 = invalid datetime format
+  if (msg.includes('22007') || msg.includes('invalid input syntax for type time') || msg.includes('invalid input syntax for type timestamp')) {
+    const fieldMatch = msg.match(/type (time|timestamp|date)[\w\s]*:\s*"?([^"\\,}]+)/i);
+    const badVal = fieldMatch ? fieldMatch[2].replace(/\\"/g,'').trim() : '';
+    return {
+      type: 'time',
+      label: '⏰ Format waktu tidak valid',
+      hint: badVal ? `Nilai bermasalah: "${badVal}" — gunakan format HH:MM (contoh: 14:30)` : 'Periksa kolom JAM UKUR — gunakan format HH:MM (contoh: 14:30)',
+      fields: ['jam_ukur'],
+    };
+  }
+  if (msg.includes('invalid input syntax for type date') || msg.includes('22008')) {
+    return {
+      type: 'date',
+      label: '📅 Format tanggal tidak valid',
+      hint: 'Periksa kolom TGL UKUR — gunakan format YYYY-MM-DD (contoh: 2026-06-03)',
+      fields: ['tgl_ukur'],
+    };
+  }
+  // 23502 = not null violation
+  if (msg.includes('23502') || msg.includes('null value in column') || msg.includes('violates not-null')) {
+    const colMatch = msg.match(/column "([^"]+)"/);
+    const col = colMatch ? colMatch[1] : 'kolom wajib';
+    return {
+      type: 'field',
+      label: `📋 Kolom wajib kosong: ${col}`,
+      hint: `Isi nilai untuk kolom "${col}" sebelum import ulang`,
+      fields: colMatch ? [colMatch[1]] : [],
+    };
+  }
+  // 23505 = unique violation
+  if (msg.includes('23505') || msg.includes('duplicate key') || msg.includes('unique constraint')) {
+    return {
+      type: 'field',
+      label: '🔁 Data duplikat (sudah ada di DB)',
+      hint: 'Baris ini sudah ada di database. Tidak perlu diimport ulang.',
+      fields: [],
+    };
+  }
+  // 42703 = undefined column
+  if (msg.includes('42703') || msg.includes('column') && msg.includes('does not exist')) {
+    return {
+      type: 'field',
+      label: '🔧 Nama kolom tidak dikenali DB',
+      hint: 'Ada ketidakcocokan nama kolom antara CSV dan skema database.',
+      fields: [],
+    };
+  }
+  // Auth / key errors
+  if (msg.includes('401') || msg.includes('403') || msg.includes('Invalid API key') || msg.includes('JWT')) {
+    return {
+      type: 'auth',
+      label: '🔑 Error autentikasi / API Key',
+      hint: 'Periksa Supabase URL dan API Key di konfigurasi.',
+      fields: [],
+    };
+  }
+  // Network / fetch errors
+  if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('net::')) {
+    return {
+      type: 'network',
+      label: '🌐 Gagal terhubung ke server',
+      hint: 'Periksa koneksi internet dan Supabase URL.',
+      fields: [],
+    };
+  }
+  // Generic invalid syntax
+  if (msg.includes('invalid input syntax')) {
+    const typeMatch = msg.match(/type (\w+)/i);
+    const t = typeMatch ? typeMatch[1] : 'data';
+    return {
+      type: 'field',
+      label: `✗ Format ${t} tidak valid`,
+      hint: `Nilai tidak sesuai tipe data "${t}" di database.`,
+      fields: [],
+    };
+  }
+  return { type: 'unknown', label: '⚠ Error tidak diketahui', hint: msg.slice(0, 120), fields: [] };
+}
+
+function renderErrorList() {
+  const errList = document.getElementById('error-list');
+  if (errorLog.length === 0) { errList.style.display = 'none'; return; }
+
+  const badgeClass = { time:'err-badge-time', date:'err-badge-date', field:'err-badge-field', auth:'err-badge-auth', network:'err-badge-network', unknown:'err-badge-unknown', fixed:'err-badge-fixed' };
+
+  errList.style.display = 'block';
+  errList.innerHTML = `<div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:10px">DAFTAR ERROR (${errorLog.length}):</div>` +
+    errorLog.map((e, idx) => {
+      const cls = e.fixed ? 'fixed' : classifyError(e.msg).type;
+      const info = e.fixed ? { label:'✓ Berhasil diimport ulang', hint:'', fields:[] } : classifyError(e.msg);
+      const bCls = badgeClass[cls] || 'err-badge-unknown';
+      const editBtn = (!e.fixed && info.fields.length > 0)
+        ? `<button class="btn-edit-retry" id="edit-btn-${idx}" onclick="openEditModal(${idx})">✎ Edit & Import Ulang</button>`
+        : (!e.fixed && info.type !== 'auth' && info.type !== 'network')
+          ? `<button class="btn-edit-retry" id="edit-btn-${idx}" onclick="openEditModal(${idx})">✎ Edit & Import Ulang</button>`
+          : '';
+      return `<div class="err-row" id="err-row-${idx}">
+        <span class="row-num">Baris ${e.csvRow}</span>
+        <div class="err-row-body">
+          <span class="err-row-main">${e.no_gardu} ${e.tgl}</span>
+          <span class="err-badge ${bCls}">${info.label}</span>
+          ${info.hint ? `<span style="font-size:11px;color:var(--text3);margin-top:2px">${info.hint}</span>` : ''}
+          ${editBtn}
+        </div>
+      </div>`;
+    }).join('');
+
+  document.getElementById('btn-export-errors').style.display = 'inline-flex';
+}
+
+// ── Edit & Retry ──────────────────────────────────────────────────────────
+let _editIdx = null;
+
+function openEditModal(idx) {
+  const e = errorLog[idx];
+  if (!e) return;
+  const info = classifyError(e.msg);
+  _editIdx = idx;
+
+  document.getElementById('em-title').textContent = `Edit Baris ${e.csvRow} — ${e.no_gardu}`;
+  document.getElementById('em-subtitle').textContent = `${e.tgl}${e.jam ? ' ' + e.jam : ''}`;
+
+  const badgeClass = { time:'err-badge-time', date:'err-badge-date', field:'err-badge-field', auth:'err-badge-auth', network:'err-badge-network', unknown:'err-badge-unknown' };
+  document.getElementById('em-error-badge').innerHTML =
+    `<span class="err-badge ${badgeClass[info.type]||'err-badge-unknown'}">${info.label}</span>` +
+    (info.hint ? `<div style="font-size:11px;color:var(--warn);font-family:var(--mono);margin-top:6px">${info.hint}</div>` : '');
+
+  // Build editable fields depending on error type
+  const row = parsedRows[e.rowIndex];
+  let fieldsHtml = '';
+
+  if (info.type === 'time') {
+    const curVal = row.jam_ukur || '';
+    fieldsHtml = `
+      <label class="edit-field-label">JAM UKUR</label>
+      <input type="text" id="em-input-jam_ukur" value="${curVal}" placeholder="HH:MM (contoh: 14:30)"
+        style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:14px;padding:9px 12px;outline:none;width:100%;transition:border-color 0.2s"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+      <div class="edit-field-hint">Format: HH:MM — contoh: 14:30, 08:00, 23:59</div>`;
+  } else if (info.type === 'date') {
+    const curVal = row.tgl_ukur || '';
+    fieldsHtml = `
+      <label class="edit-field-label">TGL UKUR</label>
+      <input type="text" id="em-input-tgl_ukur" value="${curVal}" placeholder="YYYY-MM-DD (contoh: 2026-06-03)"
+        style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:14px;padding:9px 12px;outline:none;width:100%;transition:border-color 0.2s"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+      <div class="edit-field-hint">Format: YYYY-MM-DD — contoh: 2026-06-03</div>`;
+  } else if (info.fields.length > 0) {
+    // Generic field editing
+    fieldsHtml = info.fields.map(f => {
+      const curVal = row[f] !== undefined ? row[f] : '';
+      return `
+        <label class="edit-field-label">${f.toUpperCase()}</label>
+        <input type="text" id="em-input-${f}" value="${curVal}" placeholder="Isi nilai untuk ${f}"
+          style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:14px;padding:9px 12px;outline:none;width:100%;transition:border-color 0.2s;margin-bottom:12px"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">`;
+    }).join('');
+  } else {
+    // Fallback: show raw error, let user edit jam and tgl
+    const jamVal = row.jam_ukur || '';
+    const tglVal = row.tgl_ukur || '';
+    fieldsHtml = `
+      <label class="edit-field-label">TGL UKUR</label>
+      <input type="text" id="em-input-tgl_ukur" value="${tglVal}" placeholder="YYYY-MM-DD"
+        style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:14px;padding:9px 12px;outline:none;width:100%;margin-bottom:12px;transition:border-color 0.2s"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+      <label class="edit-field-label" style="margin-top:4px">JAM UKUR</label>
+      <input type="text" id="em-input-jam_ukur" value="${jamVal}" placeholder="HH:MM"
+        style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:14px;padding:9px 12px;outline:none;width:100%;transition:border-color 0.2s"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">`;
+  }
+
+  document.getElementById('em-fields').innerHTML = fieldsHtml;
+
+  const overlay = document.getElementById('edit-modal-overlay');
+  overlay.classList.add('open');
+  overlay.onclick = (ev) => { if (ev.target === overlay) closeEditModal(); };
+
+  // Focus first input
+  setTimeout(() => {
+    const first = document.querySelector('#em-fields input');
+    if (first) first.focus();
+  }, 100);
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal-overlay').classList.remove('open');
+  _editIdx = null;
+}
+
+async function saveEditAndRetry() {
+  if (_editIdx === null) return;
+  const e = errorLog[_editIdx];
+  const row = parsedRows[e.rowIndex];
+  const info = classifyError(e.msg);
+  const btn = document.getElementById('em-btn-save');
+
+  // Collect edited values
+  const fieldsToEdit = info.type === 'time' ? ['jam_ukur']
+    : info.type === 'date' ? ['tgl_ukur']
+    : info.fields.length > 0 ? info.fields
+    : ['tgl_ukur', 'jam_ukur'];
+
+  for (const f of fieldsToEdit) {
+    const input = document.getElementById(`em-input-${f}`);
+    if (input) row[f] = input.value.trim() || null;
+  }
+
+  const url = document.getElementById('supa-url').value.trim().replace(/\/$/, '');
+  const key = document.getElementById('supa-key').value.trim();
+  if (!url || !key) { toast('Isi Supabase URL dan API Key terlebih dahulu', 'error'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Mengimport...';
+
+  try {
+    const result = await upsertRow(url, key, row);
+    errorLog[_editIdx].fixed = true;
+    rowStatuses[e.rowIndex] = result === 'skip' ? 'skip' : 'insert';
+    closeEditModal();
+    renderErrorList();
+    renderPreview();
+    // Update counter
+    const stillErrored = errorLog.filter(x => !x.fixed).length;
+    document.getElementById('res-err').textContent = stillErrored;
+    const nowInserted = parseInt(document.getElementById('res-insert').textContent) + (result !== 'skip' ? 1 : 0);
+    document.getElementById('res-insert').textContent = nowInserted;
+    toast(result === 'skip' ? `Baris ${e.csvRow}: sudah ada di DB (skip)` : `✓ Baris ${e.csvRow}: berhasil diimport ulang!`, result === 'skip' ? 'info' : 'success');
+  } catch (err) {
+    errorLog[_editIdx].msg = err.message;
+    closeEditModal();
+    renderErrorList();
+    toast(`Baris ${e.csvRow}: masih error — ${classifyError(err.message).label}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⬆ Simpan & Import Ulang';
+  }
+}
+
+function showResult(total, inserted, skipped, errored) {
+  document.getElementById('res-total').textContent  = total;
+  document.getElementById('res-insert').textContent = inserted;
+  document.getElementById('res-skip').textContent   = skipped;
+  document.getElementById('res-err').textContent    = errored;
+
+  renderErrorList();
+  document.getElementById('result-panel').style.display = 'block';
+
+  if (errored === 0 && inserted > 0) {
+    toast(`✓ Import selesai: ${inserted} data berhasil dimasukkan, ${skipped} dilewati`, 'success');
+  } else if (inserted > 0) {
+    toast(`Import selesai: ${inserted} berhasil, ${errored} gagal`, 'success');
+  } else if (skipped === total) {
+    toast(`Semua ${total} baris sudah ada di database (skip semua)`, 'success');
+  } else {
+    toast(`Import selesai dengan ${errored} error`, 'error');
+  }
+}
+
+function exportErrors() {
+  if (errorLog.length === 0) return;
+  const csv = 'Baris CSV,No Gardu (Normalized),No Gardu (Raw),Tanggal,Pesan Error\n' +
+    errorLog.map(e => `${e.csvRow},"${e.no_gardu}","${e.no_gardu_raw || e.no_gardu}","${e.tgl}","${e.msg.replace(/"/g, "''")}"`).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `import-errors-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+function resetAll() {
+  parsedRows = [];
+  rowStatuses = [];
+  errorLog = [];
+  _dateFormatDecision = null;
+  _reviewFlags = [];
+  _reviewChecked = false;
+  _needsRecheck = false;
+  _unknownGarduSet.clear();
+  _garduInfoMap.clear();
+  _garduSuggestMap.clear();
+  showRecheckBanner(false);
+  zone.classList.remove('has-file');
+  document.getElementById('file-input').value = '';
+  document.getElementById('date-detect-panel').classList.remove('visible');
+  document.getElementById('dd-override-container').style.display = 'none';
+  document.getElementById('preview-panel').style.display = 'none';
+  document.getElementById('action-bar').style.display = 'none';
+  document.getElementById('review-panel').style.display = 'none';
+  document.getElementById('progress-panel').style.display = 'none';
+  document.getElementById('result-panel').style.display = 'none';
+  document.getElementById('preview-body').innerHTML = '';
+  // Reset import buttons
+  const btnImport = document.getElementById('btn-import');
+  btnImport.disabled = true;
+  btnImport.title = 'Klik Review Data terlebih dahulu sebelum import';
+  const btnImportInline = document.getElementById('btn-import-inline');
+  if (btnImportInline) { btnImportInline.style.display = 'none'; btnImportInline.disabled = true; }
+}
+
+function toast(msg, type = 'info') {
+  const area = document.getElementById('ci-toast-area');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ⓘ'}</span><span>${msg}</span>`;
+  area.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.4s'; setTimeout(() => el.remove(), 400); }, 4000);
+}
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  return (b/1024/1024).toFixed(1) + ' MB';
+}
+
+
+// ── Expose global onclick handlers ──────────────────────────
+window.overrideDateFormat   = overrideDateFormat;
+window.resetAll             = resetAll;
+window.checkDuplicates      = checkDuplicates;
+window.startImport          = startImport;
+window.setReviewFilter      = setReviewFilter;
+window.renderReviewTable    = renderReviewTable;
+window.confirmReview        = confirmReview;
+window.applyGarduEdit       = applyGarduEdit;
+window.ignoreUnknownGardu   = ignoreUnknownGardu;
+window.recheckFromReview    = recheckFromReview;
+window.openEditModal        = openEditModal;
+window.closeEditModal       = closeEditModal;
+window.saveEditAndRetry     = saveEditAndRetry;
+window.exportErrors         = exportErrors;
+
+})();
+
+// ── Modal open/close (outside IIFE so main app can call) ────
+function bukaModalCsvImport() {
+  var s = getSession();
+  if (!s || s.role !== 'superadmin') {
+    showMsg('Akses ditolak. Hanya Superadmin yang dapat menggunakan fitur ini.', true);
+    return;
+  }
+  // Auto-fill hidden credentials
+  var urlEl = document.getElementById('supa-url');
+  var keyEl = document.getElementById('supa-key');
+  if (urlEl) urlEl.value = typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : '';
+  if (keyEl) keyEl.value = typeof SUPABASE_ANON !== 'undefined' ? SUPABASE_ANON : '';
+
+  // Tutup admin panel dulu
+  var adminModal = document.getElementById('modal-admin-panel');
+  if (adminModal) adminModal.style.display = 'none';
+
+  document.getElementById('modal-csv-import').style.display = 'flex';
+}
+
+function tutupModalCsvImport() {
+  document.getElementById('modal-csv-import').style.display = 'none';
+  // Reset state
+  if (typeof resetAll === 'function') {
+    try { resetAll(); } catch(e) {}
+  }
+}
+
 </script>
 </body>
 </html>
