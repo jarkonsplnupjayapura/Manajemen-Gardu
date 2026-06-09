@@ -1075,27 +1075,21 @@ input[type=number]{-moz-appearance:textfield;}
 .pm-status-selesai{background:#D1FAE5;color:#065F46;}
 .pm-status-proses{background:#FEF3C7;color:#92400E;}
 .pm-status-tunda{background:#FEE2E2;color:#991B1B;}
+</style>
+<style id="ci-import-styles">
 
-
-/* ── CI Import: Toast area (global, outside modal scope) ── */
+/* ── CI Import: ci-toast-area (fixed, outside modal scope) ── */
 .ci-toast-area {
   position: fixed; bottom: 80px; right: 24px;
   display: flex; flex-direction: column; gap: 8px;
-  z-index: 9700;
-  pointer-events: none;
+  z-index: 9700; pointer-events: none;
 }
 .ci-toast-area .toast {
-  background: #191d27;
-  border: 1px solid #2f3649;
-  border-radius: 8px;
-  padding: 12px 16px;
-  font-size: 13px;
-  max-width: 340px;
-  animation: ciSlideIn 0.3s ease;
-  display: flex; gap: 10px; align-items: center;
-  color: #e2e8f0;
-  pointer-events: all;
-  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  background: #191d27; border: 1px solid #2f3649; border-radius: 8px;
+  padding: 12px 16px; font-size: 13px; max-width: 340px;
+  animation: ciSlideIn 0.3s ease; display: flex; gap: 10px; align-items: center;
+  color: #e2e8f0; pointer-events: all;
+  font-family: system-ui, sans-serif;
 }
 .ci-toast-area .toast.success { border-color: #166534; }
 .ci-toast-area .toast.error   { border-color: #7f1d1d; }
@@ -1105,26 +1099,9 @@ input[type=number]{-moz-appearance:textfield;}
   to   { transform: translateX(0);    opacity: 1; }
 }
 
-/* ── CI Import Modal: edit-modal-overlay (scoped) ── */
-#modal-csv-import .edit-modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.7);
-  z-index: 9600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s;
-}
-#modal-csv-import .edit-modal-overlay.open {
-  opacity: 1;
-  pointer-events: all;
-}
+#ci-modal-body 500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 
-</style>
-<style id="ci-import-styles">
-#ci-modal-body {
+  #ci-modal-body {
     --ci-bg:        #0d0f14;
     --ci-surface:   #13161d;
     --ci-card:      #191d27;
@@ -2801,8 +2778,10 @@ input[type=number]{-moz-appearance:textfield;}
       <!-- Isi dirender ulang oleh _tampilkanPanelAdmin() sesuai role -->
       <button class="btn btn-blue" onclick="bukaFormTambahGardu()">➕ Tambah Gardu Baru</button>
       <button class="btn btn-outline" onclick="bukaFormEditGardu()">✏️ Edit Gardu</button>
-      <button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalUserULP()">👥 Kelola User ULP Saya</button>
       <button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalExport()">📊 Export Laporan</button>
+      <button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalUser()">👥 Kelola User</button>
+      <button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalSetPin()">🔑 Set / Ganti PIN User</button>
+      <button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalCsvImport()">📥 Import Bulk Inspeksi</button>
       <button class="btn btn-red" onclick="doLogout()">🚪 Logout</button>
     </div>
   </div>
@@ -3790,11 +3769,11 @@ function _tampilkanPanelAdmin(s) {
       // Superadmin: semua fitur
       actionsEl.innerHTML =
         '<button class="btn btn-blue" onclick="bukaFormTambahGardu()">➕ Tambah Gardu Baru</button>' +
-        '<button class="btn btn-outline" onclick="bukaModalCsvImport()">📥 Import Bulk Inspeksi</button>' +
         '<button class="btn btn-outline" onclick="bukaFormEditGardu()">✏️ Edit Gardu</button>' +
         '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalExport()">📊 Export Laporan</button>' +
         '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalUser()">👥 Kelola User</button>' +
         '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalSetPin()">🔑 Set / Ganti PIN User</button>' +
+        '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalCsvImport()">📥 Import Bulk Inspeksi</button>' +
         '<button class="btn btn-red" onclick="doLogout()">🚪 Logout</button>';
     } else {
       // Admin ULP: Tambah, Edit gardu + Kelola User ULP sendiri + Set PIN + Export
@@ -11441,55 +11420,49 @@ if ('serviceWorker' in navigator) {
 })();
 </script>
 
-
 <!-- ============================================================
      MODAL: Import Bulk Inspeksi (Superadmin Only)
-     Terintegrasi dari csv-importer-inspeksi.html
      ============================================================ -->
 <div id="modal-csv-import" style="display:none;position:fixed;inset:0;z-index:9500;background:#0d0f14;flex-direction:column;overflow:hidden;">
-  <!-- Header modal -->
+  <!-- Header -->
   <div style="background:#13161d;border-bottom:1px solid #252a38;padding:0 20px;height:52px;display:flex;align-items:center;gap:14px;flex-shrink:0;">
     <div style="display:flex;align-items:center;gap:10px;flex:1;">
       <div style="background:#3b82f6;border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;font-family:monospace;">PLN</div>
       <div>
         <div style="font-size:14px;font-weight:600;color:#e2e8f0;">Import Bulk Inspeksi</div>
-        <div style="font-size:11px;color:#64748b;font-family:monospace;">UP3 Jayapura — CSV / XLS / XLSX Uploader</div>
+        <div style="font-size:11px;color:#64748b;font-family:monospace;">UP3 Jayapura — CSV / XLS / XLSX Uploader · Superadmin Only</div>
       </div>
     </div>
-    <div style="background:#1e3a5f;color:#60a5fa;font-family:monospace;font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid #2a5080;">🔒 Superadmin Only</div>
-    <button onclick="tutupModalCsvImport()" title="Tutup" style="background:#1e293b;border:1px solid #2f3649;border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;color:#94a3b8;display:flex;align-items:center;justify-content:center;">✕</button>
+    <button onclick="tutupModalCsvImport()" style="background:#1e293b;border:1px solid #2f3649;border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer;color:#94a3b8;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
   </div>
-  <!-- Body: scrollable container -->
+  <!-- Scrollable body -->
   <div id="ci-modal-body" style="flex:1;overflow-y:auto;padding:28px 24px;max-width:1140px;width:100%;margin:0 auto;box-sizing:border-box;">
-    <!-- Supabase credentials auto-filled — hidden -->
-    <input type="hidden" id="supa-url" />
-    <input type="hidden" id="supa-key" />
-
-    <!-- NOTE BOX -->
-    <div class="note-box" style="background:#1e293b;border:1px solid #2f3649;border-radius:8px;padding:14px 18px;margin-bottom:22px;font-size:12px;color:#94a3b8;font-family:'IBM Plex Mono',monospace;line-height:1.7;">
+    <!-- Hidden credential inputs — auto-filled saat modal dibuka -->
+    <input type="hidden" id="supa-url">
+    <input type="hidden" id="supa-key">
+    <!-- Info box -->
+    <div style="background:#1e293b;border:1px solid #2f3649;border-radius:8px;padding:14px 18px;margin-bottom:22px;font-size:12px;color:#94a3b8;font-family:monospace;line-height:1.7;">
       <strong style="color:#e2e8f0;">Cara kerja import:</strong><br>
-      • CSV kolom <code style="background:#0d0f14;padding:1px 5px;border-radius:3px;">NOGARDU</code> dengan suffix (<code style="background:#0d0f14;padding:1px 5px;border-radius:3px;">-1</code>, <code style="background:#0d0f14;padding:1px 5px;border-radius:3px;">-K</code> dll) akan di-strip otomatis ke kode gardu induk.<br>
-      • Klik <strong style="color:#e2e8f0;">🔍 Cek Duplikat DB</strong> sebelum import untuk melihat baris mana yang sudah ada (SKIP).<br>
-      • Duplikat dicegah di level database via <code style="background:#0d0f14;padding:1px 5px;border-radius:3px;">ON CONFLICT DO NOTHING</code> berdasarkan <strong style="color:#e2e8f0;">(no_gardu + tgl_ukur + jam_ukur + petugas)</strong>.<br>
-      • File <strong style="color:#e2e8f0;">.xls / .xlsx</strong> dari PLN langsung didukung — tidak perlu convert ke CSV.
+      • Kolom <code style="background:#0d0f14;padding:1px 5px;border-radius:3px;">NOGARDU</code> dengan suffix (<code style="background:#0d0f14;padding:1px 5px;border-radius:3px;">-1</code>, <code style="background:#0d0f14;padding:1px 5px;border-radius:3px;">-K</code> dll) di-strip otomatis ke kode gardu induk.<br>
+      • Klik <strong style="color:#e2e8f0;">🔍 Cek Duplikat DB</strong> sebelum import — menandai baris yang sudah ada (SKIP).<br>
+      • Duplikat dicegah di level DB via <code style="background:#0d0f14;padding:1px 5px;border-radius:3px;">ON CONFLICT DO NOTHING</code> berdasarkan (no_gardu + tgl_ukur + jam_ukur + petugas).<br>
+      • File <strong style="color:#e2e8f0;">.xls / .xlsx</strong> PLN langsung didukung, tidak perlu convert ke CSV.
     </div>
-
-    <!-- UPLOAD ZONE -->
+    <!-- Upload zone -->
     <div class="upload-zone" id="upload-zone">
       <div class="upload-prompt">
         <span class="upload-icon">📂</span>
-        <div class="upload-title">Drag & drop file di sini</div>
-        <div class="upload-sub">atau klik untuk pilih file · <strong style="color:var(--ci-accent2)">.xls · .xlsx · .csv</strong> — Laporan Pengukuran Bulanan PLN</div>
+        <div class="upload-title">Drag &amp; drop file di sini</div>
+        <div class="upload-sub">atau klik untuk pilih file · <strong style="color:var(--ci-accent2)">.xls · .xlsx · .csv</strong></div>
       </div>
       <div class="upload-file-info">
         <span style="font-size:24px">✅</span>
         <span id="file-name-display" style="color:var(--ci-success)"></span>
-        <span style="color:var(--ci-text3)" id="file-size-display"></span>
+        <span id="file-size-display" style="color:var(--ci-text3)"></span>
       </div>
       <input type="file" id="file-input" accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
     </div>
-
-    <!-- DATE DETECTION PANEL -->
+    <!-- Date detection -->
     <div class="date-detect-panel" id="date-detect-panel">
       <div class="date-detect-title">🗓 Deteksi Format Tanggal Otomatis</div>
       <div id="dd-badge-container"></div>
@@ -11498,55 +11471,44 @@ if ('serviceWorker' in navigator) {
       <div id="dd-override-container" style="width:100%;margin-top:6px;display:none">
         <div style="font-size:11px;color:var(--ci-text3);margin-bottom:6px;font-family:var(--ci-mono)">OVERRIDE FORMAT MANUAL:</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <button class="filter-btn" id="dd-override-ddmm" onclick="overrideDateFormat('DD/MM')" title="Paksa DD/MM/YYYY">Paksa DD/MM/YYYY</button>
-          <button class="filter-btn" id="dd-override-mmdd" onclick="overrideDateFormat('MM/DD')" title="Paksa MM/DD/YYYY">Paksa MM/DD/YYYY</button>
+          <button class="filter-btn" id="dd-override-ddmm" onclick="overrideDateFormat('DD/MM')">Paksa DD/MM/YYYY</button>
+          <button class="filter-btn" id="dd-override-mmdd" onclick="overrideDateFormat('MM/DD')">Paksa MM/DD/YYYY</button>
           <span id="dd-override-status" style="font-size:11px;color:var(--ci-text3);font-family:var(--ci-mono)"></span>
         </div>
       </div>
     </div>
-
-    <!-- PREVIEW TABLE -->
+    <!-- Preview table -->
     <div class="preview-panel" id="preview-panel">
       <div class="preview-header">
         <div class="panel-title" style="margin:0">Preview Data</div>
         <div class="preview-stats">
-          <span class="stat-chip total" id="chip-total">0 baris</span>
-          <span class="stat-chip valid" id="chip-insert">0 baru</span>
-          <span class="stat-chip skip" id="chip-skip">0 skip</span>
-          <span class="stat-chip error" id="chip-error">0 error</span>
+          <span class="stat-chip total"  id="chip-total">0 baris</span>
+          <span class="stat-chip valid"  id="chip-insert">0 baru</span>
+          <span class="stat-chip skip"   id="chip-skip">0 skip</span>
+          <span class="stat-chip error"  id="chip-error">0 error</span>
         </div>
       </div>
       <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>#CSV</th><th>STATUS</th><th>NO GARDU</th><th>TGL UKUR</th>
-              <th>JAM UKUR</th><th>PETUGAS</th><th>DAYA</th><th>PROSEN%</th>
-              <th>TDK SEIMBANG%</th><th>PENYULANG / ALAMAT / SARAN</th>
-            </tr>
-          </thead>
-          <tbody id="preview-body"></tbody>
-        </table>
+        <table><thead><tr>
+          <th>#CSV</th><th>STATUS</th><th>NO GARDU</th><th>TGL UKUR</th>
+          <th>JAM UKUR</th><th>PETUGAS</th><th>DAYA</th><th>PROSEN%</th>
+          <th>TDK SEIMBANG%</th><th>PENYULANG / ALAMAT / SARAN</th>
+        </tr></thead>
+        <tbody id="preview-body"></tbody></table>
       </div>
     </div>
-
-    <!-- ACTION BAR -->
+    <!-- Action bar -->
     <div class="action-bar" id="action-bar" style="display:none">
       <button class="btn btn-outline" onclick="resetAll()">↩ Reset</button>
       <div class="action-spacer"></div>
-      <button class="btn btn-outline" id="btn-check" onclick="checkDuplicates()" title="Cek ke database sebelum import">
-        🔍 Cek Duplikat DB
-      </button>
-      <button class="btn btn-primary" id="btn-import" onclick="startImport()" disabled title="Klik Review Data terlebih dahulu">
-        ⬆ Import ke Supabase
-      </button>
+      <button class="btn btn-outline" id="btn-check"  onclick="checkDuplicates()">🔍 Cek Duplikat DB</button>
+      <button class="btn btn-primary" id="btn-import" onclick="startImport()" disabled>⬆ Import ke Supabase</button>
     </div>
-
-    <!-- REVIEW PANEL -->
+    <!-- Review panel -->
     <div class="review-panel" id="review-panel">
       <div class="review-header">
         <div class="panel-title" style="margin:0">🔎 Review Sebelum Import</div>
-        <div style="font-size:12px;color:var(--ci-text3)">Periksa data yang akan dimasukkan. Klik kartu untuk filter tampilan.</div>
+        <div style="font-size:12px;color:var(--ci-text3)">Periksa data. Klik kartu untuk filter tampilan.</div>
       </div>
       <div class="review-summary-grid" id="rev-summary-grid"></div>
       <div class="review-toolbar">
@@ -11560,54 +11522,45 @@ if ('serviceWorker' in navigator) {
         <span class="review-count" id="rev-count"></span>
         <select class="sort-select" id="rev-sort" onchange="renderReviewTable()">
           <option value="csv">Urut: Baris CSV</option>
-          <option value="gardu">Urut: No Gardu A→Z</option>
+          <option value="gardu">Urut: No Gardu A-Z</option>
           <option value="tgl">Urut: Tanggal</option>
           <option value="status">Urut: Status</option>
           <option value="flag">Urut: Perlu Perhatian Dulu</option>
         </select>
       </div>
       <div class="recheck-banner" id="recheck-banner">
-        <span class="rb-text">⚠ Ada perubahan data sejak cek terakhir. Disarankan cek ulang ke database sebelum konfirmasi import.</span>
-        <button class="btn btn-recheck" id="btn-recheck-inline" onclick="recheckFromReview()">🔄 Cek Ulang Duplikat DB</button>
+        <span class="rb-text">⚠ Ada perubahan data sejak cek terakhir.</span>
+        <button class="btn btn-recheck" id="btn-recheck-inline" onclick="recheckFromReview()">🔄 Cek Ulang</button>
       </div>
       <div class="review-table-wrap">
-        <table class="review-table">
-          <thead>
-            <tr>
-              <th>#CSV</th><th>STATUS</th><th>NO GARDU</th><th>TGL UKUR</th>
-              <th>JAM UKUR</th><th>PETUGAS</th><th>FLAG / CATATAN</th>
-            </tr>
-          </thead>
-          <tbody id="rev-tbody"></tbody>
-        </table>
+        <table class="review-table"><thead><tr>
+          <th>#CSV</th><th>STATUS</th><th>NO GARDU</th><th>TGL UKUR</th>
+          <th>JAM UKUR</th><th>PETUGAS</th><th>FLAG / CATATAN</th>
+        </tr></thead>
+        <tbody id="rev-tbody"></tbody></table>
       </div>
       <div class="review-confirm-bar">
-        <div class="confirm-note" id="rev-confirm-note">Periksa data di atas, terutama yang berbendera ⚠. Setelah yakin, klik tombol di kanan untuk lanjut import.</div>
+        <div class="confirm-note" id="rev-confirm-note">Periksa data, terutama yang berbendera ⚠. Setelah yakin, klik tombol di kanan.</div>
         <div class="checked-indicator" id="rev-checked-indicator">✓ Data sudah diperiksa</div>
-        <button class="btn btn-confirm" id="btn-review-confirm" onclick="confirmReview()">✓ Sudah Diperiksa — Lanjut Import</button>
-        <button class="btn btn-primary" id="btn-import-inline" onclick="startImport()" disabled style="background:var(--ci-success);display:none">⬆ Import ke Supabase</button>
+        <button class="btn btn-confirm"  id="btn-review-confirm"  onclick="confirmReview()">✓ Sudah Diperiksa — Lanjut Import</button>
+        <button class="btn btn-primary"  id="btn-import-inline"   onclick="startImport()" disabled style="background:var(--ci-success);display:none">⬆ Import ke Supabase</button>
       </div>
     </div>
-
-    <!-- PROGRESS -->
+    <!-- Progress -->
     <div class="progress-panel" id="progress-panel">
       <div class="panel-title">Proses Import</div>
-      <div class="progress-label">
-        <span id="prog-text">Mempersiapkan...</span>
-        <span id="prog-pct">0%</span>
-      </div>
+      <div class="progress-label"><span id="prog-text">Mempersiapkan...</span><span id="prog-pct">0%</span></div>
       <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
       <div class="progress-log" id="prog-log"></div>
     </div>
-
-    <!-- RESULT -->
+    <!-- Result -->
     <div class="result-panel" id="result-panel">
       <div class="panel-title">Hasil Import</div>
       <div class="result-grid">
-        <div class="result-card total"><div class="num" id="res-total">0</div><div class="lbl">Total Diproses</div></div>
+        <div class="result-card total">   <div class="num" id="res-total">0</div><div class="lbl">Total Diproses</div></div>
         <div class="result-card inserted"><div class="num" id="res-insert">0</div><div class="lbl">Berhasil INSERT</div></div>
-        <div class="result-card skipped"><div class="num" id="res-skip">0</div><div class="lbl">Dilewati (sudah ada)</div></div>
-        <div class="result-card errored"><div class="num" id="res-err">0</div><div class="lbl">Gagal / Error</div></div>
+        <div class="result-card skipped"> <div class="num" id="res-skip">0</div> <div class="lbl">Dilewati (sudah ada)</div></div>
+        <div class="result-card errored"> <div class="num" id="res-err">0</div>  <div class="lbl">Gagal / Error</div></div>
       </div>
       <div class="error-list" id="error-list"></div>
       <div style="margin-top:16px;display:flex;gap:12px">
@@ -11615,31 +11568,31 @@ if ('serviceWorker' in navigator) {
         <button class="btn btn-outline" id="btn-export-errors" onclick="exportErrors()" style="display:none">⬇ Export Error CSV</button>
       </div>
     </div>
-  </div><!-- end #ci-modal-body -->
+  </div>
 </div>
 
-<!-- EDIT & RETRY MODAL (untuk csv importer, z-index di atas modal utama) -->
-<div class="edit-modal-overlay" id="edit-modal-overlay" style="z-index:9600;">
-  <div class="edit-modal">
-    <div class="edit-modal-title" id="em-title">Edit & Import Ulang</div>
-    <div class="edit-modal-subtitle" id="em-subtitle"></div>
+<!-- Edit & retry modal (z-index di atas modal utama) -->
+<div id="edit-modal-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9600;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;">
+  <div style="background:#191d27;border:1px solid #2f3649;border-radius:12px;padding:28px;width:480px;max-width:95vw;box-shadow:0 24px 48px rgba(0,0,0,0.5);">
+    <div style="font-size:15px;font-weight:600;color:#e2e8f0;margin-bottom:6px;" id="em-title">Edit &amp; Import Ulang</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:16px;font-family:monospace;" id="em-subtitle"></div>
     <div id="em-error-badge" style="margin-bottom:16px"></div>
     <div id="em-fields"></div>
-    <div class="edit-modal-actions">
-      <button class="btn btn-outline" onclick="closeEditModal()">Batal</button>
-      <button class="btn btn-primary" id="em-btn-save" onclick="saveEditAndRetry()">⬆ Simpan & Import Ulang</button>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button onclick="closeEditModal()" style="flex:1;padding:10px;background:transparent;border:1px solid #2f3649;border-radius:7px;color:#94a3b8;cursor:pointer;font-size:14px;">Batal</button>
+      <button id="em-btn-save" onclick="saveEditAndRetry()" style="flex:2;padding:10px;background:#3b82f6;border:none;border-radius:7px;color:#fff;cursor:pointer;font-size:14px;font-weight:500;">⬆ Simpan &amp; Import Ulang</button>
     </div>
   </div>
 </div>
 
-<!-- Toast area untuk csv importer (harus ada di luar modal karena z-index) -->
-<div class="ci-toast-area" id="ci-toast-area"></div>
-
+<!-- Toast area untuk csv importer -->
+<div id="ci-toast-area" class="ci-toast-area"></div>
 
 <script id="ci-import-script">
+
 // ============================================================
-//  CSV IMPORTER INSPEKSI — Integrated into PLN Manajemen Gardu
-//  Superadmin only — dipanggil dari admin panel
+//  Import Bulk Inspeksi — integrated into PLN Manajemen Gardu
+//  Superadmin only
 // ============================================================
 (function() {
 'use strict';
@@ -11658,18 +11611,15 @@ let _needsRecheck = false; // true setelah ada perubahan data di review panel
 // DRAG & DROP / FILE INPUT
 // ══════════════════════════════════════════
 let zone, fileInput;
-// Initialize file input listeners after DOM is ready (modal may be hidden but elements exist in DOM)
-function _ciInitFileListeners() {
-  zone = document.getElementById('upload-zone');
+function _ciInitListeners() {
+  zone      = document.getElementById('upload-zone');
   fileInput = document.getElementById('file-input');
   if (!zone || !fileInput) return;
-  
   zone.addEventListener('click', () => fileInput.click());
   zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
   zone.addEventListener('drop', e => {
-    e.preventDefault();
-    zone.classList.remove('drag');
+    e.preventDefault(); zone.classList.remove('drag');
     const f = e.dataTransfer.files[0];
     if (f && isAcceptedFile(f)) handleFile(f);
     else toast('Format tidak didukung. Gunakan .xls, .xlsx, atau .csv', 'error');
@@ -11679,9 +11629,9 @@ function _ciInitFileListeners() {
   });
 }
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', _ciInitFileListeners);
+  document.addEventListener('DOMContentLoaded', _ciInitListeners);
 } else {
-  _ciInitFileListeners();
+  _ciInitListeners();
 }
 
 function isAcceptedFile(file) {
@@ -13485,50 +13435,46 @@ function formatBytes(b) {
 }
 
 
-// ── Expose global onclick handlers ──────────────────────────
-window.overrideDateFormat   = overrideDateFormat;
-window.resetAll             = resetAll;
-window.checkDuplicates      = checkDuplicates;
-window.startImport          = startImport;
-window.setReviewFilter      = setReviewFilter;
-window.renderReviewTable    = renderReviewTable;
-window.confirmReview        = confirmReview;
-window.applyGarduEdit       = applyGarduEdit;
-window.ignoreUnknownGardu   = ignoreUnknownGardu;
-window.recheckFromReview    = recheckFromReview;
-window.openEditModal        = openEditModal;
-window.closeEditModal       = closeEditModal;
-window.saveEditAndRetry     = saveEditAndRetry;
-window.exportErrors         = exportErrors;
+// Expose onclick handlers to global scope
+window.overrideDateFormat  = overrideDateFormat;
+window.resetAll            = resetAll;
+window.checkDuplicates     = checkDuplicates;
+window.startImport         = startImport;
+window.setReviewFilter     = setReviewFilter;
+window.renderReviewTable   = renderReviewTable;
+window.confirmReview       = confirmReview;
+window.applyGarduEdit      = applyGarduEdit;
+window.ignoreUnknownGardu  = ignoreUnknownGardu;
+window.recheckFromReview   = recheckFromReview;
+window.openEditModal       = openEditModal;
+window.closeEditModal      = closeEditModal;
+window.saveEditAndRetry    = saveEditAndRetry;
+window.exportErrors        = exportErrors;
 
-})();
+})(); // end IIFE
 
-// ── Modal open/close (outside IIFE so main app can call) ────
+// ── Modal open/close — callable dari main app ────────────────
 function bukaModalCsvImport() {
   var s = getSession();
   if (!s || s.role !== 'superadmin') {
     showMsg('Akses ditolak. Hanya Superadmin yang dapat menggunakan fitur ini.', true);
     return;
   }
-  // Auto-fill hidden credentials
+  // Auto-fill Supabase credentials dari konstanta supabase-api.js
   var urlEl = document.getElementById('supa-url');
   var keyEl = document.getElementById('supa-key');
-  if (urlEl) urlEl.value = typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : '';
-  if (keyEl) keyEl.value = typeof SUPABASE_ANON !== 'undefined' ? SUPABASE_ANON : '';
-
-  // Tutup admin panel dulu
-  var adminModal = document.getElementById('modal-admin-panel');
-  if (adminModal) adminModal.style.display = 'none';
-
+  if (urlEl) urlEl.value = (typeof SUPABASE_URL  !== 'undefined') ? SUPABASE_URL  : '';
+  if (keyEl) keyEl.value = (typeof SUPABASE_ANON !== 'undefined') ? SUPABASE_ANON : '';
+  // Tutup admin panel
+  var ap = document.getElementById('modal-admin-panel');
+  if (ap) ap.style.display = 'none';
+  // Buka modal importer
   document.getElementById('modal-csv-import').style.display = 'flex';
 }
 
 function tutupModalCsvImport() {
   document.getElementById('modal-csv-import').style.display = 'none';
-  // Reset state
-  if (typeof resetAll === 'function') {
-    try { resetAll(); } catch(e) {}
-  }
+  try { resetAll(); } catch(e) {}
 }
 
 </script>
