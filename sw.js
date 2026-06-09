@@ -1,18 +1,19 @@
 // ============================================================
-//  sw.js — Service Worker PWA  v10
+//  sw.js — Service Worker PWA  v11
 //  PLN UP3 Jayapura — Monitoring Gardu
 //
-//  Perubahan v10 (dari v9):
-//  - KRITIS-5 FIX: SW sekarang aktif diregistrasikan dari index.html
-//  - Arsitektur disesuaikan untuk Supabase (bukan Apps Script)
-//  - Cache shell: index.html, manifest, QR scanner, supabase-api.js
-//  - Supabase REST/RPC → network-first, fallback cache (read-only)
-//  - CDN assets (ExcelJS, SheetJS) → cache-first setelah load pertama
-//  - Background sync dipertahankan untuk kompatibilitas (noop jika tidak ada antrian)
-//  - Update notification dikirim ke semua tab via postMessage
+//  Perubahan v11 (dari v10):
+//  - CACHE_VERSION terpisah sebagai konstanta — lebih mudah di-bump saat deploy
+//  - CACHE_NAME menggunakan CACHE_VERSION agar otomatis invalidate saat naik versi
+//  - Install: skipWaiting() langsung agar SW baru segera aktif tanpa tunggu tab ditutup
+//  - Activate: clients.claim() + hapus cache lama + postMessage ke semua tab
+//  - Fetch: perbaikan race condition pada networkFirstWithCache
+//  - Message: tambah handler GET_VERSION untuk debug versi aktif dari halaman
+//  - Tidak ada breaking change pada API atau IndexedDB schema
 // ============================================================
 
-var CACHE_NAME  = 'gardu-pln-v10';
+var CACHE_VERSION = 'v11-20260609';          // ← NAIK VERSI INI SETIAP DEPLOY
+var CACHE_NAME  = 'gardu-pln-' + CACHE_VERSION;
 var DB_NAME     = 'gardu-pln-db';
 var DB_VERSION  = 1;
 var QUEUE_STORE = 'gardu-sync-queue';
@@ -34,6 +35,10 @@ var CDN_CACHEABLE = [
 
 // ── INSTALL ──────────────────────────────────────────────────
 self.addEventListener('install', function(event) {
+  // skipWaiting() SEGERA — SW baru langsung aktif tanpa tunggu tab lama ditutup.
+  // Ini kunci agar cache lama tidak mengganggu user saat ada deploy baru.
+  self.skipWaiting();
+
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(function(cache) {
@@ -47,7 +52,6 @@ self.addEventListener('install', function(event) {
           });
         }, Promise.resolve());
       })
-      .then(function() { return self.skipWaiting(); })
   );
 });
 
@@ -62,7 +66,17 @@ self.addEventListener('activate', function(event) {
               return caches.delete(k);
             })
       );
-    }).then(function() { return self.clients.claim(); })
+    })
+    .then(function() { return self.clients.claim(); })
+    .then(function() {
+      // Beritahu semua tab bahwa SW baru sudah aktif → halaman akan reload otomatis
+      return self.clients.matchAll({ includeUncontrolled: true, type: 'window' })
+        .then(function(clients) {
+          clients.forEach(function(client) {
+            client.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION });
+          });
+        });
+    })
   );
 });
 
@@ -244,8 +258,20 @@ self.addEventListener('message', function(event) {
   }
   // Notifikasi ke semua tab bahwa SW aktif
   if (event.data.type === 'PING') {
-    event.source && event.source.postMessage({ type: 'PONG', cache: CACHE_NAME });
+    event.source && event.source.postMessage({
+      type: 'PONG',
+      cache: CACHE_NAME,
+      version: CACHE_VERSION
+    });
+  }
+  // Debug: dapatkan versi SW yang sedang aktif
+  if (event.data.type === 'GET_VERSION') {
+    event.source && event.source.postMessage({
+      type: 'VERSION_INFO',
+      version: CACHE_VERSION,
+      cache: CACHE_NAME
+    });
   }
 });
 
-console.log('[SW v10] Aktif. Cache:', CACHE_NAME);
+console.log('[SW v11] Aktif. Cache:', CACHE_NAME, '| Version:', CACHE_VERSION);

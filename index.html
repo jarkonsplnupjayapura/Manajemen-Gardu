@@ -11,13 +11,14 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Manajemen Gardu – PLN UP3 Jayapura</title>
-<!-- Cache-bust: v20260609 -->
+<!-- Cache-bust: v20260609-sw11 -->
 <script>
-// Hapus cache lama service worker agar update langsung tampil
-if ('caches' in window) {
-  caches.keys().then(function(names) {
-    names.forEach(function(name) { caches.delete(name); });
-  });
+// Paksa Service Worker cek update setiap kali halaman dibuka
+// (browser normalnya cek tiap 24 jam — ini mempercepatnya)
+// Tidak menghapus cache saat ini agar tidak flash broken content.
+// SW sendiri yang akan hapus cache lama saat activate.
+if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+  navigator.serviceWorker.controller.postMessage({ type: 'PING' });
 }
 </script>
 <link rel="manifest" href="manifest.json">
@@ -11249,32 +11250,47 @@ function konfirmasiAksi(pesan, judul, labelAksi, callback) {
      sw.js di-cache-bust dengan versi agar update SW terdeteksi.
      ============================================================ -->
 <script>
+// ============================================================
+//  Service Worker Registration — v11
+//  Auto-update: SW baru langsung aktif via skipWaiting di sw.js,
+//  lalu kirim SW_UPDATED ke halaman → halaman reload otomatis.
+//  User tidak perlu hapus cache manual atau tekan tombol update.
+// ============================================================
 if ('serviceWorker' in navigator) {
+  // Reload otomatis saat SW baru mengambil alih kontroler
+  // Ini dipicu oleh clients.claim() di sw.js activate handler
+  var _swReloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    if (_swReloading) return;
+    _swReloading = true;
+    console.log('[SW] Controller baru aktif — reload halaman untuk versi terbaru.');
+    window.location.reload();
+  });
+
   window.addEventListener('load', function() {
+    // Daftarkan SW dengan cache-bust pada URL agar browser selalu cek file terbaru
     navigator.serviceWorker.register('./sw.js?v=20260609')
       .then(function(reg) {
         console.log('[SW] Terdaftar, scope:', reg.scope);
 
-        // Deteksi update SW — beritahu user ada versi baru
+        // Paksa cek update SW setiap kali halaman dibuka
+        // (default browser: cek tiap 24 jam — ini mempercepatnya jadi tiap load)
+        reg.update().catch(function() {});
+
+        // Fallback: jika browser tidak trigger controllerchange
+        // tampilkan tombol update manual (jarang terjadi)
         reg.addEventListener('updatefound', function() {
           var newWorker = reg.installing;
           if (!newWorker) return;
           newWorker.addEventListener('statechange', function() {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // Ada versi baru — tampilkan notifikasi update
-              var updateBar = document.createElement('div');
-              updateBar.style.cssText = [
-                'position:fixed','bottom:70px','left:12px','right:12px',
-                'z-index:99990','background:#003B7B','color:#fff',
-                'border-radius:10px','padding:10px 14px',
-                'display:flex','align-items:center','justify-content:space-between',
-                'box-shadow:0 4px 16px rgba(0,0,0,.3)','font-size:13px','font-weight:600'
-              ].join(';');
-              updateBar.innerHTML =
-                '<span>🔄 Versi baru tersedia!</span>' +
-                '<button onclick="navigator.serviceWorker.controller&&navigator.serviceWorker.controller.postMessage({type:\'SKIP_WAITING\'});this.parentElement.remove();window.location.reload();" ' +
-                'style="background:#F5A300;color:#003B7B;border:none;border-radius:6px;padding:5px 12px;font-weight:800;font-size:12px;cursor:pointer;margin-left:12px;">Update</button>';
-              document.body.appendChild(updateBar);
+            // Jika sudah installed tapi controllerchange belum trigger
+            // (mis. tidak ada controller sebelumnya = first install)
+            if (newWorker.state === 'installed') {
+              if (!navigator.serviceWorker.controller) {
+                // First install — tidak perlu reload
+                console.log('[SW] Pertama kali install — siap digunakan offline.');
+              }
+              // Jika ada controller, controllerchange akan handle reload otomatis
             }
           });
         });
@@ -11283,10 +11299,18 @@ if ('serviceWorker' in navigator) {
         console.warn('[SW] Gagal register:', err);
       });
 
-    // Dengarkan pesan SYNC_SUCCESS dari SW (untuk antrian offline jika ada)
+    // Dengarkan pesan dari SW
     navigator.serviceWorker.addEventListener('message', function(event) {
-      if (event.data && event.data.type === 'SYNC_SUCCESS') {
-        console.log('[SW Message]', event.data.message);
+      if (!event.data) return;
+      // SW baru aktif — reload akan di-handle oleh controllerchange di atas
+      if (event.data.type === 'SW_UPDATED') {
+        console.log('[SW] Versi baru aktif:', event.data.version);
+      }
+      if (event.data.type === 'SYNC_SUCCESS') {
+        console.log('[SW Sync]', event.data.message);
+      }
+      if (event.data.type === 'PONG') {
+        console.log('[SW] Active cache:', event.data.cache, '| Version:', event.data.version);
       }
     });
   });
