@@ -11,16 +11,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Manajemen Gardu – PLN UP3 Jayapura</title>
-<!-- Cache-bust: v20260609-sw11 -->
-<script>
-// Paksa Service Worker cek update setiap kali halaman dibuka
-// (browser normalnya cek tiap 24 jam — ini mempercepatnya)
-// Tidak menghapus cache saat ini agar tidak flash broken content.
-// SW sendiri yang akan hapus cache lama saat activate.
-if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-  navigator.serviceWorker.controller.postMessage({ type: 'PING' });
-}
-</script>
+<!-- Cache-bust: v20260609-sw12 -->
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11226,68 +11217,34 @@ function konfirmasiAksi(pesan, judul, labelAksi, callback) {
      Harus di-register setelah DOM ready agar tidak blokir render.
      sw.js di-cache-bust dengan versi agar update SW terdeteksi.
      ============================================================ -->
+<!-- ============================================================
+     Registrasi Service Worker — minimal (hanya untuk Background Sync)
+     SW tidak cache aset apapun, sehingga tidak ada masalah cache lama.
+     Browser selalu ambil semua file langsung dari server seperti biasa.
+     SW hanya bertugas kirim ulang data yang antri saat jaringan kembali.
+     ============================================================ -->
 <script>
-// ============================================================
-//  Service Worker Registration — v11
-//  Auto-update: SW baru langsung aktif via skipWaiting di sw.js,
-//  lalu kirim SW_UPDATED ke halaman → halaman reload otomatis.
-//  User tidak perlu hapus cache manual atau tekan tombol update.
-// ============================================================
 if ('serviceWorker' in navigator) {
-  // Reload otomatis saat SW baru mengambil alih kontroler
-  // Ini dipicu oleh clients.claim() di sw.js activate handler
-  var _swReloading = false;
-  navigator.serviceWorker.addEventListener('controllerchange', function() {
-    if (_swReloading) return;
-    _swReloading = true;
-    console.log('[SW] Controller baru aktif — reload halaman untuk versi terbaru.');
-    window.location.reload();
-  });
-
   window.addEventListener('load', function() {
-    // Daftarkan SW dengan cache-bust pada URL agar browser selalu cek file terbaru
     navigator.serviceWorker.register('./sw.js?v=20260609')
       .then(function(reg) {
         console.log('[SW] Terdaftar, scope:', reg.scope);
-
-        // Paksa cek update SW setiap kali halaman dibuka
-        // (default browser: cek tiap 24 jam — ini mempercepatnya jadi tiap load)
+        // Cek update setiap kali halaman dibuka
         reg.update().catch(function() {});
-
-        // Fallback: jika browser tidak trigger controllerchange
-        // tampilkan tombol update manual (jarang terjadi)
-        reg.addEventListener('updatefound', function() {
-          var newWorker = reg.installing;
-          if (!newWorker) return;
-          newWorker.addEventListener('statechange', function() {
-            // Jika sudah installed tapi controllerchange belum trigger
-            // (mis. tidak ada controller sebelumnya = first install)
-            if (newWorker.state === 'installed') {
-              if (!navigator.serviceWorker.controller) {
-                // First install — tidak perlu reload
-                console.log('[SW] Pertama kali install — siap digunakan offline.');
-              }
-              // Jika ada controller, controllerchange akan handle reload otomatis
-            }
-          });
-        });
       })
       .catch(function(err) {
         console.warn('[SW] Gagal register:', err);
       });
 
-    // Dengarkan pesan dari SW
+    // Dengarkan pesan dari SW (mis. SYNC_SUCCESS)
     navigator.serviceWorker.addEventListener('message', function(event) {
       if (!event.data) return;
-      // SW baru aktif — reload akan di-handle oleh controllerchange di atas
-      if (event.data.type === 'SW_UPDATED') {
-        console.log('[SW] Versi baru aktif:', event.data.version);
-      }
       if (event.data.type === 'SYNC_SUCCESS') {
         console.log('[SW Sync]', event.data.message);
-      }
-      if (event.data.type === 'PONG') {
-        console.log('[SW] Active cache:', event.data.cache, '| Version:', event.data.version);
+        // Tampilkan notifikasi ke user jika ada fungsi toast
+        if (typeof showToast === 'function') {
+          showToast(event.data.message, 'success');
+        }
       }
     });
   });
