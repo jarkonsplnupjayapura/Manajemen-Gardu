@@ -2077,11 +2077,81 @@ function _parseNumSafe(val) {
 }
 
 // ── SHA-256 helper ───────────────────────────────────────────
+// Fallback pure-JS sha256 untuk HTTP context (crypto.subtle hanya di HTTPS/localhost)
+function _sha256PureJS(str) {
+  // RFC 4634 / FIPS 180-4 pure-JS implementation
+  function rightRotate(value, amount) { return (value >>> amount) | (value << (32 - amount)); }
+  var mathPow = Math.pow;
+  var maxWord = mathPow(2, 32);
+  var i, j, result = '';
+  var words = [];
+  var asciiBitLength = str.length * 8;
+  var hash = [], k = [];
+  var primeCounter = 0;
+  var isComposite = {};
+  for (var candidate = 2; primeCounter < 64; candidate++) {
+    if (!isComposite[candidate]) {
+      for (i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+      hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
+      k[primeCounter++] = (mathPow(candidate, 1/3) * maxWord) | 0;
+    }
+  }
+  str += '\x80';
+  while (str.length % 64 - 56) str += '\x00';
+  for (i = 0; i < str.length; i++) {
+    j = str.charCodeAt(i);
+    if (j >> 8) return null; // non-ASCII — fallback needed
+    words[i >> 2] |= j << ((3 - i) % 4) * 8;
+  }
+  words[words.length] = ((asciiBitLength / maxWord) | 0);
+  words[words.length] = (asciiBitLength | 0);
+  for (j = 0; j < words.length;) {
+    var w = words.slice(j, j += 16);
+    var oldHash = hash.slice(0);
+    for (i = 0; i < 64; i++) {
+      var i2 = i < 16 ? w[i] : (
+        rightRotate(w[i-2],17) ^ rightRotate(w[i-2],19) ^ (w[i-2] >>> 10)) +
+        w[i-7] + (rightRotate(w[i-15],7) ^ rightRotate(w[i-15],18) ^ (w[i-15] >>> 3)) + w[i-16];
+      w[i] = i2 = (i2 | 0);
+      var t1 = hash[7] + (rightRotate(hash[4],6) ^ rightRotate(hash[4],11) ^ rightRotate(hash[4],25)) +
+        ((hash[4] & hash[5]) ^ (~hash[4] & hash[6])) + k[i] + i2;
+      var t2 = (rightRotate(hash[0],2) ^ rightRotate(hash[0],13) ^ rightRotate(hash[0],22)) +
+        ((hash[0] & hash[1]) ^ (hash[0] & hash[2]) ^ (hash[1] & hash[2]));
+      hash = [(t1 + t2) | 0].concat(hash);
+      hash[4] = (hash[4] + t1) | 0;
+      hash.length = 8;
+    }
+    for (i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+  }
+  for (i = 0; i < 8; i++) {
+    for (j = 3; j + 1; j--) {
+      var b = (hash[i] >> (j * 8)) & 255;
+      result += ((b < 16) ? '0' : '') + b.toString(16);
+    }
+  }
+  return result;
+}
+
 async function sha256(str) {
-  var buf = await crypto.subtle.digest('SHA-256',
-    new TextEncoder().encode(String(str)));
-  return Array.from(new Uint8Array(buf))
-    .map(function(b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+  str = String(str);
+  // Coba crypto.subtle (HTTPS / localhost / PWA)
+  if (window.crypto && window.crypto.subtle) {
+    try {
+      var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+      return Array.from(new Uint8Array(buf))
+        .map(function(b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+    } catch(e) {
+      // jatuh ke fallback di bawah
+    }
+  }
+  // Fallback pure-JS (HTTP context)
+  var result = _sha256PureJS(str);
+  if (result) return result;
+  // Jika masih gagal (unicode), encode dulu
+  var encoded = encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(m, p) {
+    return String.fromCharCode('0x' + p);
+  });
+  return _sha256PureJS(encoded) || '';
 }
 
 // ── Supabase REST helper ─────────────────────────────────────
@@ -4910,27 +4980,44 @@ function doLogin() {
   var loginTimeout = setTimeout(function() {
     setLoading(false);
     showLoginErr('Koneksi ke server timeout. Periksa jaringan Anda dan coba lagi.');
-  }, 15000);
+  }, 20000);
 
-  // Appel direct window.apiGet (supabase layer) — bypass local stub
-  var _apiFn = window.apiGet || apiGet;
-  _apiFn({ action: 'loginUser', username: username, password: password }, function(res) {
+  // Wrap seluruh proses login dalam try-catch agar tidak silent-fail
+  try {
+    // Appel direct window.apiGet (supabase layer) — bypass local stub
+    var _apiFn = window.apiGet || apiGet;
+    _apiFn({ action: 'loginUser', username: username, password: password }, function(res) {
+      clearTimeout(loginTimeout);
+      setLoading(false);
+      try {
+        if (res && res.status === 'ok' && res.user) {
+          var u = res.user;
+          setSession({ username: u.username, role: u.role, ulp: u.ulp || '', nama: u.nama, token: res.token });
+          document.getElementById('login-screen').style.display = 'none';
+          document.getElementById('login-password').value = '';
+          onLoginSuccess(u);
+        } else {
+          var msg = (res && res.message) ? res.message : 'Username atau password salah.';
+          // Saring pesan teknis dari server agar tidak membingungkan
+          if (msg.indexOf('Server error') === 0 || msg.indexOf('42') === 0) {
+            msg = 'Terjadi kesalahan server. Coba lagi atau hubungi admin.';
+          }
+          showLoginErr(msg);
+          document.getElementById('login-password').value = '';
+          var pwEl = document.getElementById('login-password');
+          if (pwEl) pwEl.focus();
+        }
+      } catch(innerErr) {
+        console.error('[doLogin callback error]', innerErr);
+        showLoginErr('Terjadi kesalahan tak terduga: ' + innerErr.message);
+      }
+    });
+  } catch(outerErr) {
     clearTimeout(loginTimeout);
     setLoading(false);
-    if (res && res.status === 'ok' && res.user) {
-      var u = res.user;
-      setSession({ username: u.username, role: u.role, ulp: u.ulp || '', nama: u.nama, token: res.token });
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('login-password').value = '';
-      onLoginSuccess(u);
-    } else {
-      var msg = (res && res.message) ? res.message : 'Username atau password salah.';
-      showLoginErr(msg);
-      document.getElementById('login-password').value = '';
-      var pwEl = document.getElementById('login-password');
-      if (pwEl) pwEl.focus();
-    }
-  });
+    console.error('[doLogin error]', outerErr);
+    showLoginErr('Gagal memproses login: ' + outerErr.message + '. Pastikan browser mendukung fitur ini (Chrome/Safari terbaru).');
+  }
 }
 
 // Enter key untuk login
@@ -4939,6 +5026,32 @@ document.addEventListener('DOMContentLoaded', function() {
   var userEl = document.getElementById('login-username');
   if (passEl) passEl.addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
   if (userEl) userEl.addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('login-password').focus(); });
+
+  // Diagnostik: cek apakah environment login siap
+  var issues = [];
+  if (!window.crypto || !window.crypto.subtle) {
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+      issues.push('App diakses via HTTP (bukan HTTPS) — fitur keamanan terbatas, menggunakan mode kompatibilitas.');
+    }
+  }
+  if (typeof window.apiGet !== 'function') {
+    issues.push('API layer belum siap (window.apiGet tidak tersedia).');
+  }
+  if (typeof SUPABASE_URL === 'undefined' || !SUPABASE_URL) {
+    issues.push('Konfigurasi server tidak ditemukan.');
+  }
+  if (issues.length > 0) {
+    console.warn('[Login Diagnostik]', issues.join(' | '));
+    // Tampilkan peringatan ringan di login form jika ada masalah kritis
+    var errEl = document.getElementById('login-err');
+    var errTextEl = document.getElementById('login-err-text');
+    var kritis = issues.filter(function(s){ return s.indexOf('API layer') >= 0 || s.indexOf('Konfigurasi') >= 0; });
+    if (kritis.length > 0 && errEl && errTextEl) {
+      errTextEl.textContent = 'Peringatan sistem: ' + kritis[0];
+      errEl.classList.remove('login-err-hidden');
+      errEl.style.display = 'flex';
+    }
+  }
 });
 
 function doLogout() {
