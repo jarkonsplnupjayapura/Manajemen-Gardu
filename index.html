@@ -8,6 +8,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#003B7B">
 <title>Manajemen Gardu – PLN UP3 Jayapura</title>
+<!-- Cache-bust: v20260609 -->
+<script>
+// Hapus cache lama service worker agar update langsung tampil
+if ('caches' in window) {
+  caches.keys().then(function(names) {
+    names.forEach(function(name) { caches.delete(name); });
+  });
+}
+</script>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2775,14 +2784,15 @@ input[type=number]{-moz-appearance:textfield;}
       <button onclick="tutupPanelAdmin()" style="background:var(--pln-bg);border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;">✕</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:var(--sp-sm);" id="admin-panel-actions">
-      <!-- Isi dirender ulang oleh _tampilkanPanelAdmin() sesuai role -->
-      <button class="btn btn-blue" onclick="bukaFormTambahGardu()">➕ Tambah Gardu Baru</button>
-      <button class="btn btn-outline" onclick="bukaFormEditGardu()">✏️ Edit Gardu</button>
-      <button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalExport()">📊 Export Laporan</button>
-      <button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalUser()">👥 Kelola User</button>
-      <button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalSetPin()">🔑 Set / Ganti PIN User</button>
-      <button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalCsvImport()">📥 Import Bulk Inspeksi</button>
-      <button class="btn btn-red" onclick="doLogout()">🚪 Logout</button>
+      <!-- Tombol superadmin (role=superadmin) -->
+      <button class="btn btn-blue"    id="apbtn-tambah"   onclick="bukaFormTambahGardu()">➕ Tambah Gardu Baru</button>
+      <button class="btn btn-outline" id="apbtn-edit"     onclick="bukaFormEditGardu()">✏️ Edit Gardu</button>
+      <button class="btn btn-outline" id="apbtn-export"   onclick="tutupPanelAdmin();bukaModalExport()">📊 Export Laporan</button>
+      <button class="btn btn-outline" id="apbtn-user"     onclick="tutupPanelAdmin();bukaModalUser()">👥 Kelola User</button>
+      <button class="btn btn-outline" id="apbtn-usulp"    onclick="tutupPanelAdmin();bukaModalUserULP()" style="display:none;">👥 Kelola User ULP Saya</button>
+      <button class="btn btn-outline" id="apbtn-pin"      onclick="tutupPanelAdmin();bukaModalSetPin()">🔑 Set / Ganti PIN User</button>
+      <button class="btn btn-outline" id="apbtn-import"   onclick="tutupPanelAdmin();bukaModalCsvImport()">📥 Import Bulk Inspeksi</button>
+      <button class="btn btn-red"     id="apbtn-logout"   onclick="doLogout()">🚪 Logout</button>
     </div>
   </div>
 </div>
@@ -3752,40 +3762,40 @@ function _tampilkanPanelAdmin(s) {
 
   var titleEl = document.getElementById('admin-panel-title');
   var subEl   = document.getElementById('admin-panel-sub');
+  var isSuperadmin = (s.role === 'superadmin');
 
-  if (s.role === 'superadmin') {
+  if (isSuperadmin) {
     if (titleEl) titleEl.textContent = '🔓 Super Admin Aktif';
     if (subEl)   subEl.textContent   = 'Akses penuh ke semua ULP';
   } else {
-    // Admin ULP: judul sesuai ULP
     if (titleEl) titleEl.textContent = '🔓 Admin: ' + (s.ulp || 'ULP Anda');
     if (subEl)   subEl.textContent   = 'Tambah & edit gardu ULP Anda';
   }
 
-  // Render ulang isi panel sesuai role
-  var actionsEl = document.getElementById('admin-panel-actions');
-  if (actionsEl) {
-    if (s.role === 'superadmin') {
-      // Superadmin: semua fitur
-      actionsEl.innerHTML =
-        '<button class="btn btn-blue" onclick="bukaFormTambahGardu()">➕ Tambah Gardu Baru</button>' +
-        '<button class="btn btn-outline" onclick="bukaFormEditGardu()">✏️ Edit Gardu</button>' +
-        '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalExport()">📊 Export Laporan</button>' +
-        '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalUser()">👥 Kelola User</button>' +
-        '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalSetPin()">🔑 Set / Ganti PIN User</button>' +
-        '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalCsvImport()">📥 Import Bulk Inspeksi</button>' +
-        '<button class="btn btn-red" onclick="doLogout()">🚪 Logout</button>';
-    } else {
-      // Admin ULP: Tambah, Edit gardu + Kelola User ULP sendiri + Set PIN + Export
-      actionsEl.innerHTML =
-        '<button class="btn btn-blue" onclick="bukaFormTambahGardu()">&#10133; Tambah Gardu Baru</button>' +
-        '<button class="btn btn-outline" onclick="bukaFormEditGardu()">&#9999;&#65039; Edit Gardu</button>' +
-        '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalUserULP()">&#128101; Kelola User ULP Saya</button>' +
-        '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalExport()">&#128202; Export Laporan</button>' +
-        '<button class="btn btn-outline" onclick="tutupPanelAdmin();bukaModalSetPin()">&#128273; Set / Ganti PIN</button>' +
-        '<button class="btn btn-red" onclick="doLogout()">&#128682; Logout</button>';
-    }
+  // ── Tampilkan/sembunyikan tombol sesuai role ──────────────
+  // Fungsi helper: set display tombol berdasarkan id
+  function showBtn(id, visible) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = visible ? '' : 'none';
   }
+
+  // Tombol untuk SEMUA role admin
+  showBtn('apbtn-tambah',  true);
+  showBtn('apbtn-edit',    true);
+  showBtn('apbtn-export',  true);
+  showBtn('apbtn-pin',     true);
+  showBtn('apbtn-logout',  true);
+
+  // Tombol KHUSUS superadmin
+  showBtn('apbtn-user',    isSuperadmin);
+  showBtn('apbtn-import',  isSuperadmin);
+
+  // Tombol KHUSUS admin ULP (bukan superadmin)
+  showBtn('apbtn-usulp',   !isSuperadmin);
+
+  // Label PIN berbeda per role
+  var pinBtn = document.getElementById('apbtn-pin');
+  if (pinBtn) pinBtn.textContent = isSuperadmin ? '🔑 Set / Ganti PIN User' : '🔑 Set / Ganti PIN';
 
   document.getElementById('modal-admin-panel').style.display = 'flex';
 }
@@ -11238,7 +11248,7 @@ function konfirmasiAksi(pesan, judul, labelAksi, callback) {
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./sw.js')
+    navigator.serviceWorker.register('./sw.js?v=20260609')
       .then(function(reg) {
         console.log('[SW] Terdaftar, scope:', reg.scope);
 
