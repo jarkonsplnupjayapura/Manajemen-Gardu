@@ -13,7 +13,7 @@
 <title>Manajemen Gardu – PLN UP3 Jayapura</title>
 <!-- Cache-bust: v20260609-sw12 -->
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-baru-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -957,6 +957,42 @@ input[type=number]{-moz-appearance:textfield;}
   /* Topbar tetap ada, tapi tidak perlu padding left-nav */
   .topbar{position:sticky;top:0;z-index:100;}
 
+  /* UNIFIED TOPBAR: hide mobile topbar on desktop, sidebar brand acts as full header */
+  .topbar{display:none;}
+  /* Sidebar brand becomes richer - show page title + user area on right */
+  #bottom-nav{width:220px;}
+  #app-content{margin-left:220px;width:calc(100% - 220px);}
+  #form-inspeksi-view,#form-pemeliharaan-view{left:220px!important;}
+  .sidebar-brand{
+    position:relative;
+    justify-content:flex-start;
+    width:100%;
+    flex-shrink:0;
+  }
+  .sidebar-brand-info{min-width:0;flex:1;}
+  /* Dummy topbar placeholder so content doesn't jump */
+  #desktop-topbar-bar{
+    display:flex;
+    align-items:center;
+    background:var(--pln-biru);
+    height:var(--topbar-h);
+    position:fixed;
+    top:0;left:220px;right:0;
+    z-index:150;
+    padding:0 var(--sp-lg);
+    gap:var(--sp-sm);
+    box-shadow:0 1px 0 rgba(255,255,255,.08),0 4px 20px rgba(10,45,107,.3);
+  }
+  #desktop-topbar-bar .dtb-title{
+    font-size:var(--fs-md);font-weight:700;color:#fff;letter-spacing:-.02em;flex:1;
+  }
+  #desktop-topbar-bar .dtb-user{
+    display:flex;flex-direction:column;align-items:flex-end;gap:1px;
+  }
+  #desktop-topbar-bar .dtb-user-name{font-size:10px;color:rgba(255,255,255,.7);font-weight:500;}
+  #app-content{padding-top:var(--topbar-h);}
+
+
   /* Detail view full width */
   #detail-view{max-width:100%;width:100%;}
 }
@@ -1882,7 +1918,7 @@ input[type=number]{-moz-appearance:textfield;}
 <div id="login-screen">
   <div class="login-logo-wrap">
     <div class="login-logo-circle">
-      <img src="icon-192.png" alt="PLN" onerror="this.parentNode.innerHTML='<span style=\'font-size:24px;font-weight:900;color:#0A2D6B;\'>PLN</span>'">
+      <img src="icon-baru-192.png" alt="PLN" onerror="this.parentNode.innerHTML='<span style=\'font-size:24px;font-weight:900;color:#0A2D6B;\'>PLN</span>'">
     </div>
     <div class="login-title">PLN UP3 JAYAPURA</div>
     <div class="login-sub">Manajemen Gardu</div>
@@ -1949,7 +1985,7 @@ input[type=number]{-moz-appearance:textfield;}
 <div id="app-content">
 <div id="tab-daftar" class="page active">
   <div class="topbar">
-    <div class="topbar-logo"><img src="icon-192.png" alt="PLN" onerror="this.parentNode.innerHTML='PLN'"></div>
+    <div class="topbar-logo"><img src="icon-baru-192.png" alt="PLN" onerror="this.parentNode.innerHTML='PLN'"></div>
     <div class="topbar-info">
       <div class="topbar-sub">UP3 Jayapura</div>
       <div class="topbar-title">Manajemen Gardu</div>
@@ -1995,7 +2031,7 @@ input[type=number]{-moz-appearance:textfield;}
 
 <div id="tab-rekap" class="page">
   <div class="topbar">
-    <div class="topbar-logo"><img src="icon-192.png" alt="PLN"></div>
+    <div class="topbar-logo"><img src="icon-baru-192.png" alt="PLN"></div>
     <div class="topbar-info"><div class="topbar-sub">UP3 Jayapura</div><div class="topbar-title">Rekap & Statistik</div></div>
     <button class="topbar-action" onclick="bukaModalExport()">📊 Export</button>
   </div>
@@ -2008,7 +2044,7 @@ input[type=number]{-moz-appearance:textfield;}
 
 <div id="tab-sop" class="page">
   <div class="topbar">
-    <div class="topbar-logo"><img src="icon-192.png" alt="PLN"></div>
+    <div class="topbar-logo"><img src="icon-baru-192.png" alt="PLN"></div>
     <div class="topbar-info"><div class="topbar-sub">UP3 Jayapura</div><div class="topbar-title">SOP & Panduan</div></div>
   </div>
   <div class="page-body">
@@ -2023,7 +2059,7 @@ input[type=number]{-moz-appearance:textfield;}
 
 <div id="tab-peta" class="page">
   <div class="topbar">
-    <div class="topbar-logo"><img src="icon-192.png" alt="PLN" onerror="this.parentNode.innerHTML='PLN'"></div>
+    <div class="topbar-logo"><img src="icon-baru-192.png" alt="PLN" onerror="this.parentNode.innerHTML='PLN'"></div>
     <div class="topbar-info">
       <div class="topbar-sub">UP3 Jayapura</div>
       <div class="topbar-title" id="peta-topbar-title">Peta Gardu Papua</div>
@@ -2072,7 +2108,7 @@ input[type=number]{-moz-appearance:textfield;}
 <!-- ══ TAB PENGUKURAN GARDU ═══════════════════════════════════ -->
 <div id="tab-pengukuran" class="page">
   <div class="topbar">
-    <div class="topbar-logo"><img src="icon-192.png" alt="PLN" onerror="this.parentNode.innerHTML='PLN'"></div>
+    <div class="topbar-logo"><img src="icon-baru-192.png" alt="PLN" onerror="this.parentNode.innerHTML='PLN'"></div>
     <div class="topbar-info"><div class="topbar-sub">UP3 Jayapura</div><div class="topbar-title">Riwayat Pengukuran Gardu</div></div>
     <button class="topbar-action" onclick="exportPengukuranExcel()" id="btn-export-pengukuran">⬇️ Export</button>
   </div>
@@ -2157,7 +2193,7 @@ input[type=number]{-moz-appearance:textfield;}
 <!-- ══ TAB PEMELIHARAAN ══════════════════════════════════════ -->
 <div id="tab-pemeliharaan" class="page">
   <div class="topbar">
-    <div class="topbar-logo"><img src="icon-192.png" alt="PLN" onerror="this.parentNode.innerHTML='PLN'"></div>
+    <div class="topbar-logo"><img src="icon-baru-192.png" alt="PLN" onerror="this.parentNode.innerHTML='PLN'"></div>
     <div class="topbar-info"><div class="topbar-sub">UP3 Jayapura</div><div class="topbar-title">Pemeliharaan Gardu</div></div>
     <button class="topbar-action" onclick="exportPemeliharaanExcel()" id="btn-export-pemeliharaan">⬇️ Export</button>
   </div>
@@ -2566,11 +2602,23 @@ input[type=number]{-moz-appearance:textfield;}
   <!-- Brand PLN — hanya tampil di desktop sidebar -->
   <div class="sidebar-brand" style="display:none;">
     <div class="sidebar-brand-logo">
-      <img src="icon-192.png" alt="PLN" onerror="this.parentNode.innerHTML='<span style=\'font-size:13px;font-weight:900;color:#0A2D6B;\'>PLN</span>'">
+      <img src="icon-baru-192.png" alt="PLN" onerror="this.parentNode.innerHTML='<span style=\'font-size:13px;font-weight:900;color:#0A2D6B;\'>PLN</span>'">
     </div>
-    <div style="min-width:0;flex:1;">
-      <div class="sidebar-brand-title" id="sidebar-brand-username">—</div>
-      <div class="sidebar-brand-sub" id="sidebar-brand-sub">Manajemen Gardu</div>
+    <div class="sidebar-brand-info" style="min-width:0;flex:1;">
+      <div class="sidebar-brand-title" id="sidebar-brand-username">PLN UP3 Jayapura</div>
+      <div class="sidebar-brand-sub" id="sidebar-brand-sub">Super Admin</div>
+    </div>
+  </div>
+  <!-- Desktop unified topbar bar (shown only on desktop via CSS) -->
+  <div id="desktop-topbar-bar" style="display:none;">
+    <div class="dtb-title" id="desktop-topbar-title">Manajemen Gardu</div>
+    <div id="desktop-topbar-user" style="display:flex;align-items:center;gap:10px;">
+      <div class="dtb-user">
+        <span id="desktop-user-badge" class="user-badge badge-petugas" style="font-size:9px;">—</span>
+        <span id="desktop-username-label" class="dtb-user-name">—</span>
+      </div>
+      <button id="desktop-btn-lock" onclick="bukaMenuAdmin()" title="Menu Admin" style="background:none;border:none;color:rgba(255,255,255,.45);font-size:20px;cursor:pointer;">🔒</button>
+      <button id="desktop-btn-signout" onclick="doLogout()" title="Sign Out" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.9);font-size:12px;font-weight:700;cursor:pointer;padding:6px 14px;border-radius:20px;letter-spacing:.3px;display:none;font-family:inherit;align-items:center;gap:5px;">🔓 Keluar</button>
     </div>
   </div>
   <button class="nav-btn" onclick="bukaTab('tab-daftar',0)"><span class="nav-icon">🏠</span><span class="nav-label">Daftar</span></button>
@@ -3520,6 +3568,10 @@ function doLogout() {
   document.getElementById('modal-admin-panel').style.display = 'none';
   var signoutBtn2 = document.getElementById('btn-signout');
   if (signoutBtn2) signoutBtn2.style.display = 'none';
+  var dtbSignout2 = document.getElementById('desktop-btn-signout');
+  if (dtbSignout2) dtbSignout2.style.display = 'none';
+  var dtbBar2 = document.getElementById('desktop-topbar-bar');
+  if (dtbBar2) dtbBar2.style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-username').value = '';
   document.getElementById('login-password').value = '';
@@ -3540,6 +3592,17 @@ function onLoginSuccess(user) {
   }
   if (uLabel) uLabel.textContent = user.nama || user.username;
 
+  // Sync desktop topbar user info
+  var dtbBadge = document.getElementById('desktop-user-badge');
+  var dtbLabel = document.getElementById('desktop-username-label');
+  var dtbLock  = document.getElementById('desktop-btn-lock');
+  var dtbSignout = document.getElementById('desktop-btn-signout');
+  var dtbBar   = document.getElementById('desktop-topbar-bar');
+  if (dtbBadge && badge) { dtbBadge.textContent = badge.textContent; dtbBadge.className = badge.className; }
+  if (dtbLabel) dtbLabel.textContent = user.nama || user.username;
+  if (dtbSignout) { dtbSignout.style.display = 'inline-flex'; }
+  if (dtbBar) { dtbBar.style.display = 'flex'; }
+
   // Tampilkan tombol Sign Out
   var signoutBtn = document.getElementById('btn-signout');
   if (signoutBtn) signoutBtn.style.display = '';
@@ -3550,6 +3613,11 @@ function onLoginSuccess(user) {
     if (user.role === 'superadmin') { lockBtn.style.color = 'var(--pln-kuning)'; lockBtn.title = 'Super Admin'; }
     else if (user.role === 'admin') { lockBtn.style.color = '#FCD34D'; lockBtn.title = 'Admin ULP: '+user.ulp; }
     else { lockBtn.style.color = 'rgba(255,255,255,.45)'; lockBtn.title = 'Petugas'; }
+  }
+  if (dtbLock) {
+    if (user.role === 'superadmin') { dtbLock.style.color = 'var(--pln-kuning)'; dtbLock.title = 'Super Admin'; }
+    else if (user.role === 'admin') { dtbLock.style.color = '#FCD34D'; dtbLock.title = 'Admin ULP: '+user.ulp; }
+    else { dtbLock.style.color = 'rgba(255,255,255,.45)'; dtbLock.title = 'Petugas'; }
   }
 
   // Tampilkan/sembunyikan tombol Kelola User
@@ -5497,7 +5565,7 @@ function bukaFormInspeksi(noGardu) {
       var draft = JSON.parse(savedDraft);
       if (draft && draft._noGardu === noGardu) {
         setTimeout(function() {
-          if (confirm('\u{1F4BE} Ada draft pengisian yang belum disimpan untuk gardu ini.\n\nLanjutkan dari draft? (Pilih Batal untuk mulai dari awal)')) {
+          window.showConfirm('Ada draft pengisian yang belum disimpan untuk gardu ini. Lanjutkan dari draft? Pilih Batal untuk mulai dari awal.', 'Draft Tersimpan', '💾', function() {
             fiRestoreDraft(draft);
           } else {
             sessionStorage.removeItem(draftKey);
@@ -11149,7 +11217,7 @@ function konfirmasiAksi(pesan, judul, labelAksi, callback) {
     var pesanEl = document.getElementById('keluar-modal-pesan');
     if (!modal) {
       // Fallback jika modal belum ada di DOM
-      if (confirm('Yakin ingin keluar? Data akan hilang.')) {
+      window.showConfirm('Yakin ingin keluar? Data yang sudah diisi akan hilang.', 'Yakin Keluar?', '⚠️', function() {
         if (_keluarCb) _keluarCb();
       }
       return;
@@ -13561,5 +13629,121 @@ function tutupModalCsvImport() {
   }
 })();
 </script>
+
+<!-- ══ CUSTOM ALERT & CONFIRM MODALS ══════════════════════════ -->
+<div id="modal-custom-alert" style="display:none;position:fixed;inset:0;z-index:9900;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:var(--sp-md);">
+  <div style="background:var(--pln-card);border-radius:var(--radius);width:100%;max-width:340px;box-shadow:var(--shadow-lg);overflow:hidden;animation:slideUp .22s ease;">
+    <div id="ca-header" style="background:var(--pln-biru);padding:16px 20px;display:flex;align-items:center;gap:10px;">
+      <span id="ca-icon" style="font-size:22px;">ℹ️</span>
+      <span id="ca-title" style="color:#fff;font-weight:700;font-size:var(--fs-md);"></span>
+    </div>
+    <div style="padding:20px;">
+      <p id="ca-message" style="color:var(--pln-text);font-size:var(--fs-sm);line-height:1.6;margin-bottom:20px;white-space:pre-line;"></p>
+      <div style="display:flex;justify-content:flex-end;">
+        <button id="ca-ok-btn" onclick="window._caClose()"
+          style="padding:11px 28px;border:none;background:var(--pln-biru2);color:#fff;border-radius:var(--radius-sm);font-size:var(--fs-sm);font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-custom-confirm" style="display:none;position:fixed;inset:0;z-index:9900;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:var(--sp-md);">
+  <div style="background:var(--pln-card);border-radius:var(--radius);width:100%;max-width:340px;box-shadow:var(--shadow-lg);overflow:hidden;animation:slideUp .22s ease;">
+    <div id="cc-header" style="background:var(--pln-biru);padding:16px 20px;display:flex;align-items:center;gap:10px;">
+      <span id="cc-icon" style="font-size:22px;">💾</span>
+      <span id="cc-title" style="color:#fff;font-weight:700;font-size:var(--fs-md);"></span>
+    </div>
+    <div style="padding:20px;">
+      <p id="cc-message" style="color:var(--pln-text);font-size:var(--fs-sm);line-height:1.6;margin-bottom:20px;white-space:pre-line;"></p>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button id="cc-cancel-btn" onclick="window._ccCancel()"
+          style="padding:11px 20px;border:1.5px solid var(--pln-border);background:var(--pln-bg);border-radius:var(--radius-sm);font-size:var(--fs-sm);font-weight:600;color:var(--pln-text2);cursor:pointer;font-family:inherit;">Batal</button>
+        <button id="cc-ok-btn" onclick="window._ccOk()"
+          style="padding:11px 24px;border:none;background:var(--pln-biru2);color:#fff;border-radius:var(--radius-sm);font-size:var(--fs-sm);font-weight:700;cursor:pointer;font-family:inherit;">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+<style>@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}</style>
+<script>
+(function(){
+  window.showAlert = function(msg, title, icon, color) {
+    var el = document.getElementById('modal-custom-alert');
+    var header = document.getElementById('ca-header');
+    var iconEl = document.getElementById('ca-icon');
+    var titleEl = document.getElementById('ca-title');
+    var msgEl = document.getElementById('ca-message');
+    var okBtn = document.getElementById('ca-ok-btn');
+    if (!el) { return; }
+    var isErr = /^[❌]/.test(msg);
+    var isOk  = /^[✅]/.test(msg);
+    var isWarn= /^[⚠️]/.test(msg);
+    var bg = color || (isErr ? 'var(--pln-red)' : isOk ? 'var(--pln-green)' : isWarn ? 'var(--pln-orange)' : 'var(--pln-biru)');
+    var ic = icon || (isErr ? '❌' : isOk ? '✅' : isWarn ? '⚠️' : 'ℹ️');
+    var ttl = title || (isErr ? 'Gagal' : isOk ? 'Berhasil' : isWarn ? 'Perhatian' : 'Informasi');
+    if (header) header.style.background = bg;
+    if (iconEl) iconEl.textContent = ic;
+    if (titleEl) titleEl.textContent = ttl;
+    if (msgEl) msgEl.textContent = msg.replace(/^[\u274c\u2705\u26a0\ufe0f\u2139\ufe0f\s]+/,'');
+    if (okBtn) okBtn.style.background = bg;
+    el.style.display = 'flex';
+    setTimeout(function(){ if (okBtn) okBtn.focus(); }, 80);
+  };
+  window._caClose = function() {
+    var el = document.getElementById('modal-custom-alert');
+    if (el) el.style.display = 'none';
+  };
+  document.addEventListener('click', function(e){
+    var m = document.getElementById('modal-custom-alert');
+    if (m && e.target === m) window._caClose();
+  });
+
+  window._ccOkCb = null; window._ccCancelCb = null;
+  window.showConfirm = function(msg, title, icon, onOk, onCancel) {
+    var el = document.getElementById('modal-custom-confirm');
+    if (!el) { if (confirm(msg)) { if (onOk) onOk(); } else { if (onCancel) onCancel(); } return; }
+    var header = document.getElementById('cc-header');
+    var iconEl = document.getElementById('cc-icon');
+    var titleEl = document.getElementById('cc-title');
+    var msgEl = document.getElementById('cc-message');
+    var cancelBtn = document.getElementById('cc-cancel-btn');
+    window._ccOkCb = onOk || null;
+    window._ccCancelCb = onCancel || null;
+    if (header) header.style.background = 'var(--pln-biru)';
+    if (iconEl) iconEl.textContent = icon || '💾';
+    if (titleEl) titleEl.textContent = title || 'Konfirmasi';
+    if (msgEl) msgEl.textContent = msg;
+    el.style.display = 'flex';
+    setTimeout(function(){ if (cancelBtn) cancelBtn.focus(); }, 80);
+  };
+  window._ccOk = function(){
+    var el = document.getElementById('modal-custom-confirm');
+    if (el) el.style.display = 'none';
+    var cb = window._ccOkCb; window._ccOkCb = null; window._ccCancelCb = null;
+    if (cb) cb();
+  };
+  window._ccCancel = function(){
+    var el = document.getElementById('modal-custom-confirm');
+    if (el) el.style.display = 'none';
+    var cb = window._ccCancelCb; window._ccOkCb = null; window._ccCancelCb = null;
+    if (cb) cb();
+  };
+  document.addEventListener('click', function(e){
+    var m = document.getElementById('modal-custom-confirm');
+    if (m && e.target === m) window._ccCancel();
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') {
+      var a = document.getElementById('modal-custom-alert');
+      if (a && a.style.display==='flex') { window._caClose(); return; }
+      var c = document.getElementById('modal-custom-confirm');
+      if (c && c.style.display==='flex') { window._ccCancel(); return; }
+    }
+  });
+  // Override native alert - all existing alert() calls automatically use custom modal
+  window.alert = function(msg) { window.showAlert(String(msg)); };
+})();
+</script>
+
 </body>
 </html>
