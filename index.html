@@ -1062,13 +1062,26 @@ input[type=number]{-moz-appearance:textfield;}
   /* Kecualikan topbar di dalam form view & detail view — harus tetap tampil di desktop */
   .topbar{display:none;}
   #form-inspeksi-view > .topbar,
-  #form-pemeliharaan-view > .topbar,
-  #detail-view > .topbar {
+  #form-pemeliharaan-view > .topbar {
     display:flex !important;
     position:sticky;
     top:0;
     z-index:220;
     width:100%;
+  }
+  /* Detail-view topbar: FIXED di desktop agar selalu terlihat saat scroll */
+  #detail-view > .topbar {
+    display:flex !important;
+    position:fixed;
+    top:0;
+    left:220px;
+    right:0;
+    z-index:220;
+    width:auto;
+  }
+  /* Kompensasi tinggi topbar agar konten tidak tertutup */
+  #detail-view .page-body-nonav {
+    padding-top:calc(var(--topbar-h) + var(--sp-md)) !important;
   }
   /* Tombol back di detail-view desktop pastikan tetap terlihat */
   #detail-view > .topbar .topbar-back {
