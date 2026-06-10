@@ -5165,7 +5165,7 @@ function renderDetailGardu(g, riwayat){
           '</div>';
         });
         fasaBarHtml += '</div>';
-        html += '<div class="imbalance-alert '+imbClass+'" style="margin:var(--sp-xs) 0;">';
+        html += '<div class="imbalance-alert '+imbClass+'" style="margin:var(--sp-xs) var(--sp-md);">';
         html += '<div class="imbalance-header">'+imbIcon+' '+imbLabel+'</div>';
         html += '<div class="imbalance-meter"><div class="imbalance-meter-fill" style="width:'+Math.min(imbalPct,100).toFixed(1)+'%;background:'+(imbalPct>10?'#C0392B':imbalPct>5?'#D97706':'#059669')+';"></div></div>';
         html += fasaBarHtml;
