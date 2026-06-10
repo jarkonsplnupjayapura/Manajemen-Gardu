@@ -626,9 +626,25 @@ input[type=number]{-moz-appearance:textfield;}
 
 /* ══ FORM VIEWS — Mobile safe area top fix ══════════════════ */
 @media(max-width:767px){
-  /* Topbar safe area is applied inline per element.
-     Keep this only for any other content that might need it. */
-  #detail-view > div > .topbar {
+  #form-inspeksi-view,
+  #form-pemeliharaan-view {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .sidebar-brand{display:none!important;}
+  .sidebar-user{display:none!important;}
+  /* Detail view di mobile: fixed full-screen agar scroll terisolasi */
+  #detail-view{
+    position:fixed;
+    inset:0;
+    z-index:150;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    background:var(--pln-bg);
+    max-width:100%;
+    margin:0;
+  }
+  /* Safe area untuk topbar di dalam detail-view fixed */
+  #detail-view > .topbar {
     padding-top: env(safe-area-inset-top, 0px);
     height: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
   }
@@ -2383,7 +2399,7 @@ input[type=number]{-moz-appearance:textfield;}
 <div id="form-pemeliharaan-view" style="display:none;position:fixed;inset:0;z-index:200;background:var(--pln-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;">
   <div style="max-width:600px;margin:0 auto;">
     <!-- Topbar -->
-    <div class="topbar" style="position:sticky;top:0;z-index:10;padding-top:env(safe-area-inset-top,0px);height:calc(var(--topbar-h) + env(safe-area-inset-top,0px));">
+    <div class="topbar" style="position:sticky;top:0;z-index:10;">
       <button class="topbar-back" onclick="tutupFormPemeliharaan()">←</button>
       <div class="topbar-info">
         <div class="topbar-sub">Form Pemeliharaan</div>
@@ -2456,11 +2472,9 @@ input[type=number]{-moz-appearance:textfield;}
 </div>
 
 <!-- DETAIL VIEW -->
-<div id="detail-view" style="display:none;position:fixed;inset:0;z-index:200;background:var(--pln-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;">
-  <div style="max-width:600px;margin:0 auto;">
+<div id="detail-view" style="display:none;width:100%;max-width:600px;margin:0 auto;">
   <div class="topbar" style="position:sticky;top:0;z-index:10;"><button class="topbar-back" onclick="tutupDetail()">←</button><div class="topbar-info"><div class="topbar-sub">Detail Gardu</div><div class="topbar-title" id="detail-view-title">—</div></div></div>
   <div class="page-body-nonav" id="detail-content"></div>
-  </div>
 </div>
 </div><!-- /app-content -->
 
@@ -2470,7 +2484,7 @@ input[type=number]{-moz-appearance:textfield;}
 <div id="form-inspeksi-view" style="display:none;position:fixed;inset:0;z-index:200;background:var(--pln-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;">
   <div style="max-width:900px;margin:0 auto;">
     <!-- Topbar form inspeksi -->
-    <div class="topbar" style="position:sticky;top:0;z-index:10;padding-top:env(safe-area-inset-top,0px);height:calc(var(--topbar-h) + env(safe-area-inset-top,0px));">
+    <div class="topbar" style="position:sticky;top:0;z-index:10;">
       <button class="topbar-back" id="fi-btn-back" onclick="tutupFormInspeksi()">←</button>
       <div class="topbar-info">
         <div class="topbar-sub">Form Inspeksi</div>
@@ -4875,11 +4889,15 @@ function bukaDetailGardu(noGardu){
   tabSebelumDetail = currentTab;
   TAB_IDS.forEach(function(tid){ document.getElementById(tid).classList.remove('active'); });
   if(window.innerWidth < 768) document.getElementById('bottom-nav').style.display = 'none';
-  var dv = document.getElementById('detail-view');
-  dv.style.display = 'block';
-  if (dv) dv.scrollTop = 0;
+  document.getElementById('detail-view').style.display = 'block';
   document.getElementById('detail-view-title').textContent = noGardu;
   document.getElementById('detail-content').innerHTML = '<div class="loading"><div class="spinner"></div>Memuat detail...</div>';
+  // Scroll ke atas saat buka detail
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  var dv = document.getElementById('detail-view');
+  if (dv) dv.scrollTop = 0;
   apiGet({action:'getDetailLengkap', noGardu:noGardu}, function(res){
     if(res.status!=='ok' || !res.data){
       document.getElementById('detail-content').innerHTML =
@@ -5589,8 +5607,12 @@ function bukaLinkSOP(key) {
 
 function tutupDetail(){
   var dv = document.getElementById('detail-view');
-  if (dv) { dv.scrollTop = 0; dv.style.display = 'none'; }
+  if (dv) dv.scrollTop = 0;
+  dv.style.display = 'none';
   document.getElementById('bottom-nav').style.display = 'flex';
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
   bukaTab(TAB_IDS[tabSebelumDetail], tabSebelumDetail);
 }
 
