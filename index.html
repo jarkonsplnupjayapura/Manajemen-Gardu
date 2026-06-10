@@ -147,29 +147,30 @@ body{
   padding-bottom:env(safe-area-inset-bottom);
 }
 .nav-btn{
-  flex:1;display:flex;flex-direction:column;align-items:center;
-  padding:8px 2px;
-  padding-bottom:max(8px,env(safe-area-inset-bottom));
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:6px 1px;
+  padding-bottom:max(6px,env(safe-area-inset-bottom));
   background:none;border:none;
   color:var(--pln-text3);
-  font-size:9px;gap:2px;
+  gap:2px;
   cursor:pointer;transition:color .15s;
   font-family:inherit;
   min-height:var(--nav-h);
   touch-action:manipulation;position:relative;
   overflow:hidden;
+  box-sizing:border-box;
 }
 .nav-btn.active{color:var(--pln-biru2);}
-.nav-btn.active .nav-icon{transform:scale(1.1);}
+.nav-btn.active .nav-icon{transform:scale(1.08);}
 .nav-btn::after{
-  content:'';position:absolute;top:0;left:15%;right:15%;
+  content:'';position:absolute;top:0;left:10%;right:10%;
   height:2.5px;border-radius:0 0 3px 3px;
   background:var(--pln-biru2);
   transform:scaleX(0);transition:transform .2s cubic-bezier(.34,1.56,.64,1);
 }
 .nav-btn.active::after{transform:scaleX(1);}
-.nav-icon{font-size:clamp(17px,4.5vw,20px);line-height:1;transition:transform .2s;}
-.nav-label{font-weight:600;letter-spacing:-.01em;font-size:clamp(8px,2.2vw,10px);text-align:center;line-height:1.2;word-break:break-word;max-width:100%;}
+.nav-icon{font-size:clamp(18px,4.5vw,21px);line-height:1;transition:transform .2s;flex-shrink:0;display:block;}
+.nav-label{font-weight:600;letter-spacing:-.01em;font-size:clamp(8px,2vw,9.5px);text-align:center;line-height:1.1;word-break:break-word;max-width:100%;flex-shrink:0;display:block;white-space:normal;}
 
 /* ══ PAGES ═══════════════════════════════════════════════════ */
 .page{display:none;width:100%;max-width:600px;margin:0 auto;}
@@ -587,8 +588,8 @@ input[type=number]{-moz-appearance:textfield;}
 }
 .tren-chart-title{font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);text-transform:uppercase;letter-spacing:.4px;}
 .tren-chart-badge{font-size:var(--fs-xs);font-weight:700;padding:2px 8px;border-radius:20px;}
-.tren-chart-svg-wrap{padding:var(--sp-sm) var(--sp-md) 0;overflow:hidden;}
-.tren-chart-svg-wrap svg{display:block;width:100%;max-width:100%;}
+.tren-chart-svg-wrap{padding:var(--sp-sm) var(--sp-sm) 0;overflow:visible;}
+.tren-chart-svg-wrap svg{display:block;width:100%;max-width:100%;height:auto;overflow:visible;}
 .tren-chart-legend{display:flex;gap:var(--sp-sm);padding:var(--sp-sm) var(--sp-md);flex-wrap:wrap;}
 .tren-legend-item{display:flex;align-items:center;gap:5px;font-size:var(--fs-xs);color:var(--pln-text2);}
 .tren-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
@@ -3849,6 +3850,12 @@ function doLogout() {
 
 // Dipanggil setelah login berhasil — atur tampilan sesuai role
 function onLoginSuccess(user) {
+  // FIX BUG 1: Pastikan login-screen benar-benar tersembunyi dan body bersih
+  var ls = document.getElementById('login-screen');
+  if (ls) { ls.style.display = 'none'; ls.style.visibility = 'hidden'; ls.style.opacity = '0'; ls.style.pointerEvents = 'none'; }
+  document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.top = '';
   // Update badge header
   var badge = document.getElementById('topbar-user-badge');
   var uLabel = document.getElementById('topbar-username-label');
@@ -4594,18 +4601,23 @@ var QR_NOGARDU   = '';
 window.onload = function(){
   // ── MODE SCAN QR: bypass login, langsung detail ──────────────
   if (QR_SCAN_MODE && QR_NOGARDU) {
-    document.getElementById('login-screen').style.display = 'none';
-    if(window.innerWidth < 768) document.getElementById('bottom-nav').style.display = 'none';
+    // FIX BUG 1: Sembunyikan login-screen sepenuhnya dan reset body overflow
+    var lsEl = document.getElementById('login-screen');
+    if (lsEl) { lsEl.style.display = 'none'; lsEl.style.visibility = 'hidden'; lsEl.style.opacity = '0'; lsEl.style.pointerEvents = 'none'; }
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.getElementById('bottom-nav').style.display = 'none';
     TAB_IDS.forEach(function(tid){ document.getElementById(tid).classList.remove('active'); });
 
     // Tampilkan banner "mode scan" di topbar detail
     var topbarSub = document.querySelector('#detail-view .topbar-sub');
     if (topbarSub) topbarSub.textContent = '📷 Mode Scan — Hanya Baca';
 
-    // Ubah tombol ← menjadi 🔑 untuk petugas yang mau login
+    // Ubah tombol ← menjadi icon login untuk petugas yang mau login
     var btnBack = document.querySelector('#detail-view .topbar-back');
     if (btnBack) {
-      btnBack.innerHTML = '🔑';
+      btnBack.style.cssText = 'background:linear-gradient(135deg,#1048A8,#2E7CF6);border:none;color:#fff;font-size:0;cursor:pointer;min-width:42px;min-height:42px;width:auto;height:auto;border-radius:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .18s;touch-action:manipulation;padding:0 10px;gap:5px;box-shadow:0 2px 8px rgba(16,72,168,.35);';
+      btnBack.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 17L15 12L10 7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 12H3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span style="font-size:11px;font-weight:700;color:#fff;font-family:inherit;letter-spacing:.2px;white-space:nowrap;">Login</span>';
       btnBack.title     = 'Login ke Aplikasi';
       btnBack.onclick   = function(){
         window.location.href = window.location.pathname;
@@ -4717,7 +4729,18 @@ function normalizeCoord(val, isLat) {
 function apiGet(params, cb) {
   // Delegasikan ke window.apiGet yang di-override oleh supabase-api.js
   // supabase-api.js harus dimuat sebelum </body>
-  apiGet(params, cb);
+  if (typeof window.apiGet === 'function' && window.apiGet !== apiGet) {
+    window.apiGet(params, cb); return;
+  }
+  // Fallback: supabase-api.js belum siap, tunda 300ms lalu coba lagi (maks 5x)
+  if (!apiGet._retries) apiGet._retries = 0;
+  if (apiGet._retries < 5) {
+    apiGet._retries++;
+    setTimeout(function(){ apiGet._retries = 0; apiGet(params, cb); }, 300);
+    return;
+  }
+  apiGet._retries = 0;
+  cb({status:'error', message:'Gagal terhubung ke server. Coba refresh halaman.'});
 }
 
 var TAB_IDS = ['tab-daftar','tab-peta','tab-rekap','tab-pengukuran','tab-pemeliharaan','tab-sop'];
@@ -5543,8 +5566,8 @@ function renderTrenBeban(data, wrap) {
   var trendColor = slope > 1 ? '#C0392B' : slope > 0.3 ? '#D97706' : slope < -0.3 ? '#059669' : '#1048A8';
   var badgeClass = latestP > 80 ? 'background:#FDECEA;color:#C0392B' : latestP > 60 ? 'background:#FEF3C7;color:#D97706' : 'background:#D1FAE5;color:#059669';
 
-  // SVG chart dimensions — W lebih lebar, PR lebih besar untuk callout label kanan
-  var W=520, H=140, PL=30, PR=48, PT=14, PB=30;
+  // SVG chart dimensions — W lebih lebar, PR diperkecil agar tidak overflow, label di dalam
+  var W=500, H=160, PL=32, PR=8, PT=16, PB=32;
   var cW=W-PL-PR, cH=H-PT-PB;
   var yScale=function(v){ return PT + cH - (v-minP)/(maxP-minP||1)*cH; };
   var xScale=function(i){ return PL + (n<=1?cW/2:i/(n-1)*cW); };
@@ -5593,14 +5616,16 @@ function renderTrenBeban(data, wrap) {
   var y120 = yScale(120).toFixed(1);
 
   var svgStr =
-    '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:100%;overflow:hidden;">'+
+    '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;overflow:visible;">'+
       // Gradient
       '<defs>'+
         '<linearGradient id="tren-grad" x1="0" y1="0" x2="0" y2="1">'+
-          '<stop offset="0%" stop-color="#1048A8" stop-opacity="0.18"/>'+
+          '<stop offset="0%" stop-color="#1048A8" stop-opacity="0.20"/>'+
           '<stop offset="100%" stop-color="#1048A8" stop-opacity="0"/>'+
         '</linearGradient>'+
       '</defs>'+
+      // Border/frame chart area
+      '<rect x="'+PL+'" y="'+PT+'" width="'+cW+'" height="'+cH+'" fill="none" stroke="#E2E8F2" stroke-width="1" rx="3"/>'+
       // Zona >80% PLN (background merah tipis)
       (y80 >= PT ? '<rect x="'+PL+'" y="'+PT+'" width="'+cW+'" height="'+Math.max(0,y80-PT)+'" fill="rgba(192,57,43,.05)"/>' : '')+
       // 60% — batas perhatian PLN
@@ -5624,9 +5649,10 @@ function renderTrenBeban(data, wrap) {
       yLabels + xLabels +
       // Dots
       dots +
-      // Latest value callout — posisi di kanan (PR-4 dari tepi kanan chart area)
-      '<rect x="'+(W-PR+2)+'" y="'+(parseFloat(lastY)-11)+'" width="42" height="16" rx="6" fill="'+lastColor+'"/>'+
-      '<text x="'+(W-PR+23)+'" y="'+(parseFloat(lastY)+2)+'" text-anchor="middle" font-size="9" fill="#fff" font-weight="bold">'+latestP.toFixed(1)+'%</text>'+
+      // Latest value callout — posisi di dalam chart, geser ke kiri jika terlalu dekat tepi
+      '<circle cx="'+lastX+'" cy="'+lastY+'" r="5" fill="'+lastColor+'" stroke="#fff" stroke-width="2"/>'+
+      '<rect x="'+(parseFloat(lastX)-24)+'" y="'+(parseFloat(lastY)-22)+'" width="48" height="17" rx="6" fill="'+lastColor+'" opacity="0.95"/>'+
+      '<text x="'+lastX+'" y="'+(parseFloat(lastY)-9)+'" text-anchor="middle" font-size="9.5" fill="#fff" font-weight="bold">'+latestP.toFixed(1)+'%</text>'+
     '</svg>';
 
   var html = '';
