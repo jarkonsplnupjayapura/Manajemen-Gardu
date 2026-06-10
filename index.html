@@ -652,11 +652,29 @@ input[type=number]{-moz-appearance:textfield;}
   inset:0;
   z-index:150;
   overflow-y:auto;
+  overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
   background:var(--pln-bg);
   width:100%!important;
   max-width:100%!important;
   margin:0!important;
+}
+/* Semua konten di dalam detail view tidak boleh overflow horizontal */
+#detail-view .card,
+#detail-view .riwayat-card,
+#detail-view .tren-chart-wrap{
+  max-width:100%;
+  overflow:hidden;
+  box-sizing:border-box;
+}
+#detail-view .grid2{
+  max-width:100%;
+  overflow:hidden;
+}
+#detail-view .val,
+#detail-view .lbl{
+  overflow-wrap:break-word;
+  word-break:break-word;
 }
 #detail-view > .topbar{
   position:sticky;
@@ -1121,8 +1139,8 @@ input[type=number]{-moz-appearance:textfield;}
   #app-content{padding-top:var(--topbar-h);}
 
 
-  /* Detail view full width */
-  #detail-view{max-width:100%;width:100%;left:220px!important;}
+  /* Detail view full width — dari tepi sidebar sampai kanan layar */
+  #detail-view{max-width:100%;width:calc(100% - 220px)!important;left:220px!important;right:0!important;overflow-x:hidden!important;}
 }
 
 /* Sembunyikan sidebar brand & user di mobile */
@@ -1171,10 +1189,10 @@ input[type=number]{-moz-appearance:textfield;}
   #detail-view .page-body-nonav{
     padding:0 var(--sp-md) var(--sp-lg);
   }
-  /* Layout grid: 2 kolom */
+  /* Layout grid: 2 kolom — kiri min 320px, fleksibel hingga 420px */
   #detail-desktop-grid{
     display:grid;
-    grid-template-columns:380px 1fr;
+    grid-template-columns:minmax(320px,420px) minmax(0,1fr);
     gap:var(--sp-md);
     align-items:start;
   }
@@ -1183,12 +1201,40 @@ input[type=number]{-moz-appearance:textfield;}
     position:sticky;top:calc(var(--topbar-h) + 12px);
     max-height:calc(100vh - var(--topbar-h) - 32px);
     overflow-y:auto;
+    overflow-x:hidden;
     padding-right:4px;
+    min-width:0;
+    word-break:break-word;
   }
   #detail-col-left::-webkit-scrollbar{width:4px;}
   #detail-col-left::-webkit-scrollbar-thumb{background:var(--pln-border2);border-radius:2px;}
+  #detail-col-left .card{
+    width:100%;
+    box-sizing:border-box;
+    overflow:hidden;
+  }
+  /* Grid 2 kolom di dalam detail — pastikan tidak overflow */
+  #detail-col-left .grid2{
+    grid-template-columns:1fr 1fr;
+    word-break:break-word;
+    overflow:hidden;
+  }
+  #detail-col-left .grid2 .val,
+  #detail-col-left .grid2 .val-sm{
+    word-break:break-word;
+    overflow-wrap:anywhere;
+    white-space:normal;
+  }
+  /* Baris merek & kepemilikan — tampil vertikal di detail kiri */
+  #detail-col-left .detail-footer-meta{
+    flex-direction:column;
+    gap:4px;
+    align-items:flex-start;
+  }
   #detail-col-right{
     display:flex;flex-direction:column;gap:var(--sp-sm);
+    min-width:0;
+    overflow:hidden;
   }
   /* Map lebih tinggi di desktop */
   .gps-map-wrap iframe{
@@ -1197,6 +1243,13 @@ input[type=number]{-moz-appearance:textfield;}
   /* Tren chart lebih lebar */
   .tren-chart-svg-wrap svg{
     max-width:100%!important;
+  }
+}
+
+/* Layar sangat lebar (≥1400px): beri lebih ruang ke kolom kiri */
+@media(min-width:1400px){
+  #detail-desktop-grid{
+    grid-template-columns:460px minmax(0,1fr);
   }
 }
 
@@ -4977,9 +5030,9 @@ function renderDetailGardu(g, riwayat){
   html += '<div><div class="lbl">Penyulang</div><div class="val">'+esc(g['PENYULANG']||'—')+'</div></div>';
   html += '<div><div class="lbl">Tipe</div><div class="val">'+esc(g['TIPE']||'—')+'</div></div>';
   html += '</div>';
-  html += '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--pln-border);padding-top:var(--sp-sm);">';
-  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
-  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);">🏢 Kepemilikan: <b style="color:var(--pln-text2);">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</b></span>';
+  html += '<div class="detail-footer-meta" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;border-top:1px solid var(--pln-border);padding-top:var(--sp-sm);">';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;">🏢 Kepemilikan: <b style="color:var(--pln-text2);">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</b></span>';
   html += '</div>';
   html += '</div>';
 
