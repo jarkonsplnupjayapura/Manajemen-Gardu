@@ -1994,8 +1994,6 @@ input[type=number]{-moz-appearance:textfield;}
 
 </head>
 <body>
-<!-- Supabase API Layer — tanpa defer agar segera tersedia untuk login -->
-<script src="supabase-api.js"></script>
 <!-- ══ LOGIN SCREEN ══════════════════════════════════════════ -->
 <div id="login-screen">
 
@@ -11473,6 +11471,9 @@ function konfirmasiAksi(pesan, judul, labelAksi, callback) {
         crossorigin="anonymous"
         async></script>
 
+
+<!-- Supabase API Layer — tanpa defer agar segera tersedia untuk login -->
+<script src="supabase-api.js"></script>
 
 <!-- ============================================================
      KRITIS-5 FIX: Registrasi Service Worker PWA
