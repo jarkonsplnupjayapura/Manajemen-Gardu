@@ -626,12 +626,9 @@ input[type=number]{-moz-appearance:textfield;}
 
 /* ══ FORM VIEWS — Mobile safe area top fix ══════════════════ */
 @media(max-width:767px){
-  #form-inspeksi-view,
-  #form-pemeliharaan-view {
-    padding-top: env(safe-area-inset-top, 0px);
-  }
-  /* Ensure detail-view topbar is always at the very top */
-  #detail-view > .topbar {
+  /* Topbar safe area is applied inline per element.
+     Keep this only for any other content that might need it. */
+  #detail-view > div > .topbar {
     padding-top: env(safe-area-inset-top, 0px);
     height: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
   }
@@ -2386,7 +2383,7 @@ input[type=number]{-moz-appearance:textfield;}
 <div id="form-pemeliharaan-view" style="display:none;position:fixed;inset:0;z-index:200;background:var(--pln-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;">
   <div style="max-width:600px;margin:0 auto;">
     <!-- Topbar -->
-    <div class="topbar" style="position:sticky;top:0;z-index:10;">
+    <div class="topbar" style="position:sticky;top:0;z-index:10;padding-top:env(safe-area-inset-top,0px);height:calc(var(--topbar-h) + env(safe-area-inset-top,0px));">
       <button class="topbar-back" onclick="tutupFormPemeliharaan()">←</button>
       <div class="topbar-info">
         <div class="topbar-sub">Form Pemeliharaan</div>
@@ -2459,9 +2456,11 @@ input[type=number]{-moz-appearance:textfield;}
 </div>
 
 <!-- DETAIL VIEW -->
-<div id="detail-view" style="display:none;width:100%;max-width:600px;margin:0 auto;">
-  <div class="topbar"><button class="topbar-back" onclick="tutupDetail()">←</button><div class="topbar-info"><div class="topbar-sub">Detail Gardu</div><div class="topbar-title" id="detail-view-title">—</div></div></div>
+<div id="detail-view" style="display:none;position:fixed;inset:0;z-index:200;background:var(--pln-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;">
+  <div style="max-width:600px;margin:0 auto;">
+  <div class="topbar" style="position:sticky;top:0;z-index:10;"><button class="topbar-back" onclick="tutupDetail()">←</button><div class="topbar-info"><div class="topbar-sub">Detail Gardu</div><div class="topbar-title" id="detail-view-title">—</div></div></div>
   <div class="page-body-nonav" id="detail-content"></div>
+  </div>
 </div>
 </div><!-- /app-content -->
 
@@ -2471,7 +2470,7 @@ input[type=number]{-moz-appearance:textfield;}
 <div id="form-inspeksi-view" style="display:none;position:fixed;inset:0;z-index:200;background:var(--pln-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;">
   <div style="max-width:900px;margin:0 auto;">
     <!-- Topbar form inspeksi -->
-    <div class="topbar" style="position:sticky;top:0;z-index:10;">
+    <div class="topbar" style="position:sticky;top:0;z-index:10;padding-top:env(safe-area-inset-top,0px);height:calc(var(--topbar-h) + env(safe-area-inset-top,0px));">
       <button class="topbar-back" id="fi-btn-back" onclick="tutupFormInspeksi()">←</button>
       <div class="topbar-info">
         <div class="topbar-sub">Form Inspeksi</div>
@@ -4876,15 +4875,11 @@ function bukaDetailGardu(noGardu){
   tabSebelumDetail = currentTab;
   TAB_IDS.forEach(function(tid){ document.getElementById(tid).classList.remove('active'); });
   if(window.innerWidth < 768) document.getElementById('bottom-nav').style.display = 'none';
-  document.getElementById('detail-view').style.display = 'block';
+  var dv = document.getElementById('detail-view');
+  dv.style.display = 'block';
+  if (dv) dv.scrollTop = 0;
   document.getElementById('detail-view-title').textContent = noGardu;
   document.getElementById('detail-content').innerHTML = '<div class="loading"><div class="spinner"></div>Memuat detail...</div>';
-  // Scroll ke atas saat buka detail
-  window.scrollTo(0, 0);
-  document.documentElement.scrollTop = 0;
-  document.body.scrollTop = 0;
-  var dv = document.getElementById('detail-view');
-  if (dv) dv.scrollTop = 0;
   apiGet({action:'getDetailLengkap', noGardu:noGardu}, function(res){
     if(res.status!=='ok' || !res.data){
       document.getElementById('detail-content').innerHTML =
@@ -5594,12 +5589,8 @@ function bukaLinkSOP(key) {
 
 function tutupDetail(){
   var dv = document.getElementById('detail-view');
-  if (dv) dv.scrollTop = 0;
-  dv.style.display = 'none';
+  if (dv) { dv.scrollTop = 0; dv.style.display = 'none'; }
   document.getElementById('bottom-nav').style.display = 'flex';
-  window.scrollTo(0, 0);
-  document.documentElement.scrollTop = 0;
-  document.body.scrollTop = 0;
   bukaTab(TAB_IDS[tabSebelumDetail], tabSebelumDetail);
 }
 
@@ -11618,6 +11609,22 @@ if ('serviceWorker' in navigator) {
     <!-- Hidden credential inputs — auto-filled saat modal dibuka -->
     <input type="hidden" id="supa-url">
     <input type="hidden" id="supa-key">
+    <input type="hidden" id="supa-service-key">
+    <!-- Service Role Key Banner (tampil jika anon key tidak punya akses) -->
+    <div id="ci-service-key-banner" style="display:none;background:#FEF3C7;border:1.5px solid #FCD34D;border-radius:10px;padding:12px 16px;margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:700;color:#92400E;margin-bottom:6px;">⚠️ Akses tabel terbatas (anon key)</div>
+      <div style="font-size:11px;color:#78350F;margin-bottom:10px;line-height:1.6;">
+        Anon key tidak punya izin SELECT pada tabel <code style="background:#FDE68A;padding:1px 5px;border-radius:3px;">gardu</code> dan <code style="background:#FDE68A;padding:1px 5px;border-radius:3px;">inspeksi</code>.<br>
+        Masukkan <strong>Service Role Key</strong> agar cek duplikat bisa berjalan, atau aktifkan RLS policy untuk anon di Supabase Dashboard.
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="password" id="supa-service-key-input" placeholder="service_role key (opsional — untuk cek duplikat)" autocomplete="off"
+          style="flex:1;min-width:200px;padding:8px 12px;border:1.5px solid #FCD34D;border-radius:7px;font-size:12px;font-family:monospace;background:#fffdf0;color:#1a1a1a;">
+        <button onclick="ciApplyServiceKey()" style="background:#D97706;color:#fff;border:none;border-radius:7px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;">Terapkan</button>
+        <button onclick="document.getElementById('ci-service-key-banner').style.display='none'" style="background:none;border:none;color:#92400E;font-size:11px;cursor:pointer;text-decoration:underline;">Tutup</button>
+      </div>
+      <div style="font-size:10px;color:#92400E;margin-top:8px;opacity:.75;">Service Role Key ada di: Supabase Dashboard → Settings → API → service_role (secret)</div>
+    </div>
     <!-- Info box -->
     <div class="note-box">
       <strong>Cara kerja import:</strong><br>
@@ -13007,10 +13014,36 @@ function findSimilarGardu(unknown, maxSuggestions = 3, maxDist = 4) {
   return candidates.slice(0, maxSuggestions);
 }
 
+// Helper: get effective key (service role key jika tersedia, fallback anon)
+function ciGetEffectiveKey() {
+  var svcInput = document.getElementById('supa-service-key-input');
+  var svcHidden = document.getElementById('supa-service-key');
+  var anonKey = document.getElementById('supa-key').value.trim();
+  var svcKey = (svcInput && svcInput.value.trim()) || (svcHidden && svcHidden.value.trim()) || '';
+  return svcKey || anonKey;
+}
+
+function ciApplyServiceKey() {
+  var inp = document.getElementById('supa-service-key-input');
+  if (!inp || !inp.value.trim()) { toast('Masukkan Service Role Key terlebih dahulu', 'error'); return; }
+  var hidden = document.getElementById('supa-service-key');
+  if (hidden) hidden.value = inp.value.trim();
+  document.getElementById('ci-service-key-banner').style.display = 'none';
+  toast('✅ Service Role Key diterapkan. Klik "Cek Duplikat DB" kembali.', 'info');
+}
+
+function ciShowServiceKeyBanner() {
+  var banner = document.getElementById('ci-service-key-banner');
+  if (banner) banner.style.display = 'block';
+  var bodyEl = document.getElementById('ci-modal-body');
+  if (bodyEl) bodyEl.scrollTop = 0;
+}
+
 async function checkDuplicates() {
   const url = document.getElementById('supa-url').value.trim().replace(/\/$/, '');
-  const key = document.getElementById('supa-key').value.trim();
-  if (!url || !key) { toast('Isi Supabase URL dan API Key terlebih dahulu', 'error'); return; }
+  const anonKey = document.getElementById('supa-key').value.trim();
+  const effectiveKey = ciGetEffectiveKey();
+  if (!url || !anonKey) { toast('Isi Supabase URL dan API Key terlebih dahulu', 'error'); return; }
   if (parsedRows.length === 0) { toast('Tidak ada data untuk dicek', 'error'); return; }
 
   const btn = document.getElementById('btn-check');
@@ -13030,9 +13063,9 @@ async function checkDuplicates() {
 
     const knownGarduSet = new Set();
     let garduTableMissing = false;
+    let permissionDenied = false;
 
     // Fetch semua gardu dari DB (untuk fuzzy match & info alamat/penyulang)
-    // Kita ambil no_gardu, alamat, penyulang dari seluruh tabel gardu
     try {
       let allGarduRows = [];
       let from = 0;
@@ -13041,13 +13074,19 @@ async function checkDuplicates() {
         const qAll = `${url}/rest/v1/gardu?select=no_gardu,alamat,penyulang&order=no_gardu`;
         const rAll = await fetch(qAll, {
           headers: {
-            'apikey': key, 'Authorization': `Bearer ${key}`,
+            'apikey': effectiveKey, 'Authorization': `Bearer ${effectiveKey}`,
             'Prefer': 'count=none', 'Range': `${from}-${from + pageSize - 1}`
           }
         });
         if (!rAll.ok) {
+          const errText = await rAll.text();
           if (rAll.status === 404 || rAll.status === 400) { garduTableMissing = true; break; }
-          throw new Error(`Query gardu gagal (${rAll.status}): ${await rAll.text()}`);
+          if (rAll.status === 401 || rAll.status === 403 || (errText && errText.includes('permission denied'))) {
+            permissionDenied = true;
+            garduTableMissing = true;
+            break;
+          }
+          throw new Error(`Query gardu gagal (${rAll.status}): ${errText}`);
         }
         const page = await rAll.json();
         allGarduRows.push(...page);
@@ -13063,6 +13102,14 @@ async function checkDuplicates() {
     } catch(e) {
       toast('ⓘ Gagal mengambil data gardu — validasi dilewati: ' + e.message, 'info');
       garduTableMissing = true;
+    }
+
+    if (permissionDenied) {
+      // Tampilkan banner minta service key
+      ciShowServiceKeyBanner();
+      toast('⚠️ Akses ditolak (permission denied). Masukkan Service Role Key untuk cek duplikat.', 'error');
+      btn.disabled = false; btn.textContent = '🔍 Cek Duplikat DB';
+      return;
     }
 
     if (garduTableMissing) {
@@ -13101,13 +13148,22 @@ async function checkDuplicates() {
 
       const resp = await fetch(query, {
         headers: {
-          'apikey': key,
-          'Authorization': `Bearer ${key}`,
+          'apikey': effectiveKey,
+          'Authorization': `Bearer ${effectiveKey}`,
           'Prefer': 'count=none',
           'Range': '0-9999',
         }
       });
-      if (!resp.ok) throw new Error(`Query gagal (${resp.status}): ${await resp.text()}`);
+      if (!resp.ok) {
+        const errText = await resp.text();
+        if (resp.status === 401 || resp.status === 403 || (errText && errText.includes('permission denied'))) {
+          ciShowServiceKeyBanner();
+          toast('⚠️ Akses tabel inspeksi ditolak (permission denied). Masukkan Service Role Key.', 'error');
+          btn.disabled = false; btn.textContent = '🔍 Cek Duplikat DB';
+          return;
+        }
+        throw new Error(`Query gagal (${resp.status}): ${errText}`);
+      }
       const rows = await resp.json();
       for (const r of rows) {
         const jamNorm = normalizeJam(r.jam_ukur) || '';
@@ -13150,7 +13206,7 @@ async function checkDuplicates() {
 // ══════════════════════════════════════════
 async function startImport() {
   const url = document.getElementById('supa-url').value.trim().replace(/\/$/, '');
-  const key = document.getElementById('supa-key').value.trim();
+  const key = ciGetEffectiveKey();
 
   if (!url || !key) { toast('Isi Supabase URL dan API Key terlebih dahulu', 'error'); return; }
   if (parsedRows.length === 0) { toast('Tidak ada data untuk diimport', 'error'); return; }
@@ -13507,7 +13563,7 @@ async function saveEditAndRetry() {
   }
 
   const url = document.getElementById('supa-url').value.trim().replace(/\/$/, '');
-  const key = document.getElementById('supa-key').value.trim();
+  const key = ciGetEffectiveKey();
   if (!url || !key) { toast('Isi Supabase URL dan API Key terlebih dahulu', 'error'); return; }
 
   btn.disabled = true;
