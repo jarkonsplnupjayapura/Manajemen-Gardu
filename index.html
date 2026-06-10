@@ -5135,7 +5135,7 @@ function _tampilkanModalPinAdmin(s) {
     // Pertahankan callback untuk retry berikutnya
     _pinGarduCallback = cekPinAdmin;
 
-    apiGet({ action: 'verifyPin', token: s.token, pin: pin }, function(res) {
+    window.apiGet({ action: 'verifyPin', token: s.token, pin: pin }, function(res) {
       if (res && res.status === 'ok') {
         // PIN benar → tutup modal & tampilkan panel
         _pinGarduCallback = null;
@@ -5226,7 +5226,7 @@ function renderUserList() {
   var wrap = document.getElementById('user-list-wrap');
   wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--pln-text3)"><div class="spinner"></div>Memuat daftar user...</div>';
   var s = getSession();
-  apiGet({ action: 'getDaftarUser', token: s ? s.token : '' }, function(res) {
+  window.apiGet({ action: 'getDaftarUser', token: s ? s.token : '' }, function(res) {
     if (res.status !== 'ok') {
       wrap.innerHTML = '<div style="color:var(--pln-red);padding:16px;">Gagal memuat: ' + esc(res.message||'error') + '</div>';
       return;
@@ -5335,7 +5335,7 @@ function simpanUser() {
   if (usernameLama) params.usernameLama = usernameLama;
   if (pass) params.password = pass;
 
-  apiGet(params, function(res) {
+  window.apiGet(params, function(res) {
     if (res.status === 'ok') {
       showMsg('User berhasil disimpan.', false);
       setTimeout(function() { renderUserList(); tutupFormUser(); }, 1200);
@@ -5352,7 +5352,7 @@ function hapusUser(username, nama) {
     'Hapus Akun User',
     function() {
       var s = getSession();
-      apiGet({ action: 'hapusUser', token: s ? s.token : '', username: username }, function(res) {
+      window.apiGet({ action: 'hapusUser', token: s ? s.token : '', username: username }, function(res) {
         if (res.status === 'ok') { renderUserList(); }
         else { alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.')); }
       });
@@ -5383,7 +5383,7 @@ function renderUserListULP() {
   var wrap = document.getElementById('user-ulp-list-wrap');
   if (!wrap) return;
   wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--pln-text3)"><div class="spinner"></div>Memuat user...</div>';
-  apiGet({ action: 'getDaftarUser', token: s.token }, function(res) {
+  window.apiGet({ action: 'getDaftarUser', token: s.token }, function(res) {
     if (res.status !== 'ok') {
       wrap.innerHTML = '<div style="color:var(--pln-red);padding:16px;">Gagal memuat: ' + esc(res.message||'error') + '</div>';
       return;
@@ -5512,7 +5512,7 @@ function simpanUserULP() {
   if (usernameLama) params.usernameLama = usernameLama;
   if (pass) params.password = pass;
 
-  apiGet(params, function(res) {
+  window.apiGet(params, function(res) {
     if (res.status === 'ok') {
       showMsg('User berhasil disimpan!', false);
       setTimeout(function() { renderUserListULP(); tutupFormUserULP(); }, 1200);
@@ -5529,7 +5529,7 @@ function hapusUserULP(username, nama) {
     'Hapus Akun User',
     function() {
       var s = getSession();
-      apiGet({ action: 'hapusUser', token: s ? s.token : '', username: username }, function(res) {
+      window.apiGet({ action: 'hapusUser', token: s ? s.token : '', username: username }, function(res) {
         if (res.status === 'ok') { renderUserListULP(); }
         else { alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.')); }
       });
@@ -5609,7 +5609,7 @@ function submitResetPassword() {
   if (!_rpTargetUsername) return showMsg('Target user tidak ditemukan.', false);
 
   showMsg('Menyimpan...', true);
-  apiGet({ action: 'resetPassword', token: s ? s.token : '', username: _rpTargetUsername, passwordBaru: pw }, function(res) {
+  window.apiGet({ action: 'resetPassword', token: s ? s.token : '', username: _rpTargetUsername, passwordBaru: pw }, function(res) {
     if (res.status === 'ok') {
       showMsg('✅ Password "' + _rpTargetUsername + '" berhasil direset.', true);
       setTimeout(tutupModalResetPassword, 1800);
@@ -5627,7 +5627,7 @@ function resetPinULP(username) {
     function() {
   var s = getSession();
   if (!s) return;
-  apiGet({ action: 'resetPin', token: s.token, username: username }, function(res) {
+  window.apiGet({ action: 'resetPin', token: s.token, username: username }, function(res) {
     if (res.status === 'ok') {
       alert('✅ PIN "' + username + '" berhasil direset.');
       renderUserListULP();
@@ -5649,7 +5649,7 @@ function toggleAktifULP(username, aktifkan) {
     function() {
   var s = getSession();
   if (!s) return;
-  apiGet({ action: 'aktifkanUser', token: s.token, username: username, aktifkan: aktifkan }, function(res) {
+  window.apiGet({ action: 'aktifkanUser', token: s.token, username: username, aktifkan: aktifkan }, function(res) {
     if (res.status === 'ok') {
       renderUserListULP();
     } else {
@@ -5724,7 +5724,7 @@ window.onload = function(){
     document.getElementById('detail-content').innerHTML =
       '<div class="loading"><div class="spinner"></div>Memuat data gardu...</div>';
 
-    apiGet({ action: 'getDetailLengkap', noGardu: QR_NOGARDU }, function(res) {
+    window.apiGet({ action: 'getDetailLengkap', noGardu: QR_NOGARDU }, function(res) {
       if (res.status !== 'ok' || !res.data) {
         document.getElementById('detail-content').innerHTML =
           '<div class="alert alert-err" style="margin-bottom:var(--sp-sm);">❌ ' +
@@ -5819,21 +5819,10 @@ function normalizeCoord(val, isLat) {
   return n; // tidak bisa dinormalisasi, kembalikan aslinya
 }
 
-function apiGet(params, cb) {
+function _apiGetStub(params, cb) {
   // Delegasikan ke window.apiGet yang di-override oleh supabase-api.js
   // supabase-api.js harus dimuat sebelum </body>
-  if (typeof window.apiGet === 'function' && window.apiGet !== apiGet) {
-    window.apiGet(params, cb); return;
-  }
-  // Fallback: supabase-api.js belum siap, tunda 300ms lalu coba lagi (maks 5x)
-  if (!apiGet._retries) apiGet._retries = 0;
-  if (apiGet._retries < 5) {
-    apiGet._retries++;
-    setTimeout(function(){ apiGet(params, cb); }, 300);
-    return;
-  }
-  apiGet._retries = 0;
-  if (typeof cb === 'function') cb({status:'error', message:'Gagal terhubung ke server. Pastikan file supabase-api.js sudah ada, lalu refresh halaman.'});
+  window.apiGet(params, cb);
 }
 
 var TAB_IDS = ['tab-daftar','tab-peta','tab-rekap','tab-pengukuran','tab-pemeliharaan','tab-sop'];
@@ -5946,7 +5935,7 @@ function muatDaftarGardu(force, ulpFilter){
 
   var _apiParams = {action:'getDaftarGardu'};
   if (activeULP) _apiParams.ulp = activeULP;
-  apiGet(_apiParams, function(res){
+  window.apiGet(_apiParams, function(res){
     if(res.status!=='ok'){
       document.getElementById('list-gardu').innerHTML =
         '<div class="alert alert-err" style="margin:var(--sp-md);">'+
@@ -6127,7 +6116,7 @@ function bukaDetailGardu(noGardu){
   document.body.scrollTop = 0;
   var dv = document.getElementById('detail-view');
   if (dv) dv.scrollTop = 0;
-  apiGet({action:'getDetailLengkap', noGardu:noGardu}, function(res){
+  window.apiGet({action:'getDetailLengkap', noGardu:noGardu}, function(res){
     if(res.status!=='ok' || !res.data){
       document.getElementById('detail-content').innerHTML =
         '<div class="alert alert-err" style="margin-bottom:var(--sp-sm);">❌ '+(res.message||'Data gardu tidak ditemukan.')+'</div>'+
@@ -6607,7 +6596,7 @@ function ukurCell(label, val, unit) {
 function muatTrenBeban(noGardu) {
   var wrap = document.getElementById('tren-beban-wrap');
   if (!wrap) return;
-  apiGet({ action:'getTrenBeban', noGardu: noGardu }, function(res) {
+  window.apiGet({ action:'getTrenBeban', noGardu: noGardu }, function(res) {
     if (!document.getElementById('tren-beban-wrap')) return; // detail sudah ditutup
     if (res.status !== 'ok' || !res.data || !res.data.length) {
       wrap.innerHTML = '<div class="empty-state" style="padding:var(--sp-md);"><div class="empty-icon">📊</div>Belum ada data historis beban.</div>';
@@ -7540,7 +7529,7 @@ function submitFormInspeksi() {
     jurusan:     jurusan.length ? JSON.stringify(jurusan) : null
   };
 
-  apiGet(params, function(res) {
+  window.apiGet(params, function(res) {
     btnSimpan.disabled = false;
     btnSimpan.innerHTML = '💾 Simpan Inspeksi';
 
@@ -7580,7 +7569,7 @@ function hapusInspeksiById(id, tglLabel) {
   var s = getSession();
   if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
 
-  apiGet({ action: 'hapusInspeksi', token: s.token, id: id }, function(res) {
+  window.apiGet({ action: 'hapusInspeksi', token: s.token, id: id }, function(res) {
     if (res.status !== 'ok') {
       alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
       return;
@@ -7605,7 +7594,7 @@ function bukaEditInspeksiById(id) {
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(10,45,107,.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
   ov.innerHTML = '<div style="background:#fff;border-radius:14px;padding:22px 32px;font-size:15px;font-weight:700;color:#0A2D6B;box-shadow:0 8px 32px rgba(10,45,107,.3);">⏳ Memuat data jurusan...</div>';
   document.body.appendChild(ov);
-  apiGet({ action: 'getInspeksiById', id: id }, function(res) {
+  window.apiGet({ action: 'getInspeksiById', id: id }, function(res) {
     var o = document.getElementById('_ei-load-ov');
     if (o) o.remove();
     if (res && res.status === 'ok' && res.data) {
@@ -7990,7 +7979,7 @@ function simpanEditInspeksi() {
   var btn = document.getElementById('btn-simpan-edit-inspeksi');
   btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
   var gv = function(id) { var el = document.getElementById(id); return el && el.value !== '' ? el.value : null; };
-  apiGet({
+  window.apiGet({
     action:       'editInspeksi',
     token:        s.token,
     id:           id,
@@ -8064,7 +8053,7 @@ function bukaEditInspeksiDariPengukuranById(id) {
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(10,45,107,.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
   ov.innerHTML = '<div style="background:#fff;border-radius:14px;padding:22px 32px;font-size:15px;font-weight:700;color:#0A2D6B;box-shadow:0 8px 32px rgba(10,45,107,.3);">⏳ Memuat data jurusan...</div>';
   document.body.appendChild(ov);
-  apiGet({ action: 'getInspeksiById', id: id }, function(res) {
+  window.apiGet({ action: 'getInspeksiById', id: id }, function(res) {
     var o = document.getElementById('_ei-load-ov2');
     if (o) o.remove();
     if (res && res.status === 'ok' && res.data) {
@@ -8086,7 +8075,7 @@ function hapusInspeksiDariPengukuran(id, tglLabel) {
   if (!confirm('Hapus data pengukuran tanggal ' + tglLabel + '?\n\nTindakan ini tidak dapat dibatalkan.')) return;
   var s = getSession();
   if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
-  apiGet({ action: 'hapusInspeksi', token: s.token, id: id }, function(res) {
+  window.apiGet({ action: 'hapusInspeksi', token: s.token, id: id }, function(res) {
     if (res.status !== 'ok') {
       alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
       return;
@@ -8161,7 +8150,7 @@ function simpanEditPemeliharaan() {
   if (!jenis) { errEl.textContent = '⚠️ Jenis pekerjaan wajib diisi.'; errEl.style.display = 'block'; return; }
   var btn = document.getElementById('btn-simpan-edit-pm');
   btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
-  apiGet({
+  window.apiGet({
     action: 'editPemeliharaan', token: s.token, id: id,
     tanggal: tanggal, petugas: petugas, kategori: kategori, jenis: jenis
   }, function(res) {
@@ -8289,7 +8278,7 @@ function doExport() {
     var sheetVal = ulpAkunToSheet(s.ulp);
     if (sheetVal) exportParams.ulp = sheetVal;
   }
-  apiGet(exportParams, function(res) {
+  window.apiGet(exportParams, function(res) {
     _showExportLoading(false);
     if (res.status !== 'ok' || !res.data) { alert('❌ ' + userFriendlyError(res.message, 'Gagal memuat data.')); return; }
 
@@ -9350,7 +9339,7 @@ function muatRekap() {
   if (s && s.role !== 'superadmin' && s.ulp) {
     params.ulp = s.ulp;
   }
-  apiGet(params, function(res) {
+  window.apiGet(params, function(res) {
     rekapSudahMuat = true;
     if (res.status !== 'ok') {
       document.getElementById('rekap-content').innerHTML =
@@ -9576,7 +9565,7 @@ function muatGarduKritis() {
   if (s && s.role !== 'superadmin' && s.ulp) {
     params.ulp = s.ulp;
   }
-  apiGet(params, function(res) {
+  window.apiGet(params, function(res) {
     var el = document.getElementById('gardu-kritis-content');
     if (!el) return;
     if (res.status !== 'ok') {
@@ -9942,7 +9931,7 @@ function submitTambahGardu() {
   }
 
   function doTambah(pin) {
-    apiGet({
+    window.apiGet({
       action:'tambahGardu', token: s.token, pin:pin, noGardu:noGardu, ulp:ulp,
       unitup: unitup,
       penyulang:(document.getElementById('f-penyulang').value||'').trim(),
@@ -9982,7 +9971,7 @@ function cariGarduUntukEdit() {
   // Validasi prefix dihapus agar gardu baru (dengan nomor non-standard) tetap bisa dicari
   var s = getSession();
 
-  apiGet({action:'getDetailLengkap', noGardu:noGardu}, function(res){
+  window.apiGet({action:'getDetailLengkap', noGardu:noGardu}, function(res){
     if (res.status!=='ok'||!res.data) { alert('Gardu tidak ditemukan: '+noGardu); return; }
     var g = res.data;
     // [Fix v34] adminUlp hanya bisa edit gardu ULP-nya sendiri
@@ -10083,7 +10072,7 @@ function submitEditGardu() {
   bukaModalPinGardu('Konfirmasi PIN — Edit Gardu', function(pin) {
     // Tutup modal PIN segera, lalu kirim ke server
     tutupModalPinGardu();
-    apiGet({
+    window.apiGet({
       action:'editGardu', token: s.token, pin:pin, noGarduLama:noLama,
       noGarduBaru:(document.getElementById('ef-nogardu-baru').value||'').trim().toUpperCase(),
       ulp:ulpVal,
@@ -10125,7 +10114,7 @@ function cariGarduDariScannerAuto(val) {
   var s = getSession();
   document.getElementById('list-scan').innerHTML = '<div class="loading"><div class="spinner"></div>Membuka gardu <b>'+esc(val)+'</b>...</div>';
 
-  apiGet({action:'getDetailLengkap', noGardu:val}, function(res) {
+  window.apiGet({action:'getDetailLengkap', noGardu:val}, function(res) {
     if (res.status === 'ok') {
       var g = res.data;
       // Cek ULP — petugas & adminUlp hanya boleh lihat ULP sendiri
@@ -10147,7 +10136,7 @@ function cariGarduDariScannerAuto(val) {
       bukaDetailGardu(g['NO_GARDU']);
     } else {
       // Coba fallback ke cariGardu
-      apiGet({action:'cariGardu', keyword:val}, function(res2) {
+      window.apiGet({action:'cariGardu', keyword:val}, function(res2) {
         if (res2.status !== 'ok' || !res2.data.length) {
           document.getElementById('list-scan').innerHTML = '<div class="alert alert-warn"><span class="alert-icon">🔍</span><span class="alert-text">Gardu tidak ditemukan: <b>'+esc(val)+'</b></span></div>';
           return;
@@ -10272,7 +10261,7 @@ function submitSetPin() {
   if (pinBaru.length < 4) { showMsg('PIN minimal 4 digit angka.', false); return; }
   if (pinBaru !== pinKonfirmasi) { showMsg('PIN baru dan konfirmasi tidak sama.', false); return; }
 
-  apiGet({ action:'setPin', token: s.token, password: pass, pinBaru: pinBaru }, function(res){
+  window.apiGet({ action:'setPin', token: s.token, password: pass, pinBaru: pinBaru }, function(res){
     if (res.status === 'ok') {
       showMsg('✅ ' + res.message, true);
       setTimeout(tutupModalSetPin, 1800);
@@ -10596,7 +10585,7 @@ function muatPetaGardu(force) {
   // Init map sambil menunggu data
   _initPetaMap(null);
 
-  apiGet(params, function(res) {
+  window.apiGet(params, function(res) {
     _petaLoading = false;
     if (loadEl) loadEl.style.display = 'none';
     if (res.status !== 'ok' || !res.data) {
@@ -10972,7 +10961,7 @@ async function pmSubmit() {
     jenis:     jenis
   };
 
-  apiGet(params, function(res) {
+  window.apiGet(params, function(res) {
     if (savingEl) savingEl.style.display = 'none';
     if (btn)      { btn.disabled = false; btn.textContent = '💾 Simpan Data'; }
 
@@ -11038,7 +11027,7 @@ function muatDaftarPemeliharaan(force) {
 
   var params = { action: 'getDaftarPemeliharaan', token: s.token };
 
-  apiGet(params, function(res) {
+  window.apiGet(params, function(res) {
     if (res.status !== 'ok') {
       if (wrap) wrap.innerHTML = '<div class="alert alert-err"><span class="alert-icon">❌</span><span class="alert-text">Gagal memuat: ' + esc(res.message || 'Error') + '<br><button class="btn btn-outline" style="margin-top:8px;" onclick="muatDaftarPemeliharaan(true)">↻ Coba Lagi</button></span></div>';
       return;
@@ -11244,7 +11233,7 @@ function hapusPemeliharaanById(id, noGardu) {
   var s = getSession();
   if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
 
-  apiGet({ action: 'hapusPemeliharaan', token: s.token, id: id }, function(res) {
+  window.apiGet({ action: 'hapusPemeliharaan', token: s.token, id: id }, function(res) {
     if (res.status !== 'ok') {
       alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
       return;
@@ -11287,7 +11276,7 @@ function muatDataPengukuran(force) {
     // limit tidak di-set → _getRiwayat loop ambil SEMUA data sesuai filter
   };
 
-  apiGet(params, function(res) {
+  window.apiGet(params, function(res) {
     if (res.status !== 'ok') {
       if (wrap) wrap.innerHTML = '<div class="alert alert-err"><span class="alert-icon">❌</span><span class="alert-text">Gagal memuat: ' + esc(res.message || 'Error') + '<br><button class="btn btn-outline" style="margin-top:8px;" onclick="muatDataPengukuran(true)">↻ Coba Lagi</button></span></div>';
       return;
@@ -11314,7 +11303,7 @@ function muatDataPengukuran(force) {
     if (Object.keys(garduIndex).length === 0) {
       var sEnrich = getSession();
       var ulpEnrich = (sEnrich && sEnrich.role !== 'superadmin') ? (sEnrich.ulp || '') : '';
-      apiGet({ action: 'getDaftarGardu', ulp: ulpEnrich || undefined }, function(gRes) {
+      window.apiGet({ action: 'getDaftarGardu', ulp: ulpEnrich || undefined }, function(gRes) {
         if (gRes.status === 'ok' && gRes.data) {
           allGardu = gRes.data;
           garduIndex = {};
