@@ -92,18 +92,22 @@ body{
   padding-right:max(var(--sp-md), env(safe-area-inset-right));
 }
 .topbar-back{
-  background:rgba(255,255,255,.12);
-  border:none;color:#fff;
-  font-size:var(--fs-lg);
+  background:rgba(255,255,255,.15);
+  border:1.5px solid rgba(255,255,255,.22);
+  color:#fff;
+  font-size:20px;
   cursor:pointer;
-  min-width:38px;min-height:38px;
-  width:38px;height:38px;
-  border-radius:var(--radius-sm);
+  min-width:40px;min-height:40px;
+  width:40px;height:40px;
+  border-radius:10px;
   display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;transition:background .15s;
+  flex-shrink:0;
+  transition:background .15s, border-color .15s, transform .1s;
   touch-action:manipulation;
+  box-shadow:0 1px 4px rgba(0,0,0,.18);
 }
-.topbar-back:active{background:rgba(255,255,255,.25);}
+.topbar-back:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.35);}
+.topbar-back:active{background:rgba(255,255,255,.30);transform:scale(.93);}
 .topbar-logo{
   width:clamp(30px,8vw,38px);
   height:clamp(30px,8vw,38px);
@@ -2411,10 +2415,7 @@ input[type=number]{-moz-appearance:textfield;}
 <div id="form-pemeliharaan-view" style="display:none;position:fixed;inset:0;z-index:200;background:var(--pln-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;">
   <!-- Topbar: full-width, LUAR wrapper max-width agar tidak terpotong -->
   <div class="topbar" style="position:sticky;top:0;z-index:10;">
-    <button class="topbar-back" onclick="tutupFormPemeliharaan()" title="Kembali" style="display:flex;align-items:center;gap:5px;">
-      <span style="font-size:18px;line-height:1;">←</span>
-      <span style="font-size:var(--fs-xs);font-weight:700;letter-spacing:.2px;">Kembali</span>
-    </button>
+    <button class="topbar-back" onclick="tutupFormPemeliharaan()" title="Kembali">←</button>
     <div class="topbar-info">
       <div class="topbar-sub">Form Pemeliharaan</div>
       <div class="topbar-title" id="pm-topbar-title">—</div>
@@ -2491,10 +2492,7 @@ input[type=number]{-moz-appearance:textfield;}
 <!-- DETAIL VIEW -->
 <div id="detail-view" style="display:none;width:100%;max-width:600px;margin:0 auto;">
   <div class="topbar" style="position:sticky;top:0;z-index:10;">
-    <button class="topbar-back" onclick="tutupDetail()" title="Kembali ke Daftar" style="display:flex;align-items:center;gap:5px;">
-      <span style="font-size:18px;line-height:1;">←</span>
-      <span style="font-size:var(--fs-xs);font-weight:700;letter-spacing:.2px;">Kembali</span>
-    </button>
+    <button class="topbar-back" onclick="tutupDetail()" title="Kembali ke Daftar">←</button>
     <div class="topbar-info">
       <div class="topbar-sub">Detail Gardu</div>
       <div class="topbar-title" id="detail-view-title">—</div>
@@ -2510,10 +2508,7 @@ input[type=number]{-moz-appearance:textfield;}
 <div id="form-inspeksi-view" style="display:none;position:fixed;inset:0;z-index:200;background:var(--pln-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;">
   <!-- Topbar form inspeksi: full-width, LUAR wrapper max-width agar tidak terpotong -->
   <div class="topbar" style="position:sticky;top:0;z-index:10;">
-    <button class="topbar-back" id="fi-btn-back" onclick="tutupFormInspeksi()" title="Kembali" style="display:flex;align-items:center;gap:5px;">
-      <span style="font-size:18px;line-height:1;">←</span>
-      <span style="font-size:var(--fs-xs);font-weight:700;letter-spacing:.2px;">Kembali</span>
-    </button>
+    <button class="topbar-back" id="fi-btn-back" onclick="tutupFormInspeksi()" title="Kembali">←</button>
     <div class="topbar-info">
       <div class="topbar-sub">Form Inspeksi</div>
       <div class="topbar-title" id="fi-topbar-title">—</div>
