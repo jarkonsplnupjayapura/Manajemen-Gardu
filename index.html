@@ -646,17 +646,9 @@ input[type=number]{-moz-appearance:textfield;}
   }
 }
 
-/* ══ DETAIL VIEW — Fixed full-screen semua device ═══════════ */
+/* ══ DETAIL VIEW — base (mobile: fixed full-screen, desktop: normal flow) ══ */
 #detail-view{
-  position:fixed;
-  inset:0;
-  z-index:150;
-  overflow-y:auto;
-  -webkit-overflow-scrolling:touch;
   background:var(--pln-bg);
-  width:100%!important;
-  max-width:100%!important;
-  margin:0!important;
 }
 #detail-view > .topbar{
   position:sticky;
@@ -952,10 +944,10 @@ input[type=number]{-moz-appearance:textfield;}
   /* App layout: sidebar kiri + konten kanan */
   body{display:flex;min-height:100vh;}
 
-  /* Sidebar permanen */
+  /* Sidebar permanen — lebar diperluas agar label panjang muat */
   #bottom-nav{
     position:fixed;top:0;left:0;bottom:0;right:auto;
-    width:220px;flex-direction:column;
+    width:260px;flex-direction:column;
     border-top:none;border-right:1px solid var(--pln-border);
     padding:0;align-items:stretch;
     background:#fff;
@@ -1022,12 +1014,12 @@ input[type=number]{-moz-appearance:textfield;}
   .sidebar-user-role{font-size:10px;color:var(--pln-text3);font-weight:500;}
   .sidebar-user-ulp{font-size:10px;color:var(--pln-biru2);font-weight:600;}
 
-  /* Konten utama geser ke kanan sesuai lebar sidebar */
+  /* Konten utama geser ke kanan sesuai lebar sidebar baru */
   #app-content{
-    margin-left:220px;
+    margin-left:260px;
     flex:1;min-width:0;
     display:flex;flex-direction:column;
-    width:calc(100% - 220px);
+    width:calc(100% - 260px);
     max-width:none;
   }
 
@@ -1039,9 +1031,8 @@ input[type=number]{-moz-appearance:textfield;}
   #form-pemeliharaan-view {
     left: 260px !important;
   }
-  /* Wrapper konten (bukan topbar) boleh full-width di desktop */
-  #form-inspeksi-view > div:not(.topbar),
-  #form-pemeliharaan-view > div:not(.topbar) {
+  #form-inspeksi-view > div,
+  #form-pemeliharaan-view > div {
     max-width: 100% !important;
   }
 
@@ -1065,71 +1056,25 @@ input[type=number]{-moz-appearance:textfield;}
   /* Topbar tetap ada, tapi tidak perlu padding left-nav */
   .topbar{position:sticky;top:0;z-index:100;}
 
-  /* UNIFIED TOPBAR: hide mobile topbar on desktop, sidebar brand acts as full header */
-  /* Kecualikan topbar di dalam form view & detail view — harus tetap tampil di desktop */
-  .topbar{display:none;}
-  #form-inspeksi-view > .topbar,
-  #form-pemeliharaan-view > .topbar {
-    display:flex !important;
-    position:sticky;
-    top:0;
-    z-index:220;
-    width:100%;
-  }
-  /* Detail-view topbar: selalu tampil di desktop */
-  #detail-view > .topbar {
-    display:flex !important;
-  }
-  #detail-view > .topbar .topbar-back,
-  div#detail-view > div.topbar > button.topbar-back {
-    display:flex !important;
-    visibility:visible !important;
-    opacity:1 !important;
-    pointer-events:auto !important;
-  }
-  /* Sidebar brand becomes richer - show page title + user area on right */
-  #bottom-nav{width:220px;}
-  #app-content{margin-left:220px;width:calc(100% - 220px);}
-  #form-inspeksi-view,#form-pemeliharaan-view{left:220px!important;}
-  .sidebar-brand{
-    position:relative;
-    justify-content:flex-start;
-    width:100%;
-    flex-shrink:0;
-  }
-  .sidebar-brand-info{min-width:0;flex:1;}
-  /* Dummy topbar placeholder so content doesn't jump */
-  #desktop-topbar-bar{
-    display:flex;
-    align-items:center;
-    background:var(--pln-biru);
-    height:var(--topbar-h);
-    position:fixed;
-    top:0;left:220px;right:0;
-    z-index:150;
-    padding:0 var(--sp-lg);
-    gap:var(--sp-sm);
-    box-shadow:0 1px 0 rgba(255,255,255,.08),0 4px 20px rgba(10,45,107,.3);
-  }
-  #desktop-topbar-bar .dtb-title{
-    font-size:var(--fs-md);font-weight:700;color:#fff;letter-spacing:-.02em;flex:1;
-  }
-  #desktop-topbar-bar .dtb-user{
-    display:flex;flex-direction:column;align-items:flex-end;gap:1px;
-  }
-  #desktop-topbar-bar .dtb-user-name{font-size:10px;color:rgba(255,255,255,.7);font-weight:500;}
-  #app-content{padding-top:var(--topbar-h);}
-
-
-  /* Detail view full width — mulai setelah sidebar */
-  #detail-view{left:220px!important;right:0!important;width:auto!important;max-width:none!important;}
+  /* Detail view full width */
+  #detail-view{max-width:100%;width:100%;}
 }
 
 /* Sembunyikan sidebar brand & user di mobile */
 @media(max-width:767px){
   .sidebar-brand{display:none!important;}
   .sidebar-user{display:none!important;}
-
+  /* Detail view di mobile: fixed full-screen agar scroll terisolasi */
+  #detail-view{
+    position:fixed;
+    inset:0;
+    z-index:150;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    background:var(--pln-bg);
+    max-width:100%;
+    margin:0;
+  }
 }
 
 /* ══ PETA: FILTER ULP BAR ════════════════════════════════════ */
@@ -1169,7 +1114,7 @@ input[type=number]{-moz-appearance:textfield;}
 @media(min-width:768px){
   #detail-view{max-width:100%!important;}
   #detail-view .page-body-nonav{
-    padding:0 var(--sp-md) var(--sp-lg);
+    padding:var(--sp-md) var(--sp-md) var(--sp-lg);
   }
   /* Layout grid: 2 kolom */
   #detail-desktop-grid{
@@ -1180,8 +1125,8 @@ input[type=number]{-moz-appearance:textfield;}
   }
   #detail-col-left{
     display:flex;flex-direction:column;gap:var(--sp-sm);
-    position:sticky;top:var(--topbar-h);
-    max-height:calc(100vh - var(--topbar-h) - 24px);
+    position:sticky;top:calc(var(--topbar-h) + 12px);
+    max-height:calc(100vh - var(--topbar-h) - 32px);
     overflow-y:auto;
     padding-right:4px;
   }
@@ -1189,13 +1134,7 @@ input[type=number]{-moz-appearance:textfield;}
   #detail-col-left::-webkit-scrollbar-thumb{background:var(--pln-border2);border-radius:2px;}
   #detail-col-right{
     display:flex;flex-direction:column;gap:var(--sp-sm);
-    position:sticky;top:var(--topbar-h);
-    max-height:calc(100vh - var(--topbar-h) - 24px);
-    overflow-y:auto;
-    padding-right:4px;
   }
-  #detail-col-right::-webkit-scrollbar{width:4px;}
-  #detail-col-right::-webkit-scrollbar-thumb{background:var(--pln-border2);border-radius:2px;}
   /* Map lebih tinggi di desktop */
   .gps-map-wrap iframe{
     height:220px!important;
@@ -1205,6 +1144,8 @@ input[type=number]{-moz-appearance:textfield;}
     max-width:100%!important;
   }
 }
+
+
 
 /* ══ FORM PEMELIHARAAN — Step Wizard ════════════════════════ */
 #form-pemeliharaan-view{animation:fiSlideIn .22s cubic-bezier(.22,1,.36,1);}
