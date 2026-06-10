@@ -650,8 +650,11 @@ input[type=number]{-moz-appearance:textfield;}
     max-width:100%;
     margin:0;
   }
-  /* Safe area untuk topbar di dalam detail-view fixed */
+  /* Safe area + sticky untuk topbar detail-view di mobile */
   #detail-view > .topbar {
+    position:sticky;
+    top:0;
+    z-index:10;
     padding-top: env(safe-area-inset-top, 0px);
     height: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
   }
@@ -1072,8 +1075,8 @@ input[type=number]{-moz-appearance:textfield;}
   /* Detail-view topbar: FIXED di desktop agar selalu terlihat saat scroll */
   #detail-view > .topbar {
     display:flex !important;
-    position:fixed;
-    top:0;
+    position:fixed !important;
+    top:0 !important;
     left:220px;
     right:0;
     z-index:220;
@@ -1121,8 +1124,8 @@ input[type=number]{-moz-appearance:textfield;}
   #app-content{padding-top:var(--topbar-h);}
 
 
-  /* Detail view full width */
-  #detail-view{max-width:100%;width:100%;}
+  /* Detail view full width + kompensasi topbar fixed */
+  #detail-view{max-width:100%;width:100%;padding-top:var(--topbar-h);}
 }
 
 /* Sembunyikan sidebar brand & user di mobile */
@@ -2510,7 +2513,7 @@ input[type=number]{-moz-appearance:textfield;}
 
 <!-- DETAIL VIEW -->
 <div id="detail-view" style="display:none;width:100%;max-width:600px;margin:0 auto;">
-  <div class="topbar" style="position:sticky;top:0;z-index:10;">
+  <div class="topbar" id="detail-topbar">
     <button class="topbar-back" onclick="tutupDetail()" title="Kembali ke Daftar"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 14L6 9L11 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div class="topbar-info">
       <div class="topbar-sub">Detail Gardu</div>
