@@ -195,6 +195,10 @@ body{
   padding:var(--sp-md);
   padding-bottom:calc(var(--sp-lg) + env(safe-area-inset-bottom));
 }
+/* detail-content uses its own padding via fixed-header / scroll-body */
+#detail-content.page-body-nonav{
+  padding:0;
+}
 
 /* ══ CARDS ═══════════════════════════════════════════════════ */
 .card{
@@ -653,14 +657,39 @@ input[type=number]{-moz-appearance:textfield;}
   position:fixed;
   inset:0;
   z-index:150;
-  overflow-y:auto;
-  overflow-x:hidden;
-  -webkit-overflow-scrolling:touch;
+  overflow:hidden;
   background:var(--pln-bg);
   width:100%!important;
   max-width:100%!important;
   margin:0!important;
+  display:flex;
+  flex-direction:column;
 }
+/* Area scroll konten detail — hanya bagian data yang scroll */
+#detail-content{
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+}
+/* Mobile: info gardu + keterangan + map + tombol = fixed di atas */
+#detail-fixed-header{
+  flex-shrink:0;
+  overflow:hidden;
+  background:var(--pln-bg);
+  padding:var(--sp-md) var(--sp-md) 0;
+  box-shadow:0 2px 8px rgba(10,45,107,.06);
+}
+/* Mobile: riwayat inspeksi = area scroll */
+#detail-scroll-body{
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding:0 var(--sp-md) calc(var(--sp-lg) + env(safe-area-inset-bottom));
+}
+#detail-fixed-header .card{margin-bottom:var(--sp-sm);}
+#detail-fixed-header .gps-map-wrap{margin-bottom:var(--sp-sm);}
 /* Semua konten di dalam detail view tidak boleh overflow horizontal */
 #detail-view .card,
 #detail-view .riwayat-card,
@@ -1143,6 +1172,28 @@ input[type=number]{-moz-appearance:textfield;}
     top:var(--topbar-h)!important;
     overflow-x:hidden!important;
     z-index:155!important;
+    display:flex!important;
+    flex-direction:column!important;
+  }
+  /* Desktop: detail-content juga scroll */
+  #detail-content{
+    flex:1;
+    overflow-y:auto;
+    overflow-x:hidden;
+  }
+  /* Desktop: fixed-header dan scroll-body jadi display normal (bukan fixed) */
+  #detail-fixed-header{
+    display:block;
+    padding:0;
+    box-shadow:none;
+    overflow:visible;
+    flex-shrink:unset;
+  }
+  #detail-scroll-body{
+    display:block;
+    overflow:visible;
+    flex:unset;
+    padding:0;
   }
   /* Sub-bar "DETAIL GARDU" — muncul sticky di atas konten detail, di bawah topbar utama */
   #detail-subbar{
@@ -1205,6 +1256,10 @@ input[type=number]{-moz-appearance:textfield;}
 @media(min-width:768px){
   #detail-view{max-width:100%!important;}
   #detail-view .page-body-nonav{
+    padding:0;
+  }
+  /* Desktop: re-apply padding to the grid wrapper */
+  #detail-desktop-grid{
     padding:var(--sp-md) var(--sp-md) var(--sp-lg);
   }
   /* Layout grid: 2 kolom — kiri min 320px, fleksibel hingga 420px */
@@ -3876,7 +3931,14 @@ function onLoginSuccess(user) {
   if (dtbBadge && badge) { dtbBadge.textContent = badge.textContent; dtbBadge.className = badge.className; }
   if (dtbLabel) dtbLabel.textContent = user.nama || user.username;
   if (dtbSignout) { dtbSignout.style.display = 'inline-flex'; }
-  if (dtbBar) { dtbBar.style.display = 'flex'; }
+  // desktop-topbar-bar: hanya tampil di desktop (≥768px), biarkan CSS media query yang mengatur di mobile
+  if (dtbBar) {
+    if (window.innerWidth >= 768) {
+      dtbBar.style.display = 'flex';
+    } else {
+      dtbBar.style.display = 'none';
+    }
+  }
 
   // Tampilkan tombol Sign Out
   var signoutBtn = document.getElementById('btn-signout');
@@ -3921,6 +3983,22 @@ function onLoginSuccess(user) {
   var rekapEl = document.getElementById('rekap-content');
   if (rekapEl) rekapEl.innerHTML = '<div class="loading"><div class="spinner"></div>Memuat rekap...</div>';
 
+  // QR-REDIRECT FIX: Hard reset semua overlay state sebelum bukaTab
+  // Mencegah ghost render dari sisa QR scan mode atau state sebelumnya
+  var _dvEl = document.getElementById('detail-view');
+  if (_dvEl) _dvEl.style.display = 'none';
+  var _fiv = document.getElementById('form-inspeksi-view');
+  if (_fiv) _fiv.style.display = 'none';
+  var _fpv = document.getElementById('form-pemeliharaan-view');
+  if (_fpv) _fpv.style.display = 'none';
+  // Restore bottom-nav ke state awal (mobile: flex, akan diatur bukaTab)
+  var _bnEl = document.getElementById('bottom-nav');
+  if (_bnEl) _bnEl.style.display = 'flex';
+  // Pastikan semua tab tidak active sebelum bukaTab mengatur ulang
+  TAB_IDS.forEach(function(tid) {
+    var el = document.getElementById(tid);
+    if (el) el.classList.remove('active');
+  });
   // Pastikan tab-daftar aktif setelah login
   bukaTab('tab-daftar', 0);
 
@@ -4663,6 +4741,22 @@ window.onload = function(){
   }
 
   // ── MODE NORMAL: cek sesi login ───────────────────────────────
+  // QR-REDIRECT FIX: pastikan semua overlay bersih di mode normal (termasuk setelah redirect dari scan)
+  (function _hardResetState() {
+    var ids = ['detail-view', 'form-inspeksi-view', 'form-pemeliharaan-view'];
+    ids.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    var bn = document.getElementById('bottom-nav');
+    if (bn) bn.style.display = 'flex';
+    var dtb = document.getElementById('desktop-topbar-bar');
+    if (dtb) dtb.style.display = window.innerWidth >= 768 ? 'flex' : 'none';
+    TAB_IDS.forEach(function(tid) {
+      var el = document.getElementById(tid);
+      if (el) el.classList.remove('active');
+    });
+  })();
   var session = getSession();
   if (session) {
     // Sudah login — sembunyikan login screen & lanjut
@@ -5088,10 +5182,10 @@ function renderDetailGardu(g, riwayat){
   html += '<div><div class="lbl">Unit / ULP</div><div class="val">'+esc(unitupDisplay)+' / '+esc(ulpDisplay)+'</div></div>';
   html += '<div><div class="lbl">Penyulang</div><div class="val">'+esc(g['PENYULANG']||'—')+'</div></div>';
   html += '<div><div class="lbl">Tipe</div><div class="val">'+esc(g['TIPE']||'—')+'</div></div>';
+  html += '<div><div class="lbl">Kepemilikan</div><div class="val">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</div></div>';
   html += '</div>';
-  html += '<div class="detail-footer-meta" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;border-top:1px solid var(--pln-border);padding-top:var(--sp-sm);">';
-  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
-  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;">🏢 Kepemilikan: <b style="color:var(--pln-text2);">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</b></span>';
+  html += '<div class="detail-footer-meta" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;border-top:1px solid var(--pln-border);padding-top:var(--sp-sm);">';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
   html += '</div>';
   html += '</div>';
 
@@ -5482,7 +5576,18 @@ function renderDetailGardu(g, riwayat){
       finalHtml = html;
     }
   } else {
-    finalHtml = html;
+    // Mobile: bungkus info+keterangan+map+tombol dalam sticky-header, riwayat dalam scroll
+    var splitMarker = '<div class="sec">5 Inspeksi Terakhir</div>';
+    var splitIdx = html.indexOf(splitMarker);
+    if (splitIdx >= 0) {
+      var headerContent = html.substring(0, splitIdx);
+      var scrollContent = html.substring(splitIdx);
+      finalHtml =
+        '<div id="detail-fixed-header">' + headerContent + '</div>' +
+        '<div id="detail-scroll-body">' + scrollContent + '</div>';
+    } else {
+      finalHtml = html;
+    }
   }
 
   document.getElementById('detail-content').innerHTML = finalHtml;
@@ -5881,7 +5986,14 @@ function bukaFormInspeksi(noGardu) {
   // ── Autosave draft setiap 30 detik ──
   fiStartAutosave(noGardu);
 
-  // Tampilkan form (sembunyikan detail-view jangan ditutup agar bisa kembali)
+  // Tampilkan form (sembunyikan detail-view dan bottom-nav)
+  // QR-REDIRECT FIX: pastikan overlay state bersih sebelum form tampil
+  var _bnFi = document.getElementById('bottom-nav');
+  if (_bnFi) _bnFi.style.display = 'none';
+  var _dvFi = document.getElementById('detail-view');
+  if (_dvFi) _dvFi.style.display = 'none';
+  var _dtbFi = document.getElementById('desktop-topbar-bar');
+  if (_dtbFi && window.innerWidth < 768) _dtbFi.style.display = 'none';
   document.getElementById('form-inspeksi-view').style.display = 'block';
   // Scroll ke atas
   document.getElementById('form-inspeksi-view').scrollTo(0,0);
@@ -5903,6 +6015,11 @@ function _fiDoClose() {
   fiStopAutosave();
   document.getElementById('form-inspeksi-view').style.display = 'none';
   _fiGardu = null;
+  // QR-REDIRECT FIX: restore bottom-nav dan desktop-topbar-bar
+  var _bnClose = document.getElementById('bottom-nav');
+  if (_bnClose) _bnClose.style.display = 'flex';
+  var _dtbClose = document.getElementById('desktop-topbar-bar');
+  if (_dtbClose) { _dtbClose.style.display = window.innerWidth >= 768 ? 'flex' : 'none'; }
   try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
@@ -9802,6 +9919,13 @@ function bukaFormPemeliharaan(noGarduPrefill) {
   }
   var view = document.getElementById('form-pemeliharaan-view');
   if (view) {
+    // QR-REDIRECT FIX: pastikan overlay state bersih sebelum form tampil
+    var _bnPm = document.getElementById('bottom-nav');
+    if (_bnPm) _bnPm.style.display = 'none';
+    var _dvPm = document.getElementById('detail-view');
+    if (_dvPm) _dvPm.style.display = 'none';
+    var _dtbPm = document.getElementById('desktop-topbar-bar');
+    if (_dtbPm && window.innerWidth < 768) _dtbPm.style.display = 'none';
     view.style.display = 'block';
     view.scrollTo(0, 0);
 
@@ -9824,6 +9948,11 @@ function _pmDoClose() {
   _pmFormDirty = false;
   var view = document.getElementById('form-pemeliharaan-view');
   if (view) view.style.display = 'none';
+  // QR-REDIRECT FIX: restore bottom-nav dan desktop-topbar-bar
+  var _bnPmClose = document.getElementById('bottom-nav');
+  if (_bnPmClose) _bnPmClose.style.display = 'flex';
+  var _dtbPmClose = document.getElementById('desktop-topbar-bar');
+  if (_dtbPmClose) { _dtbPmClose.style.display = window.innerWidth >= 768 ? 'flex' : 'none'; }
   try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
