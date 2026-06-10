@@ -646,9 +646,17 @@ input[type=number]{-moz-appearance:textfield;}
   }
 }
 
-/* ══ DETAIL VIEW — base (mobile: fixed full-screen, desktop: normal flow) ══ */
+/* ══ DETAIL VIEW — Fixed full-screen semua device ═══════════ */
 #detail-view{
+  position:fixed;
+  inset:0;
+  z-index:150;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
   background:var(--pln-bg);
+  width:100%!important;
+  max-width:100%!important;
+  margin:0!important;
 }
 #detail-view > .topbar{
   position:sticky;
@@ -1031,8 +1039,9 @@ input[type=number]{-moz-appearance:textfield;}
   #form-pemeliharaan-view {
     left: 260px !important;
   }
-  #form-inspeksi-view > div,
-  #form-pemeliharaan-view > div {
+  /* Wrapper konten (bukan topbar) boleh full-width di desktop */
+  #form-inspeksi-view > div:not(.topbar),
+  #form-pemeliharaan-view > div:not(.topbar) {
     max-width: 100% !important;
   }
 
@@ -1056,25 +1065,71 @@ input[type=number]{-moz-appearance:textfield;}
   /* Topbar tetap ada, tapi tidak perlu padding left-nav */
   .topbar{position:sticky;top:0;z-index:100;}
 
+  /* UNIFIED TOPBAR: hide mobile topbar on desktop, sidebar brand acts as full header */
+  /* Kecualikan topbar di dalam form view & detail view — harus tetap tampil di desktop */
+  .topbar{display:none;}
+  #form-inspeksi-view > .topbar,
+  #form-pemeliharaan-view > .topbar {
+    display:flex !important;
+    position:sticky;
+    top:0;
+    z-index:220;
+    width:100%;
+  }
+  /* Detail-view topbar: selalu tampil di desktop */
+  #detail-view > .topbar {
+    display:flex !important;
+  }
+  #detail-view > .topbar .topbar-back,
+  div#detail-view > div.topbar > button.topbar-back {
+    display:flex !important;
+    visibility:visible !important;
+    opacity:1 !important;
+    pointer-events:auto !important;
+  }
+  /* Sidebar brand becomes richer - show page title + user area on right */
+  #bottom-nav{width:220px;}
+  #app-content{margin-left:220px;width:calc(100% - 220px);}
+  #form-inspeksi-view,#form-pemeliharaan-view{left:220px!important;}
+  .sidebar-brand{
+    position:relative;
+    justify-content:flex-start;
+    width:100%;
+    flex-shrink:0;
+  }
+  .sidebar-brand-info{min-width:0;flex:1;}
+  /* Dummy topbar placeholder so content doesn't jump */
+  #desktop-topbar-bar{
+    display:flex;
+    align-items:center;
+    background:var(--pln-biru);
+    height:var(--topbar-h);
+    position:fixed;
+    top:0;left:220px;right:0;
+    z-index:150;
+    padding:0 var(--sp-lg);
+    gap:var(--sp-sm);
+    box-shadow:0 1px 0 rgba(255,255,255,.08),0 4px 20px rgba(10,45,107,.3);
+  }
+  #desktop-topbar-bar .dtb-title{
+    font-size:var(--fs-md);font-weight:700;color:#fff;letter-spacing:-.02em;flex:1;
+  }
+  #desktop-topbar-bar .dtb-user{
+    display:flex;flex-direction:column;align-items:flex-end;gap:1px;
+  }
+  #desktop-topbar-bar .dtb-user-name{font-size:10px;color:rgba(255,255,255,.7);font-weight:500;}
+  #app-content{padding-top:var(--topbar-h);}
+
+
   /* Detail view full width */
-  #detail-view{max-width:100%;width:100%;}
+  #detail-view{max-width:100%;width:100%;left:220px!important;}
 }
 
 /* Sembunyikan sidebar brand & user di mobile */
 @media(max-width:767px){
   .sidebar-brand{display:none!important;}
   .sidebar-user{display:none!important;}
-  /* Detail view di mobile: fixed full-screen agar scroll terisolasi */
-  #detail-view{
-    position:fixed;
-    inset:0;
-    z-index:150;
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-    background:var(--pln-bg);
-    max-width:100%;
-    margin:0;
-  }
+
 }
 
 /* ══ PETA: FILTER ULP BAR ════════════════════════════════════ */
@@ -1114,7 +1169,7 @@ input[type=number]{-moz-appearance:textfield;}
 @media(min-width:768px){
   #detail-view{max-width:100%!important;}
   #detail-view .page-body-nonav{
-    padding:var(--sp-md) var(--sp-md) var(--sp-lg);
+    padding:0 var(--sp-md) var(--sp-lg);
   }
   /* Layout grid: 2 kolom */
   #detail-desktop-grid{
@@ -1144,8 +1199,6 @@ input[type=number]{-moz-appearance:textfield;}
     max-width:100%!important;
   }
 }
-
-
 
 /* ══ FORM PEMELIHARAAN — Step Wizard ════════════════════════ */
 #form-pemeliharaan-view{animation:fiSlideIn .22s cubic-bezier(.22,1,.36,1);}
@@ -4868,6 +4921,8 @@ function bukaDetailGardu(noGardu){
   tabSebelumDetail = currentTab;
   TAB_IDS.forEach(function(tid){ document.getElementById(tid).classList.remove('active'); });
   if(window.innerWidth < 768) document.getElementById('bottom-nav').style.display = 'none';
+  var _dtb = document.getElementById('desktop-topbar-bar');
+  if (_dtb) _dtb.style.display = 'none';
   document.getElementById('detail-view').style.display = 'block';
   document.getElementById('detail-view-title').textContent = noGardu;
   document.getElementById('detail-content').innerHTML = '<div class="loading"><div class="spinner"></div>Memuat detail...</div>';
@@ -5396,8 +5451,8 @@ function renderTrenBeban(data, wrap) {
   var trendColor = slope > 1 ? '#C0392B' : slope > 0.3 ? '#D97706' : slope < -0.3 ? '#059669' : '#1048A8';
   var badgeClass = latestP > 80 ? 'background:#FDECEA;color:#C0392B' : latestP > 60 ? 'background:#FEF3C7;color:#D97706' : 'background:#D1FAE5;color:#059669';
 
-  // SVG chart dimensions
-  var W=320, H=110, PL=32, PR=10, PT=12, PB=28;
+  // SVG chart dimensions — W lebih lebar, PR lebih besar untuk callout label kanan
+  var W=520, H=140, PL=30, PR=48, PT=14, PB=30;
   var cW=W-PL-PR, cH=H-PT-PB;
   var yScale=function(v){ return PT + cH - (v-minP)/(maxP-minP||1)*cH; };
   var xScale=function(i){ return PL + (n<=1?cW/2:i/(n-1)*cW); };
@@ -5419,14 +5474,14 @@ function renderTrenBeban(data, wrap) {
   else { var step=Math.floor(n/5); for(var i=0;i<n;i+=step) labelIdxs.push(i); if(labelIdxs[labelIdxs.length-1]!==n-1) labelIdxs.push(n-1); }
   labelIdxs.forEach(function(i){
     var tgl = pts[i].tgl||''; var short = tgl.length>=10?tgl.slice(5):tgl; // MM-DD
-    xLabels += '<text x="'+xScale(i).toFixed(1)+'" y="'+(H-4)+'" text-anchor="middle" font-size="7" fill="#8499BB">'+esc(short)+'</text>';
+    xLabels += '<text x="'+xScale(i).toFixed(1)+'" y="'+(H-5)+'" text-anchor="middle" font-size="9" fill="#8499BB">'+esc(short)+'</text>';
   });
 
   // Y-axis labels
   var yLabels = '';
   [0,20,40,60,80,100].forEach(function(v){
     if(v>maxP+5) return;
-    yLabels += '<text x="'+(PL-4)+'" y="'+(yScale(v)+3)+'" text-anchor="end" font-size="7" fill="#8499BB">'+v+'</text>';
+    yLabels += '<text x="'+(PL-4)+'" y="'+(yScale(v)+3)+'" text-anchor="end" font-size="9" fill="#8499BB">'+v+'</text>';
     yLabels += '<line x1="'+PL+'" y1="'+yScale(v)+'" x2="'+(W-PR)+'" y2="'+yScale(v)+'" stroke="#E2E8F2" stroke-width="0.5"/>';
   });
 
@@ -5458,17 +5513,17 @@ function renderTrenBeban(data, wrap) {
       (y80 >= PT ? '<rect x="'+PL+'" y="'+PT+'" width="'+cW+'" height="'+Math.max(0,y80-PT)+'" fill="rgba(192,57,43,.05)"/>' : '')+
       // 60% — batas perhatian PLN
       '<line x1="'+PL+'" y1="'+y60+'" x2="'+(W-PR)+'" y2="'+y60+'" stroke="#FDE68A" stroke-width="1" stroke-dasharray="3,3"/>'+
-      '<text x="'+(PL+2)+'" y="'+(parseFloat(y60)-2)+'" font-size="7" fill="#D97706">60%</text>'+
+      '<text x="'+(PL+2)+'" y="'+(parseFloat(y60)-2)+'" font-size="9" fill="#D97706">60%</text>'+
       // 80% — Batas lebih beban PLN SPLN D3.002-1
       '<line x1="'+PL+'" y1="'+y80+'" x2="'+(W-PR)+'" y2="'+y80+'" stroke="#C0392B" stroke-width="1.5" stroke-dasharray="4,2"/>' +
-      '<text x="'+(PL+2)+'" y="'+(parseFloat(y80)-2)+'" font-size="7" fill="#C0392B">80% (PLN)</text>'+
+      '<text x="'+(PL+2)+'" y="'+(parseFloat(y80)-2)+'" font-size="9" fill="#C0392B">80% (PLN)</text>'+
       // 100% — IEC 60076-7 batas nominal / kapasitas penuh
       (maxP >= 95 ? '<line x1="'+PL+'" y1="'+y100+'" x2="'+(W-PR)+'" y2="'+y100+'" stroke="#7F1D1D" stroke-width="1.5" stroke-dasharray="2,3"/>' : '')+
-      (maxP >= 95 ? '<text x="'+(PL+2)+'" y="'+(parseFloat(y100)-2)+'" font-size="7" fill="#7F1D1D" font-weight="bold">100% (IEC nominal)</text>' : '')+
+      (maxP >= 95 ? '<text x="'+(PL+2)+'" y="'+(parseFloat(y100)-2)+'" font-size="9" fill="#7F1D1D" font-weight="bold">100% (IEC nominal)</text>' : '')+
       // 120% — IEC 60076-7 batas beban darurat (emergency)
       (maxP >= 112 ? '<rect x="'+PL+'" y="'+PT+'" width="'+cW+'" height="'+Math.max(0,Math.min(parseFloat(y120),PT+cH)-PT)+'" fill="rgba(127,29,29,.10)"/>' : '')+
       (maxP >= 112 ? '<line x1="'+PL+'" y1="'+y120+'" x2="'+(W-PR)+'" y2="'+y120+'" stroke="#450A0A" stroke-width="1" stroke-dasharray="2,3"/>' : '')+
-      (maxP >= 112 ? '<text x="'+(PL+2)+'" y="'+(parseFloat(y120)-2)+'" font-size="6.5" fill="#450A0A">120% (IEC darurat)</text>' : '')+
+      (maxP >= 112 ? '<text x="'+(PL+2)+'" y="'+(parseFloat(y120)-2)+'" font-size="9" fill="#450A0A">120% (IEC darurat)</text>' : '')+
       // Area fill
       '<path d="'+areaPath+'" fill="url(#tren-grad)"/>'+
       // Line
@@ -5477,9 +5532,9 @@ function renderTrenBeban(data, wrap) {
       yLabels + xLabels +
       // Dots
       dots +
-      // Latest value callout
-      '<rect x="'+(parseFloat(lastX)-18)+'" y="'+(parseFloat(lastY)-16)+'" width="36" height="13" rx="6" fill="'+lastColor+'"/>'+
-      '<text x="'+lastX+'" y="'+(parseFloat(lastY)-6)+'" text-anchor="middle" font-size="8" fill="#fff" font-weight="bold">'+latestP.toFixed(1)+'%</text>'+
+      // Latest value callout — posisi di kanan (PR-4 dari tepi kanan chart area)
+      '<rect x="'+(W-PR+2)+'" y="'+(parseFloat(lastY)-11)+'" width="42" height="16" rx="6" fill="'+lastColor+'"/>'+
+      '<text x="'+(W-PR+23)+'" y="'+(parseFloat(lastY)+2)+'" text-anchor="middle" font-size="9" fill="#fff" font-weight="bold">'+latestP.toFixed(1)+'%</text>'+
     '</svg>';
 
   var html = '';
@@ -5589,6 +5644,8 @@ function tutupDetail(){
   if (dv) dv.scrollTop = 0;
   dv.style.display = 'none';
   document.getElementById('bottom-nav').style.display = 'flex';
+  var _dtb = document.getElementById('desktop-topbar-bar');
+  if (_dtb && window.innerWidth >= 768) _dtb.style.display = 'flex';
   window.scrollTo(0, 0);
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
