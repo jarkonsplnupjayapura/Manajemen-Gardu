@@ -625,10 +625,12 @@ input[type=number]{-moz-appearance:textfield;}
 
 
 /* ══ FORM VIEWS — Mobile safe area top fix ══════════════════ */
+/* Topbar sekarang direct child dari form view, jadi safe area di topbar */
 @media(max-width:767px){
-  #form-inspeksi-view,
-  #form-pemeliharaan-view {
+  #form-inspeksi-view > .topbar,
+  #form-pemeliharaan-view > .topbar {
     padding-top: env(safe-area-inset-top, 0px);
+    height: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
   }
   .sidebar-brand{display:none!important;}
   .sidebar-user{display:none!important;}
@@ -1025,8 +1027,9 @@ input[type=number]{-moz-appearance:textfield;}
   #form-pemeliharaan-view {
     left: 260px !important;
   }
-  #form-inspeksi-view > div,
-  #form-pemeliharaan-view > div {
+  /* Wrapper konten (bukan topbar) boleh full-width di desktop */
+  #form-inspeksi-view > div:not(.topbar),
+  #form-pemeliharaan-view > div:not(.topbar) {
     max-width: 100% !important;
   }
 
@@ -1051,7 +1054,16 @@ input[type=number]{-moz-appearance:textfield;}
   .topbar{position:sticky;top:0;z-index:100;}
 
   /* UNIFIED TOPBAR: hide mobile topbar on desktop, sidebar brand acts as full header */
+  /* Kecualikan topbar di dalam form view — harus tetap tampil di desktop */
   .topbar{display:none;}
+  #form-inspeksi-view > .topbar,
+  #form-pemeliharaan-view > .topbar {
+    display:flex !important;
+    position:sticky;
+    top:0;
+    z-index:220;
+    width:100%;
+  }
   /* Sidebar brand becomes richer - show page title + user area on right */
   #bottom-nav{width:220px;}
   #app-content{margin-left:220px;width:calc(100% - 220px);}
@@ -2397,19 +2409,21 @@ input[type=number]{-moz-appearance:textfield;}
 
 <!-- ══ FORM PEMELIHARAAN — Single Page (7 Kolom) ══════════════ -->
 <div id="form-pemeliharaan-view" style="display:none;position:fixed;inset:0;z-index:200;background:var(--pln-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;">
-  <div style="max-width:600px;margin:0 auto;">
-    <!-- Topbar -->
-    <div class="topbar" style="position:sticky;top:0;z-index:10;">
-      <button class="topbar-back" onclick="tutupFormPemeliharaan()">←</button>
-      <div class="topbar-info">
-        <div class="topbar-sub">Form Pemeliharaan</div>
-        <div class="topbar-title" id="pm-topbar-title">—</div>
-      </div>
-      <div id="pm-saving-indicator" style="display:none;color:rgba(255,255,255,.7);font-size:var(--fs-xs);font-weight:600;flex-shrink:0;">
-        <div class="spinner" style="width:14px;height:14px;border-width:2px;border-top-color:#fff;display:inline-block;vertical-align:middle;margin-right:4px;"></div>Menyimpan...
-      </div>
+  <!-- Topbar: full-width, LUAR wrapper max-width agar tidak terpotong -->
+  <div class="topbar" style="position:sticky;top:0;z-index:10;">
+    <button class="topbar-back" onclick="tutupFormPemeliharaan()" title="Kembali" style="display:flex;align-items:center;gap:5px;">
+      <span style="font-size:18px;line-height:1;">←</span>
+      <span style="font-size:var(--fs-xs);font-weight:700;letter-spacing:.2px;">Kembali</span>
+    </button>
+    <div class="topbar-info">
+      <div class="topbar-sub">Form Pemeliharaan</div>
+      <div class="topbar-title" id="pm-topbar-title">—</div>
     </div>
-
+    <div id="pm-saving-indicator" style="display:none;color:rgba(255,255,255,.7);font-size:var(--fs-xs);font-weight:600;flex-shrink:0;">
+      <div class="spinner" style="width:14px;height:14px;border-width:2px;border-top-color:#fff;display:inline-block;vertical-align:middle;margin-right:4px;"></div>Menyimpan...
+    </div>
+  </div>
+  <div style="max-width:600px;margin:0 auto;">
     <!-- Body -->
     <div style="padding:var(--sp-md);padding-bottom:120px;">
 
@@ -2468,12 +2482,21 @@ input[type=number]{-moz-appearance:textfield;}
     <div class="form-footer-sticky">
       <button type="button" class="btn btn-blue" id="pm-btn-simpan" onclick="pmSubmit()">💾 Simpan Data</button>
     </div>
-  </div>
+  </div><!-- /max-width wrapper -->
 </div>
 
 <!-- DETAIL VIEW -->
 <div id="detail-view" style="display:none;width:100%;max-width:600px;margin:0 auto;">
-  <div class="topbar" style="position:sticky;top:0;z-index:10;"><button class="topbar-back" onclick="tutupDetail()">←</button><div class="topbar-info"><div class="topbar-sub">Detail Gardu</div><div class="topbar-title" id="detail-view-title">—</div></div></div>
+  <div class="topbar" style="position:sticky;top:0;z-index:10;">
+    <button class="topbar-back" onclick="tutupDetail()" title="Kembali ke Daftar" style="display:flex;align-items:center;gap:5px;">
+      <span style="font-size:18px;line-height:1;">←</span>
+      <span style="font-size:var(--fs-xs);font-weight:700;letter-spacing:.2px;">Kembali</span>
+    </button>
+    <div class="topbar-info">
+      <div class="topbar-sub">Detail Gardu</div>
+      <div class="topbar-title" id="detail-view-title">—</div>
+    </div>
+  </div>
   <div class="page-body-nonav" id="detail-content"></div>
 </div>
 </div><!-- /app-content -->
@@ -2482,19 +2505,21 @@ input[type=number]{-moz-appearance:textfield;}
 <!-- FORM INSPEKSI — Slide-in page, dipanggil dari detail gardu -->
 <!-- ══════════════════════════════════════════════════════════ -->
 <div id="form-inspeksi-view" style="display:none;position:fixed;inset:0;z-index:200;background:var(--pln-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;">
-  <div style="max-width:900px;margin:0 auto;">
-    <!-- Topbar form inspeksi -->
-    <div class="topbar" style="position:sticky;top:0;z-index:10;">
-      <button class="topbar-back" id="fi-btn-back" onclick="tutupFormInspeksi()">←</button>
-      <div class="topbar-info">
-        <div class="topbar-sub">Form Inspeksi</div>
-        <div class="topbar-title" id="fi-topbar-title">—</div>
-      </div>
-      <div id="fi-saving-indicator" style="display:none;color:rgba(255,255,255,.85);font-size:var(--fs-xs);font-weight:600;flex-shrink:0;align-items:center;gap:4px;">
-        <span>💾</span><span>Draft tersimpan</span>
-      </div>
+  <!-- Topbar form inspeksi: full-width, LUAR wrapper max-width agar tidak terpotong -->
+  <div class="topbar" style="position:sticky;top:0;z-index:10;">
+    <button class="topbar-back" id="fi-btn-back" onclick="tutupFormInspeksi()" title="Kembali" style="display:flex;align-items:center;gap:5px;">
+      <span style="font-size:18px;line-height:1;">←</span>
+      <span style="font-size:var(--fs-xs);font-weight:700;letter-spacing:.2px;">Kembali</span>
+    </button>
+    <div class="topbar-info">
+      <div class="topbar-sub">Form Inspeksi</div>
+      <div class="topbar-title" id="fi-topbar-title">—</div>
     </div>
-
+    <div id="fi-saving-indicator" style="display:none;color:rgba(255,255,255,.85);font-size:var(--fs-xs);font-weight:600;flex-shrink:0;align-items:center;gap:4px;">
+      <span>💾</span><span>Draft tersimpan</span>
+    </div>
+  </div>
+  <div style="max-width:900px;margin:0 auto;">
     <!-- Konten form -->
     <div class="page-body-nonav" style="padding-bottom:120px;" id="fi-body">
 
@@ -2736,7 +2761,7 @@ input[type=number]{-moz-appearance:textfield;}
       </div>
     </div>
 
-  </div>
+  </div><!-- /max-width wrapper -->
 </div><!-- /form-inspeksi-view -->
 
 <!-- BOTTOM NAV / SIDEBAR (mobile: bottom bar; desktop: sidebar kiri) -->
@@ -5313,6 +5338,9 @@ function renderDetailGardu(g, riwayat){
   html += '</div>';
 
   html += '<div style="height:var(--sp-lg);"></div>';
+
+  // ── Tombol Kembali di bagian bawah konten ───────────────────
+  html += '<button class="btn btn-outline" style="width:100%;margin-bottom:var(--sp-lg);font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="tutupDetail()"><span style="font-size:16px;">←</span> Kembali ke Daftar</button>';
 
   // ── Desktop 2-kolom wrapper ──────────────────────────────────
   // Di desktop (≥768px): kiri = info gardu + map + keterangan, kanan = riwayat inspeksi + tren
