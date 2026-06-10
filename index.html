@@ -952,10 +952,10 @@ input[type=number]{-moz-appearance:textfield;}
   /* App layout: sidebar kiri + konten kanan */
   body{display:flex;min-height:100vh;}
 
-  /* Sidebar permanen — lebar diperluas agar label panjang muat */
+  /* Sidebar permanen */
   #bottom-nav{
     position:fixed;top:0;left:0;bottom:0;right:auto;
-    width:260px;flex-direction:column;
+    width:220px;flex-direction:column;
     border-top:none;border-right:1px solid var(--pln-border);
     padding:0;align-items:stretch;
     background:#fff;
@@ -1022,12 +1022,12 @@ input[type=number]{-moz-appearance:textfield;}
   .sidebar-user-role{font-size:10px;color:var(--pln-text3);font-weight:500;}
   .sidebar-user-ulp{font-size:10px;color:var(--pln-biru2);font-weight:600;}
 
-  /* Konten utama geser ke kanan sesuai lebar sidebar baru */
+  /* Konten utama geser ke kanan sesuai lebar sidebar */
   #app-content{
-    margin-left:260px;
+    margin-left:220px;
     flex:1;min-width:0;
     display:flex;flex-direction:column;
-    width:calc(100% - 260px);
+    width:calc(100% - 220px);
     max-width:none;
   }
 
@@ -1121,8 +1121,8 @@ input[type=number]{-moz-appearance:textfield;}
   #app-content{padding-top:var(--topbar-h);}
 
 
-  /* Detail view full width */
-  #detail-view{max-width:100%;width:100%;left:220px!important;}
+  /* Detail view full width — mulai setelah sidebar */
+  #detail-view{left:220px!important;right:0!important;width:auto!important;max-width:none!important;}
 }
 
 /* Sembunyikan sidebar brand & user di mobile */
@@ -1180,8 +1180,8 @@ input[type=number]{-moz-appearance:textfield;}
   }
   #detail-col-left{
     display:flex;flex-direction:column;gap:var(--sp-sm);
-    position:sticky;top:calc(var(--topbar-h) + 12px);
-    max-height:calc(100vh - var(--topbar-h) - 32px);
+    position:sticky;top:var(--topbar-h);
+    max-height:calc(100vh - var(--topbar-h) - 24px);
     overflow-y:auto;
     padding-right:4px;
   }
@@ -1189,7 +1189,13 @@ input[type=number]{-moz-appearance:textfield;}
   #detail-col-left::-webkit-scrollbar-thumb{background:var(--pln-border2);border-radius:2px;}
   #detail-col-right{
     display:flex;flex-direction:column;gap:var(--sp-sm);
+    position:sticky;top:var(--topbar-h);
+    max-height:calc(100vh - var(--topbar-h) - 24px);
+    overflow-y:auto;
+    padding-right:4px;
   }
+  #detail-col-right::-webkit-scrollbar{width:4px;}
+  #detail-col-right::-webkit-scrollbar-thumb{background:var(--pln-border2);border-radius:2px;}
   /* Map lebih tinggi di desktop */
   .gps-map-wrap iframe{
     height:220px!important;
@@ -5165,7 +5171,7 @@ function renderDetailGardu(g, riwayat){
           '</div>';
         });
         fasaBarHtml += '</div>';
-        html += '<div class="imbalance-alert '+imbClass+'" style="margin:var(--sp-xs) var(--sp-md);">';
+        html += '<div class="imbalance-alert '+imbClass+'" style="margin:var(--sp-xs) 0;">';
         html += '<div class="imbalance-header">'+imbIcon+' '+imbLabel+'</div>';
         html += '<div class="imbalance-meter"><div class="imbalance-meter-fill" style="width:'+Math.min(imbalPct,100).toFixed(1)+'%;background:'+(imbalPct>10?'#C0392B':imbalPct>5?'#D97706':'#059669')+';"></div></div>';
         html += fasaBarHtml;
