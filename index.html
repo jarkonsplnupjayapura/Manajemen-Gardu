@@ -612,7 +612,6 @@ input[type=number]{-moz-appearance:textfield;}
 .imbalance-alert{
   border-radius:var(--radius-sm);padding:var(--sp-sm) var(--sp-md);
   margin-bottom:var(--sp-sm);border:1.5px solid;
-  overflow:hidden;word-break:break-word;
 }
 .imbalance-kritis{background:#FFF1F0;border-color:#FFCCC7;color:#A8071A;}
 .imbalance-warn{background:#FFFBE6;border-color:#FFE58F;color:#874D00;}
@@ -620,13 +619,13 @@ input[type=number]{-moz-appearance:textfield;}
 .imbalance-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-weight:700;font-size:var(--fs-sm);}
 .imbalance-meter{height:10px;background:#F0F4FA;border-radius:5px;overflow:hidden;margin:6px 0;}
 .imbalance-meter-fill{height:100%;border-radius:5px;transition:.5s;}
-.imbalance-rec{font-size:var(--fs-xs);line-height:1.6;margin-top:6px;padding-top:6px;border-top:1px solid currentColor;opacity:.7;overflow-wrap:break-word;word-break:break-word;}
+.imbalance-rec{font-size:var(--fs-xs);line-height:1.6;margin-top:6px;padding-top:6px;border-top:1px solid currentColor;opacity:.7;}
 .fasa-bars{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px;overflow:hidden;}
 .fasa-bar-item{text-align:center;min-width:0;overflow:hidden;}
 .fasa-bar-label{font-size:clamp(8px,2vw,10px);font-weight:700;color:var(--pln-text3);margin-bottom:3px;}
 .fasa-bar-track{height:36px;background:#F0F4FA;border-radius:4px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;}
 .fasa-bar-fill{border-radius:4px;transition:.4s;}
-.fasa-bar-val{font-size:clamp(8px,2vw,10px);font-weight:700;color:var(--pln-text);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fasa-bar-val{font-size:clamp(8px,2vw,10px);font-weight:700;color:var(--pln-text);margin-top:3px;}
 
 
 
@@ -1080,8 +1079,6 @@ input[type=number]{-moz-appearance:textfield;}
   /* Detail-view topbar: selalu tampil di desktop */
   #detail-view > .topbar {
     display:flex !important;
-    align-items:center;
-    gap:var(--sp-sm);
   }
   #detail-view > .topbar .topbar-back,
   div#detail-view > div.topbar > button.topbar-back {
@@ -5161,11 +5158,10 @@ function renderDetailGardu(g, riwayat){
         var fasaBarHtml = '<div class="fasa-bars">';
         fasaBars.forEach(function(fb){
           var pct = fb[1]!==null && fasaMax>0 ? Math.min(100,fb[1]/fasaMax*100) : 0;
-          var valDisplay = fb[1]!==null ? parseFloat(fb[1].toFixed(1)) : '—';
           fasaBarHtml += '<div class="fasa-bar-item">'+
-            '<div class="fasa-bar-label" style="color:'+fb[2]+';">'+fb[0]+'</div>'+
+            '<div class="fasa-bar-label">'+fb[0]+'</div>'+
             '<div class="fasa-bar-track"><div class="fasa-bar-fill" style="height:'+pct+'%;background:'+fb[2]+';width:100%;"></div></div>'+
-            '<div class="fasa-bar-val" style="color:'+fb[2]+';">'+(fb[1]!==null ? valDisplay : '—')+'</div>'+
+            '<div class="fasa-bar-val">'+(fb[1]!==null ? (Number.isInteger(fb[1]) ? fb[1] : parseFloat(fb[1].toFixed(3))) : '—')+'</div>'+
           '</div>';
         });
         fasaBarHtml += '</div>';
@@ -5453,8 +5449,8 @@ function renderTrenBeban(data, wrap) {
   var trendColor = slope > 1 ? '#C0392B' : slope > 0.3 ? '#D97706' : slope < -0.3 ? '#059669' : '#1048A8';
   var badgeClass = latestP > 80 ? 'background:#FDECEA;color:#C0392B' : latestP > 60 ? 'background:#FEF3C7;color:#D97706' : 'background:#D1FAE5;color:#059669';
 
-  // SVG chart dimensions — diperbesar agar label tidak overflow
-  var W=400, H=130, PL=36, PR=18, PT=20, PB=28;
+  // SVG chart dimensions
+  var W=320, H=110, PL=32, PR=10, PT=12, PB=28;
   var cW=W-PL-PR, cH=H-PT-PB;
   var yScale=function(v){ return PT + cH - (v-minP)/(maxP-minP||1)*cH; };
   var xScale=function(i){ return PL + (n<=1?cW/2:i/(n-1)*cW); };
@@ -5502,35 +5498,32 @@ function renderTrenBeban(data, wrap) {
   var y100 = yScale(100).toFixed(1);
   var y120 = yScale(120).toFixed(1);
 
-  // posisi label threshold — di sisi kanan chart (anchor end)
-  var thLabelX = (W - PR - 2).toFixed(1);
-
   var svgStr =
     '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:100%;overflow:hidden;">'+
       // Gradient
       '<defs>'+
-        '<linearGradient id="tren-grad-'+n+'" x1="0" y1="0" x2="0" y2="1">'+
+        '<linearGradient id="tren-grad" x1="0" y1="0" x2="0" y2="1">'+
           '<stop offset="0%" stop-color="#1048A8" stop-opacity="0.18"/>'+
           '<stop offset="100%" stop-color="#1048A8" stop-opacity="0"/>'+
         '</linearGradient>'+
       '</defs>'+
       // Zona >80% PLN (background merah tipis)
       (y80 >= PT ? '<rect x="'+PL+'" y="'+PT+'" width="'+cW+'" height="'+Math.max(0,y80-PT)+'" fill="rgba(192,57,43,.05)"/>' : '')+
-      // 60% — batas perhatian
+      // 60% — batas perhatian PLN
       '<line x1="'+PL+'" y1="'+y60+'" x2="'+(W-PR)+'" y2="'+y60+'" stroke="#FDE68A" stroke-width="1" stroke-dasharray="3,3"/>'+
-      '<text x="'+thLabelX+'" y="'+(parseFloat(y60)-2)+'" text-anchor="end" font-size="7.5" fill="#D97706">60%</text>'+
-      // 80% — Batas lebih beban PLN
-      '<line x1="'+PL+'" y1="'+y80+'" x2="'+(W-PR)+'" y2="'+y80+'" stroke="#C0392B" stroke-width="1.5" stroke-dasharray="4,2"/>'+
-      '<text x="'+thLabelX+'" y="'+(parseFloat(y80)-2)+'" text-anchor="end" font-size="7.5" fill="#C0392B" font-weight="bold">80% (PLN)</text>'+
-      // 100% — IEC nominal
+      '<text x="'+(PL+2)+'" y="'+(parseFloat(y60)-2)+'" font-size="7" fill="#D97706">60%</text>'+
+      // 80% — Batas lebih beban PLN SPLN D3.002-1
+      '<line x1="'+PL+'" y1="'+y80+'" x2="'+(W-PR)+'" y2="'+y80+'" stroke="#C0392B" stroke-width="1.5" stroke-dasharray="4,2"/>' +
+      '<text x="'+(PL+2)+'" y="'+(parseFloat(y80)-2)+'" font-size="7" fill="#C0392B">80% (PLN)</text>'+
+      // 100% — IEC 60076-7 batas nominal / kapasitas penuh
       (maxP >= 95 ? '<line x1="'+PL+'" y1="'+y100+'" x2="'+(W-PR)+'" y2="'+y100+'" stroke="#7F1D1D" stroke-width="1.5" stroke-dasharray="2,3"/>' : '')+
-      (maxP >= 95 ? '<text x="'+thLabelX+'" y="'+(parseFloat(y100)-2)+'" text-anchor="end" font-size="7.5" fill="#7F1D1D" font-weight="bold">100% (IEC)</text>' : '')+
-      // 120% — IEC darurat
+      (maxP >= 95 ? '<text x="'+(PL+2)+'" y="'+(parseFloat(y100)-2)+'" font-size="7" fill="#7F1D1D" font-weight="bold">100% (IEC nominal)</text>' : '')+
+      // 120% — IEC 60076-7 batas beban darurat (emergency)
       (maxP >= 112 ? '<rect x="'+PL+'" y="'+PT+'" width="'+cW+'" height="'+Math.max(0,Math.min(parseFloat(y120),PT+cH)-PT)+'" fill="rgba(127,29,29,.10)"/>' : '')+
       (maxP >= 112 ? '<line x1="'+PL+'" y1="'+y120+'" x2="'+(W-PR)+'" y2="'+y120+'" stroke="#450A0A" stroke-width="1" stroke-dasharray="2,3"/>' : '')+
-      (maxP >= 112 ? '<text x="'+thLabelX+'" y="'+(parseFloat(y120)-2)+'" text-anchor="end" font-size="7" fill="#450A0A">120% darurat</text>' : '')+
+      (maxP >= 112 ? '<text x="'+(PL+2)+'" y="'+(parseFloat(y120)-2)+'" font-size="6.5" fill="#450A0A">120% (IEC darurat)</text>' : '')+
       // Area fill
-      '<path d="'+areaPath+'" fill="url(#tren-grad-'+n+')"/>'+
+      '<path d="'+areaPath+'" fill="url(#tren-grad)"/>'+
       // Line
       '<polyline points="'+linePts+'" fill="none" stroke="#1048A8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
       // Grid & axis labels
