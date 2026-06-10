@@ -2480,7 +2480,10 @@ input[type=number]{-moz-appearance:textfield;}
 
     <!-- Sticky footer -->
     <div class="form-footer-sticky">
-      <button type="button" class="btn btn-blue" id="pm-btn-simpan" onclick="pmSubmit()">💾 Simpan Data</button>
+      <div style="display:flex;gap:var(--sp-sm);">
+        <button type="button" class="btn btn-outline" style="flex:1;margin:0;" onclick="tutupFormPemeliharaan()">✕ Batal</button>
+        <button type="button" class="btn btn-blue" style="flex:2;margin:0;" id="pm-btn-simpan" onclick="pmSubmit()">💾 Simpan Data</button>
+      </div>
     </div>
   </div><!-- /max-width wrapper -->
 </div>
@@ -5339,9 +5342,6 @@ function renderDetailGardu(g, riwayat){
 
   html += '<div style="height:var(--sp-lg);"></div>';
 
-  // ── Tombol Kembali di bagian bawah konten ───────────────────
-  html += '<button class="btn btn-outline" style="width:100%;margin-bottom:var(--sp-lg);font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="tutupDetail()"><span style="font-size:16px;">←</span> Kembali ke Daftar</button>';
-
   // ── Desktop 2-kolom wrapper ──────────────────────────────────
   // Di desktop (≥768px): kiri = info gardu + map + keterangan, kanan = riwayat inspeksi + tren
   // Di mobile: tetap single column (urutan normal)
@@ -6375,19 +6375,26 @@ function submitFormInspeksi() {
 
 // ── Hapus Inspeksi by ID ──────────────────────────────────────
 function hapusInspeksiById(id, tglLabel) {
-  if (!confirm('Hapus data inspeksi tanggal ' + tglLabel + '?\n\nTindakan ini tidak dapat dibatalkan.')) return;
-  var s = getSession();
-  if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
-
-  apiGet({ action: 'hapusInspeksi', token: s.token, id: id }, function(res) {
-    if (res.status !== 'ok') {
-      alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
-      return;
-    }
-    // Ambil no_gardu dari topbar detail-view lalu reload
-    var titleEl = document.getElementById('detail-view-title');
-    var noGardu = titleEl ? titleEl.textContent.trim() : '';
-    if (noGardu) bukaDetailGardu(noGardu);
+  bukaModalKonfirmasi({
+    ikon: '🗑️',
+    judul: 'Hapus Data Inspeksi',
+    pesan: 'Hapus data inspeksi tanggal <strong>' + tglLabel + '</strong>?<br><br>Tindakan ini <strong>tidak dapat dibatalkan</strong>.',
+    labelAksi: '🗑️ Hapus',
+    labelBatal: 'Batal',
+    warna: 'var(--pln-red)'
+  }, function() {
+    var s = getSession();
+    if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
+    apiGet({ action: 'hapusInspeksi', token: s.token, id: id }, function(res) {
+      if (res.status !== 'ok') {
+        alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
+        return;
+      }
+      // Ambil no_gardu dari topbar detail-view lalu reload
+      var titleEl = document.getElementById('detail-view-title');
+      var noGardu = titleEl ? titleEl.textContent.trim() : '';
+      if (noGardu) bukaDetailGardu(noGardu);
+    });
   });
 }
 
@@ -6882,16 +6889,24 @@ function bukaEditInspeksiDariPengukuran(id, r) {
 
 // ── Hapus inspeksi dipanggil dari halaman Pengukuran Gardu ─────
 function hapusInspeksiDariPengukuran(id, tglLabel) {
-  if (!confirm('Hapus data pengukuran tanggal ' + tglLabel + '?\n\nTindakan ini tidak dapat dibatalkan.')) return;
-  var s = getSession();
-  if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
-  apiGet({ action: 'hapusInspeksi', token: s.token, id: id }, function(res) {
-    if (res.status !== 'ok') {
-      alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
-      return;
-    }
-    _ukurSudahMuat = false;
-    muatDataPengukuran(true);
+  bukaModalKonfirmasi({
+    ikon: '🗑️',
+    judul: 'Hapus Data Pengukuran',
+    pesan: 'Hapus data pengukuran tanggal <strong>' + tglLabel + '</strong>?<br><br>Tindakan ini <strong>tidak dapat dibatalkan</strong>.',
+    labelAksi: '🗑️ Hapus',
+    labelBatal: 'Batal',
+    warna: 'var(--pln-red)'
+  }, function() {
+    var s = getSession();
+    if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
+    apiGet({ action: 'hapusInspeksi', token: s.token, id: id }, function(res) {
+      if (res.status !== 'ok') {
+        alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
+        return;
+      }
+      _ukurSudahMuat = false;
+      muatDataPengukuran(true);
+    });
   });
 }
 
@@ -7184,7 +7199,7 @@ function applyRowStyle(row, style) {
 // ExcelJS dimuat async — bisa belum tersedia saat fungsi export dipanggil pertama kali.
 // Fungsi ini polling setiap 200ms, resolve saat ExcelJS ada, reject setelah timeout.
 function _waitExcelJS(timeoutMs) {
-  timeoutMs = timeoutMs || 10000;
+  timeoutMs = timeoutMs || 30000; // 30 detik — toleransi CDN lambat
   return new Promise(function(resolve, reject) {
     if (typeof ExcelJS !== 'undefined') { resolve(); return; }
     var elapsed = 0;
@@ -8871,12 +8886,15 @@ function submitEditGardu() {
 
   // ── Konfirmasi sebelum simpan ──
   var noBaruVal = (document.getElementById('ef-nogardu-baru').value||'').trim().toUpperCase();
-  var konfirmasiMsg = '⚠️ Konfirmasi Perubahan Data Gardu\n\n' +
-    'Gardu  : ' + noLama + (noBaruVal && noBaruVal !== noLama ? ' → ' + noBaruVal : '') + '\n' +
-    'ULP    : ' + ulpVal + '\n' +
-    'Status : ' + (document.getElementById('ef-status').value||'AKTIF') + '\n\n' +
-    'Perubahan ini akan tersimpan ke database.\nLanjutkan?';
-  if (!confirm(konfirmasiMsg)) return;
+  var _noBaruLabel = noBaruVal && noBaruVal !== noLama ? noLama + ' → ' + noBaruVal : noLama;
+  bukaModalKonfirmasi({
+    ikon: '✏️',
+    judul: 'Konfirmasi Perubahan Data Gardu',
+    pesan: 'Gardu: <strong>' + _noBaruLabel + '</strong><br>ULP: <strong>' + ulpVal + '</strong><br>Status: <strong>' + (document.getElementById('ef-status').value||'AKTIF') + '</strong><br><br>Perubahan ini akan tersimpan ke database.',
+    labelAksi: '✏️ Simpan Perubahan',
+    labelBatal: 'Batal',
+    warna: 'var(--pln-biru2)'
+  }, function() {
 
   // FIX: minta PIN ULP untuk konfirmasi setiap operasi edit
   bukaModalPinGardu('Konfirmasi PIN — Edit Gardu', function(pin) {
@@ -8907,6 +8925,7 @@ function submitEditGardu() {
       }
     });
   });
+  }); // end bukaModalKonfirmasi
 }
 
 function tutupPanelAdmin() {
@@ -10039,17 +10058,24 @@ function renderDaftarPemeliharaan() {
 
 // ── Hapus pemeliharaan ──────────────────────────────────────────
 function hapusPemeliharaanById(id, noGardu) {
-  if (!confirm('Hapus catatan pemeliharaan gardu ' + noGardu + '?\n\nTindakan ini tidak dapat dibatalkan.')) return;
-  var s = getSession();
-  if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
-
-  apiGet({ action: 'hapusPemeliharaan', token: s.token, id: id }, function(res) {
-    if (res.status !== 'ok') {
-      alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
-      return;
-    }
-    _pmSudahMuat = false;
-    muatDaftarPemeliharaan(true);
+  bukaModalKonfirmasi({
+    ikon: '🗑️',
+    judul: 'Hapus Catatan Pemeliharaan',
+    pesan: 'Hapus catatan pemeliharaan gardu <strong>' + noGardu + '</strong>?<br><br>Tindakan ini <strong>tidak dapat dibatalkan</strong>.',
+    labelAksi: '🗑️ Hapus',
+    labelBatal: 'Batal',
+    warna: 'var(--pln-red)'
+  }, function() {
+    var s = getSession();
+    if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
+    apiGet({ action: 'hapusPemeliharaan', token: s.token, id: id }, function(res) {
+      if (res.status !== 'ok') {
+        alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
+        return;
+      }
+      _pmSudahMuat = false;
+      muatDaftarPemeliharaan(true);
+    });
   });
 }
 
@@ -11447,10 +11473,34 @@ function konfirmasiAksi(pesan, judul, labelAksi, callback) {
         crossorigin="anonymous"
         async></script>
 <!-- ExcelJS — untuk export Excel berformat (pengukuran & pemeliharaan) -->
-<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"
-        integrity="sha256-UNAGwDQE10HbNqL6KBzYl3KIJtl+tyHGx5dVpRCGiAE="
-        crossorigin="anonymous"
-        async></script>
+<!-- Primary: jsdelivr; fallback: unpkg jika CDN pertama gagal -->
+<script>
+(function() {
+  function loadScript(src, integrity, onOk, onFail) {
+    var s = document.createElement('script');
+    s.src = src;
+    if (integrity) { s.integrity = integrity; s.crossOrigin = 'anonymous'; }
+    s.onload = onOk;
+    s.onerror = onFail;
+    document.head.appendChild(s);
+  }
+  loadScript(
+    'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js',
+    'sha256-UNAGwDQE10HbNqL6KBzYl3KIJtl+tyHGx5dVpRCGiAE=',
+    function() { /* loaded from jsdelivr */ },
+    function() {
+      // Fallback ke unpkg jika jsdelivr gagal
+      console.warn('[ExcelJS] jsdelivr gagal, mencoba unpkg...');
+      loadScript(
+        'https://unpkg.com/exceljs@4.4.0/dist/exceljs.min.js',
+        null, // no SRI for fallback (different CDN may have different bytes)
+        function() { console.log('[ExcelJS] loaded from unpkg fallback'); },
+        function() { console.error('[ExcelJS] Semua CDN gagal. Export Excel tidak tersedia.'); }
+      );
+    }
+  );
+})();
+</script>
 
 
 
