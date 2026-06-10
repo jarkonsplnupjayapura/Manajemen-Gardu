@@ -11,8 +11,13 @@
 //  - Browser selalu ambil index.html, JS, CSS langsung dari server
 //  - SW hanya aktif saat ada data di antrian IndexedDB yang perlu
 //    dikirim ulang ke server
+//
+//  BUILD_TIME di-inject otomatis oleh GitHub Actions saat deploy.
+//  Tujuannya: setiap deploy SW dianggap "file baru" oleh browser
+//  sehingga SW langsung diinstall ulang tanpa perlu hapus cache.
 // ============================================================
 
+var SW_VERSION  = 'gardu-pln-v{{BUILD_TIME}}'; // di-replace otomatis saat deploy
 var DB_NAME     = 'gardu-pln-db';
 var DB_VERSION  = 1;
 var QUEUE_STORE = 'gardu-sync-queue';
@@ -120,4 +125,4 @@ self.addEventListener('message', function(event) {
   }
 });
 
-console.log('[SW minimal] Aktif — hanya Background Sync, tidak ada caching aset.');
+console.log('[SW minimal] Aktif — versi ' + SW_VERSION + ' — hanya Background Sync, tidak ada caching aset.');

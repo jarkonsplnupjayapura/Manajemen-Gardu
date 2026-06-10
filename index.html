@@ -204,10 +204,11 @@ body{
   box-shadow:var(--shadow);
   border:1px solid var(--pln-border);
 }
-.lbl{font-size:var(--fs-xs);color:var(--pln-text3);margin-bottom:3px;font-weight:500;}
-.val{font-size:var(--fs-sm);color:var(--pln-text);font-weight:600;line-height:1.4;}
-.val-sm{font-size:var(--fs-xs);color:var(--pln-text2);line-height:1.4;}
+.lbl{font-size:var(--fs-xs);color:var(--pln-text3);margin-bottom:3px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.val{font-size:var(--fs-sm);color:var(--pln-text);font-weight:600;line-height:1.4;overflow-wrap:break-word;word-break:break-word;}
+.val-sm{font-size:var(--fs-xs);color:var(--pln-text2);line-height:1.4;overflow-wrap:break-word;word-break:break-word;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-sm);margin-top:var(--sp-xs);}
+.grid2 > *{min-width:0;overflow:hidden;}
 .sec{
   font-size:var(--fs-xs);color:var(--pln-text2);
   font-weight:700;margin:var(--sp-md) 0 var(--sp-sm);
@@ -1094,16 +1095,10 @@ input[type=number]{-moz-appearance:textfield;}
     z-index:220;
     width:100%;
   }
-  /* Detail-view topbar: selalu tampil di desktop */
+  /* ── Desktop: detail-view topbar DISEMBUNYIKAN —
+     Kita tampilkan sub-bar "breadcrumb" di bawah topbar utama saja */
   #detail-view > .topbar {
-    display:flex !important;
-  }
-  #detail-view > .topbar .topbar-back,
-  div#detail-view > div.topbar > button.topbar-back {
-    display:flex !important;
-    visibility:visible !important;
-    opacity:1 !important;
-    pointer-events:auto !important;
+    display:none !important;
   }
   /* Sidebar brand becomes richer - show page title + user area on right */
   #bottom-nav{width:220px;}
@@ -1124,7 +1119,7 @@ input[type=number]{-moz-appearance:textfield;}
     height:var(--topbar-h);
     position:fixed;
     top:0;left:220px;right:0;
-    z-index:150;
+    z-index:160;
     padding:0 var(--sp-lg);
     gap:var(--sp-sm);
     box-shadow:0 1px 0 rgba(255,255,255,.08),0 4px 20px rgba(10,45,107,.3);
@@ -1138,16 +1133,38 @@ input[type=number]{-moz-appearance:textfield;}
   #desktop-topbar-bar .dtb-user-name{font-size:10px;color:rgba(255,255,255,.7);font-weight:500;}
   #app-content{padding-top:var(--topbar-h);}
 
-
-  /* Detail view full width — dari tepi sidebar sampai kanan layar */
-  #detail-view{max-width:100%;width:calc(100% - 220px)!important;left:220px!important;right:0!important;overflow-x:hidden!important;}
+  /* Detail view full width — mulai dari bawah topbar utama, tidak menutupinya */
+  #detail-view{
+    max-width:100%;
+    width:calc(100% - 220px)!important;
+    left:220px!important;
+    right:0!important;
+    top:var(--topbar-h)!important;
+    overflow-x:hidden!important;
+    z-index:155!important;
+  }
+  /* Sub-bar "DETAIL GARDU" — muncul sticky di atas konten detail, di bawah topbar utama */
+  #detail-subbar{
+    display:flex !important;
+    align-items:center;
+    gap:var(--sp-sm);
+    background:var(--pln-biru);
+    padding:0 var(--sp-md);
+    height:clamp(44px,10vw,52px);
+    position:sticky;
+    top:0;
+    z-index:10;
+    box-shadow:0 2px 8px rgba(10,45,107,.18);
+    border-bottom:1px solid rgba(255,255,255,.10);
+  }
 }
 
 /* Sembunyikan sidebar brand & user di mobile */
 @media(max-width:767px){
   .sidebar-brand{display:none!important;}
   .sidebar-user{display:none!important;}
-
+  /* Sub-bar detail hanya untuk desktop */
+  #detail-subbar{display:none!important;}
 }
 
 /* ══ PETA: FILTER ULP BAR ════════════════════════════════════ */
@@ -1187,7 +1204,7 @@ input[type=number]{-moz-appearance:textfield;}
 @media(min-width:768px){
   #detail-view{max-width:100%!important;}
   #detail-view .page-body-nonav{
-    padding:0 var(--sp-md) var(--sp-lg);
+    padding:var(--sp-md) var(--sp-md) var(--sp-lg);
   }
   /* Layout grid: 2 kolom — kiri min 320px, fleksibel hingga 420px */
   #detail-desktop-grid{
@@ -2553,11 +2570,20 @@ input[type=number]{-moz-appearance:textfield;}
 
 <!-- DETAIL VIEW -->
 <div id="detail-view" style="display:none;">
+  <!-- Topbar mobile (hanya tampil di mobile) -->
   <div class="topbar" style="position:sticky;top:0;z-index:10;">
     <button class="topbar-back" onclick="tutupDetail()" title="Kembali ke Daftar"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 14L6 9L11 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div class="topbar-info">
       <div class="topbar-sub">Detail Gardu</div>
       <div class="topbar-title" id="detail-view-title">—</div>
+    </div>
+  </div>
+  <!-- Sub-bar desktop: tampil di bawah topbar utama, tersembunyi di mobile -->
+  <div id="detail-subbar" style="display:none;">
+    <button onclick="tutupDetail()" title="Kembali ke Daftar" style="background:#fff;border:none;color:var(--pln-biru);font-size:0;cursor:pointer;min-width:34px;min-height:34px;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.2);transition:background .15s,transform .12s;touch-action:manipulation;" onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background='#fff'" onmousedown="this.style.transform='scale(.9)'" onmouseup="this.style.transform='scale(1)'"><svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 14L6 9L11 4" stroke="var(--pln-biru)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:var(--fs-xs);color:rgba(255,255,255,.55);letter-spacing:.4px;text-transform:uppercase;font-weight:500;line-height:1.2;">Detail Gardu</div>
+      <div id="detail-subbar-title" style="font-size:var(--fs-md);font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.02em;line-height:1.3;">—</div>
     </div>
   </div>
   <div class="page-body-nonav" id="detail-content"></div>
@@ -4588,6 +4614,8 @@ window.onload = function(){
 
     document.getElementById('detail-view').style.display = 'block';
     document.getElementById('detail-view-title').textContent = QR_NOGARDU;
+    var _dsbTqr = document.getElementById('detail-subbar-title');
+    if (_dsbTqr) _dsbTqr.textContent = QR_NOGARDU;
     document.getElementById('detail-content').innerHTML =
       '<div class="loading"><div class="spinner"></div>Memuat data gardu...</div>';
 
@@ -4974,10 +5002,18 @@ function bukaDetailGardu(noGardu){
   tabSebelumDetail = currentTab;
   TAB_IDS.forEach(function(tid){ document.getElementById(tid).classList.remove('active'); });
   if(window.innerWidth < 768) document.getElementById('bottom-nav').style.display = 'none';
+  var isDesktop = window.innerWidth >= 768;
   var _dtb = document.getElementById('desktop-topbar-bar');
-  if (_dtb) _dtb.style.display = 'none';
+  // Desktop: topbar utama TETAP tampil, hanya sembunyikan di mobile
+  if (!isDesktop && _dtb) _dtb.style.display = 'none';
+  // Tampilkan sub-bar detail di desktop
+  var _dsb = document.getElementById('detail-subbar');
+  if (_dsb) _dsb.style.display = isDesktop ? 'flex' : 'none';
   document.getElementById('detail-view').style.display = 'block';
   document.getElementById('detail-view-title').textContent = noGardu;
+  // Sync sub-bar title
+  var _dsbT = document.getElementById('detail-subbar-title');
+  if (_dsbT) _dsbT.textContent = noGardu;
   document.getElementById('detail-content').innerHTML = '<div class="loading"><div class="spinner"></div>Memuat detail...</div>';
   // Scroll ke atas saat buka detail
   window.scrollTo(0, 0);
@@ -5427,7 +5463,10 @@ function renderDetailGardu(g, riwayat){
   }
 
   document.getElementById('detail-content').innerHTML = finalHtml;
-  document.getElementById('detail-view-title').textContent = g['NO_GARDU'] || '—';
+  var _dTitle = g['NO_GARDU'] || '—';
+  document.getElementById('detail-view-title').textContent = _dTitle;
+  var _dsbT = document.getElementById('detail-subbar-title');
+  if (_dsbT) _dsbT.textContent = _dTitle;
 
   // Reset filter tren beban ke default (5 data) saat buka gardu baru
   _trenLimit = 5;
@@ -5696,6 +5735,9 @@ function tutupDetail(){
   var dv = document.getElementById('detail-view');
   if (dv) dv.scrollTop = 0;
   dv.style.display = 'none';
+  // Sembunyikan sub-bar detail
+  var _dsb = document.getElementById('detail-subbar');
+  if (_dsb) _dsb.style.display = 'none';
   document.getElementById('bottom-nav').style.display = 'flex';
   var _dtb = document.getElementById('desktop-topbar-bar');
   if (_dtb && window.innerWidth >= 768) _dtb.style.display = 'flex';
