@@ -7061,9 +7061,9 @@ function bukaFormInspeksi(noGardu) {
         setTimeout(function() {
           window.showConfirm('Ada draft pengisian yang belum disimpan untuk gardu ini. Lanjutkan dari draft? Pilih Batal untuk mulai dari awal.', 'Draft Tersimpan', '💾', function() {
             fiRestoreDraft(draft);
-          } else {
+          }, function() {
             sessionStorage.removeItem(draftKey);
-          }
+          });
         }, 100);
       }
     }
@@ -12713,7 +12713,7 @@ function konfirmasiAksi(pesan, judul, labelAksi, callback) {
       // Fallback jika modal belum ada di DOM
       window.showConfirm('Yakin ingin keluar? Data yang sudah diisi akan hilang.', 'Yakin Keluar?', '⚠️', function() {
         if (_keluarCb) _keluarCb();
-      }
+      });
       return;
     }
     if (titleEl) titleEl.textContent = judul || 'Keluar dari Form?';
