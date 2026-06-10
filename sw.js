@@ -17,7 +17,7 @@
 //  sehingga SW langsung diinstall ulang tanpa perlu hapus cache.
 // ============================================================
 
-var SW_VERSION  = 'gardu-pln-v{{BUILD_TIME}}'; // di-replace otomatis saat deploy
+var SW_VERSION  = 'gardu-pln-v1781093778'; // di-replace otomatis saat deploy
 var DB_NAME     = 'gardu-pln-db';
 var DB_VERSION  = 1;
 var QUEUE_STORE = 'gardu-sync-queue';
