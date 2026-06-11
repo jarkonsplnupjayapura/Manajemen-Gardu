@@ -2508,12 +2508,7 @@ input[type=number]{-moz-appearance:textfield;}
       <label for="peta-ulp-filter-select">Filter ULP:</label>
       <select id="peta-ulp-filter-select" onchange="filterPetaByULP(this.value)">
         <option value="">Semua ULP</option>
-        <option value="ULP ABEPURA">Abepura</option>
-        <option value="ULP JAYAPURA">Jayapura</option>
-        <option value="ULP SENTANI">Sentani</option>
-        <option value="ULP SARMI">Sarmi</option>
-        <option value="ULP ARSO">Arso</option>
-        <option value="ULP GENYEM">Genyem</option>
+        <!-- Opsi ULP diisi dinamis oleh populatePetaULPFilter() -->
       </select>
       <span class="peta-filter-count" id="peta-filter-count"></span>
     </div>
@@ -3905,6 +3900,8 @@ var PENYULANG_MAP = {
 };
 
 // ── Mapping ULP akun → nilai kolom ULP di sheet GARDU ─────────
+// MED-4 FIX: Fallback statis tetap ada, tapi diperbarui otomatis dari DB lewat
+// syncULPSheetMap(). Fungsi ini dipanggil setelah login berhasil.
 var ULP_SHEET_MAP = {
   'ULP ABEPURA':  { sheet: 'ABEPURA',  prefix: ['ABE'] },
   'ULP JAYAPURA': { sheet: 'JAYAPURA', prefix: ['JPR', 'JYP'] },
@@ -3913,6 +3910,83 @@ var ULP_SHEET_MAP = {
   'ULP ARSO':     { sheet: 'ARSO',     prefix: ['ARS'] },
   'ULP GENYEM':   { sheet: 'GENYEM',   prefix: ['GYM', 'GEN'] },
 };
+
+/**
+ * Sinkronkan ULP_SHEET_MAP dari kolom ULP unik di database.
+ * Dipanggil setelah login berhasil (lihat bagian onLoginSuccess).
+ * Untuk setiap ULP baru yang belum ada di map statis, entry baru
+ * dibuat otomatis sehingga filter & tampilan gardu langsung bekerja.
+ */
+function syncULPSheetMap() {
+  try {
+    var url = SUPABASE_URL + '/rest/v1/v_gardu_lengkap?select=ulp&ulp=not.is.null';
+    fetch(url, {
+      headers: {
+        'apikey':        SUPABASE_ANON,
+        'Authorization': 'Bearer ' + SUPABASE_ANON,
+        'Accept':        'application/json'
+      }
+    })
+    .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function(rows) {
+      // Kumpulkan nilai ULP unik dari DB
+      var seen = {};
+      rows.forEach(function(row) {
+        var raw = (row.ulp || '').trim().toUpperCase();
+        if (raw) seen[raw] = true;
+      });
+
+      Object.keys(seen).forEach(function(ulpRaw) {
+        // Normalisasi: pastikan diawali "ULP "
+        var key = ulpRaw.startsWith('ULP ') ? ulpRaw : ('ULP ' + ulpRaw);
+        if (ULP_SHEET_MAP[key]) return; // sudah ada, skip
+
+        // Derive sheet name = bagian setelah "ULP "
+        var sheetName = key.replace(/^ULP\s+/, '');
+        // Derive prefix = 3 huruf pertama dari nama sheet
+        var prefix = [sheetName.substring(0, 3)];
+
+        ULP_SHEET_MAP[key] = { sheet: sheetName, prefix: prefix };
+        console.log('[PLN MED-4] ULP baru ditambah ke ULP_SHEET_MAP:', key, '→', sheetName);
+      });
+
+      // MED-5: Setelah map tersinkron, bangun ulang opsi filter peta
+      populatePetaULPFilter();
+    })
+    .catch(function(err) {
+      console.warn('[PLN MED-4] syncULPSheetMap gagal, gunakan fallback statis:', err);
+      populatePetaULPFilter(); // tetap bangun filter dari fallback
+    });
+  } catch(e) {
+    console.warn('[PLN MED-4] syncULPSheetMap error:', e);
+    populatePetaULPFilter();
+  }
+}
+
+/**
+ * MED-5 FIX: Bangun opsi <select> filter peta secara dinamis dari ULP_SHEET_MAP.
+ * Dipanggil oleh syncULPSheetMap() setelah data DB masuk, atau langsung dari
+ * fallback statis jika fetch gagal.
+ */
+function populatePetaULPFilter() {
+  var sel = document.getElementById('peta-ulp-filter-select');
+  if (!sel) return;
+  var current = sel.value; // simpan pilihan aktif
+  // Kosongkan semua opsi kecuali "Semua ULP"
+  while (sel.options.length > 1) sel.remove(1);
+  // Urutkan key ULP agar konsisten
+  var keys = Object.keys(ULP_SHEET_MAP).sort();
+  keys.forEach(function(key) {
+    var label = key.replace(/^ULP\s+/, ''); // "ULP ABEPURA" → "Abepura" (Title Case)
+    label = label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
+    var opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = label;
+    sel.appendChild(opt);
+  });
+  // Pulihkan pilihan sebelumnya jika masih valid
+  if (current) sel.value = current;
+}
 
 function ulpAkunToSheet(ulpAkun) {
   if (!ulpAkun) return '';
@@ -4122,6 +4196,8 @@ function onLoginSuccess(user) {
 
   var ulpUntukFilter = (user.role !== 'superadmin' && user.ulp) ? user.ulp : '';
   muatDaftarGardu(true, ulpUntukFilter);
+  // MED-4 & MED-5 FIX: Sinkronkan ULP_SHEET_MAP dari DB, lalu bangun filter peta dinamis
+  syncULPSheetMap();
   _updateSidebarUserFooter();
 
   rekapSudahMuat = false;
@@ -5892,12 +5968,15 @@ function renderTrenBeban(data, wrap) {
   html += '<div class="tren-legend-item"><div class="tren-legend-dot" style="background:#7F1D1D;border-radius:2px;border:1px dashed #7F1D1D;"></div>100% IEC</div>';
   html += '<div style="margin-left:auto;display:flex;align-items:center;gap:8px;">';
   html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);">'+n+' titik ukur</span>';
+  // MED-3 FIX: Sembunyikan tombol Export Tren di mode scan QR/barcode (hanya baca)
+  if (!QR_SCAN_MODE) {
   html += '<button onclick="exportTrenBeban()" style="'
     + 'background:none;border:1.5px solid var(--pln-biru2);border-radius:20px;'
     + 'color:var(--pln-biru2);font-size:clamp(9px,2.2vw,10.5px);font-weight:700;'
     + 'padding:3px 10px;cursor:pointer;font-family:inherit;transition:.15s;'
     + 'display:flex;align-items:center;gap:4px;white-space:nowrap;'
     + '" id="btn-export-tren" title="Unduh data tren beban sebagai Excel">⬇️ Export Tren</button>';
+  }
   html += '</div>';
   html += '</div>';
 
@@ -6487,6 +6566,16 @@ function fiRemoveJurusan() {
     document.getElementById('fi-btn-remove-jur').style.display = 'none';
   }
   document.getElementById('fi-btn-add-jur').style.display = 'inline-block';
+  // MED-7 FIX: Renumber ulang semua header jurusan agar selalu kontinu 1, 2, 3, ...
+  fiRenumberJurusan();
+}
+
+// MED-7 FIX: Perbarui label header semua kartu jurusan agar nomor selalu kontinu
+function fiRenumberJurusan() {
+  for (var i = 1; i <= _fiJurusanCount; i++) {
+    var titleEl = document.querySelector('#fi-jur-card-'+i+' .fi-jurusan-header-title');
+    if (titleEl) titleEl.textContent = '\uD83D\uDD0C Jurusan ' + i;
+  }
 }
 
 // ── Jurusan: collapse/expand ──────────────────────────────────
@@ -6509,8 +6598,10 @@ function fiGetJurusanData() {
     var r = getV('fi-jur'+i+'-r');
     // Sertakan jurusan hanya jika ada setidaknya satu nilai
     if (!nama && !r && !getV('fi-jur'+i+'-s') && !getV('fi-jur'+i+'-t')) continue;
+    // MED-7 FIX: gunakan nomor urut dalam result (bukan index loop) sebagai fallback nama
+    var nomorUrut = result.length + 1;
     result.push({
-      nama:    nama   || ('Jurusan '+i),
+      nama:    nama   || ('Jurusan '+nomorUrut),
       titik:   titik  || null,
       r_total: r,
       s_total: getV('fi-jur'+i+'-s'),
