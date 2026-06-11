@@ -3845,7 +3845,9 @@ function doLogin() {
     if (res && res.status === 'ok' && res.user) {
       var u = res.user;
       setSession({ username: u.username, role: u.role, ulp: u.ulp || '', nama: u.nama, token: res.token });
-      document.getElementById('login-screen').style.display = 'none';
+      // FIX QR-LOGIN BUG: Sembunyikan login-screen secara total sebelum onLoginSuccess
+      var lsEl = document.getElementById('login-screen');
+      if (lsEl) { lsEl.style.display = 'none'; lsEl.style.visibility = 'hidden'; lsEl.style.opacity = '0'; lsEl.style.pointerEvents = 'none'; }
       document.getElementById('login-password').value = '';
       onLoginSuccess(u);
     } else {
@@ -3896,6 +3898,9 @@ function doLogout() {
   var dtbBar2 = document.getElementById('desktop-topbar-bar');
   if (dtbBar2) dtbBar2.style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
+  // FIX QR-LOGIN BUG: Reset visibility setelah display flex agar login screen terlihat
+  var lsLogout = document.getElementById('login-screen');
+  if (lsLogout) { lsLogout.style.visibility = ''; lsLogout.style.opacity = ''; lsLogout.style.pointerEvents = ''; }
   document.getElementById('login-username').value = '';
   document.getElementById('login-password').value = '';
   var le = document.getElementById('login-err');
@@ -3911,6 +3916,11 @@ function onLoginSuccess(user) {
   document.body.style.overflow = '';
   document.body.style.position = '';
   document.body.style.top = '';
+  // FIX QR-LOGIN BUG: Reset scroll position ke paling atas setelah login
+  // Diperlukan karena redirect dari QR mode bisa meninggalkan scroll position yang aneh
+  try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
   // Update badge header
   var badge = document.getElementById('topbar-user-badge');
   var uLabel = document.getElementById('topbar-username-label');
@@ -3931,14 +3941,7 @@ function onLoginSuccess(user) {
   if (dtbBadge && badge) { dtbBadge.textContent = badge.textContent; dtbBadge.className = badge.className; }
   if (dtbLabel) dtbLabel.textContent = user.nama || user.username;
   if (dtbSignout) { dtbSignout.style.display = 'inline-flex'; }
-  // desktop-topbar-bar: hanya tampil di desktop (≥768px), biarkan CSS media query yang mengatur di mobile
-  if (dtbBar) {
-    if (window.innerWidth >= 768) {
-      dtbBar.style.display = 'flex';
-    } else {
-      dtbBar.style.display = 'none';
-    }
-  }
+  if (dtbBar) { dtbBar.style.display = 'flex'; }
 
   // Tampilkan tombol Sign Out
   var signoutBtn = document.getElementById('btn-signout');
@@ -3983,22 +3986,6 @@ function onLoginSuccess(user) {
   var rekapEl = document.getElementById('rekap-content');
   if (rekapEl) rekapEl.innerHTML = '<div class="loading"><div class="spinner"></div>Memuat rekap...</div>';
 
-  // QR-REDIRECT FIX: Hard reset semua overlay state sebelum bukaTab
-  // Mencegah ghost render dari sisa QR scan mode atau state sebelumnya
-  var _dvEl = document.getElementById('detail-view');
-  if (_dvEl) _dvEl.style.display = 'none';
-  var _fiv = document.getElementById('form-inspeksi-view');
-  if (_fiv) _fiv.style.display = 'none';
-  var _fpv = document.getElementById('form-pemeliharaan-view');
-  if (_fpv) _fpv.style.display = 'none';
-  // Restore bottom-nav ke state awal (mobile: flex, akan diatur bukaTab)
-  var _bnEl = document.getElementById('bottom-nav');
-  if (_bnEl) _bnEl.style.display = 'flex';
-  // Pastikan semua tab tidak active sebelum bukaTab mengatur ulang
-  TAB_IDS.forEach(function(tid) {
-    var el = document.getElementById(tid);
-    if (el) el.classList.remove('active');
-  });
   // Pastikan tab-daftar aktif setelah login
   bukaTab('tab-daftar', 0);
 
@@ -4741,22 +4728,6 @@ window.onload = function(){
   }
 
   // ── MODE NORMAL: cek sesi login ───────────────────────────────
-  // QR-REDIRECT FIX: pastikan semua overlay bersih di mode normal (termasuk setelah redirect dari scan)
-  (function _hardResetState() {
-    var ids = ['detail-view', 'form-inspeksi-view', 'form-pemeliharaan-view'];
-    ids.forEach(function(id) {
-      var el = document.getElementById(id);
-      if (el) el.style.display = 'none';
-    });
-    var bn = document.getElementById('bottom-nav');
-    if (bn) bn.style.display = 'flex';
-    var dtb = document.getElementById('desktop-topbar-bar');
-    if (dtb) dtb.style.display = window.innerWidth >= 768 ? 'flex' : 'none';
-    TAB_IDS.forEach(function(tid) {
-      var el = document.getElementById(tid);
-      if (el) el.classList.remove('active');
-    });
-  })();
   var session = getSession();
   if (session) {
     // Sudah login — sembunyikan login screen & lanjut
@@ -4764,6 +4735,15 @@ window.onload = function(){
     onLoginSuccess(session);
   } else {
     // Belum login — tampilkan login screen, jangan muat data
+    // FIX QR-LOGIN BUG: Reset scroll ke atas sebelum tampilkan login screen
+    // Mencegah body masih ter-scroll dari kondisi sebelumnya (redirect dari QR mode)
+    try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    // Pastikan body bersih dari sisa inline style apapun
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
     document.getElementById('login-screen').style.display = 'flex';
   }
   // Peta di-init HANYA saat user membuka tab peta (lihat bukaTab)
@@ -5986,14 +5966,7 @@ function bukaFormInspeksi(noGardu) {
   // ── Autosave draft setiap 30 detik ──
   fiStartAutosave(noGardu);
 
-  // Tampilkan form (sembunyikan detail-view dan bottom-nav)
-  // QR-REDIRECT FIX: pastikan overlay state bersih sebelum form tampil
-  var _bnFi = document.getElementById('bottom-nav');
-  if (_bnFi) _bnFi.style.display = 'none';
-  var _dvFi = document.getElementById('detail-view');
-  if (_dvFi) _dvFi.style.display = 'none';
-  var _dtbFi = document.getElementById('desktop-topbar-bar');
-  if (_dtbFi && window.innerWidth < 768) _dtbFi.style.display = 'none';
+  // Tampilkan form (sembunyikan detail-view jangan ditutup agar bisa kembali)
   document.getElementById('form-inspeksi-view').style.display = 'block';
   // Scroll ke atas
   document.getElementById('form-inspeksi-view').scrollTo(0,0);
@@ -6015,11 +5988,6 @@ function _fiDoClose() {
   fiStopAutosave();
   document.getElementById('form-inspeksi-view').style.display = 'none';
   _fiGardu = null;
-  // QR-REDIRECT FIX: restore bottom-nav dan desktop-topbar-bar
-  var _bnClose = document.getElementById('bottom-nav');
-  if (_bnClose) _bnClose.style.display = 'flex';
-  var _dtbClose = document.getElementById('desktop-topbar-bar');
-  if (_dtbClose) { _dtbClose.style.display = window.innerWidth >= 768 ? 'flex' : 'none'; }
   try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
@@ -9919,13 +9887,6 @@ function bukaFormPemeliharaan(noGarduPrefill) {
   }
   var view = document.getElementById('form-pemeliharaan-view');
   if (view) {
-    // QR-REDIRECT FIX: pastikan overlay state bersih sebelum form tampil
-    var _bnPm = document.getElementById('bottom-nav');
-    if (_bnPm) _bnPm.style.display = 'none';
-    var _dvPm = document.getElementById('detail-view');
-    if (_dvPm) _dvPm.style.display = 'none';
-    var _dtbPm = document.getElementById('desktop-topbar-bar');
-    if (_dtbPm && window.innerWidth < 768) _dtbPm.style.display = 'none';
     view.style.display = 'block';
     view.scrollTo(0, 0);
 
@@ -9948,11 +9909,6 @@ function _pmDoClose() {
   _pmFormDirty = false;
   var view = document.getElementById('form-pemeliharaan-view');
   if (view) view.style.display = 'none';
-  // QR-REDIRECT FIX: restore bottom-nav dan desktop-topbar-bar
-  var _bnPmClose = document.getElementById('bottom-nav');
-  if (_bnPmClose) _bnPmClose.style.display = 'flex';
-  var _dtbPmClose = document.getElementById('desktop-topbar-bar');
-  if (_dtbPmClose) { _dtbPmClose.style.display = window.innerWidth >= 768 ? 'flex' : 'none'; }
   try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
