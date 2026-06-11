@@ -4386,10 +4386,30 @@ function _tampilkanPanelAdmin(s) {
 
   // Tombol KHUSUS superadmin
   showBtn('apbtn-user',    isSuperadmin);
-  showBtn('apbtn-import',  isSuperadmin);
-
-  // Tombol KHUSUS admin ULP (bukan superadmin)
   showBtn('apbtn-usulp',   !isSuperadmin);
+
+  // ── Pastikan tombol Import ada di DOM, baru atur visibility ──
+  var actionsEl = document.getElementById('admin-panel-actions');
+  var importBtn = document.getElementById('apbtn-import');
+  if (!importBtn && actionsEl) {
+    importBtn = document.createElement('button');
+    importBtn.id        = 'apbtn-import';
+    importBtn.className = 'btn btn-outline';
+    importBtn.textContent = '📥 Import Bulk Inspeksi';
+    importBtn.onclick = function() {
+      var ap = document.getElementById('modal-admin-panel');
+      if (ap) ap.style.display = 'none';
+      if (typeof bukaModalCsvImport === 'function') bukaModalCsvImport();
+      else {
+        var m = document.getElementById('modal-csv-import');
+        if (m) m.style.display = 'flex';
+      }
+    };
+    var logoutBtn = actionsEl.querySelector('.btn-red');
+    if (logoutBtn) actionsEl.insertBefore(importBtn, logoutBtn);
+    else actionsEl.appendChild(importBtn);
+  }
+  if (importBtn) importBtn.style.display = isSuperadmin ? '' : 'none';
 
   // Label PIN berbeda per role
   var pinBtn = document.getElementById('apbtn-pin');
@@ -4397,6 +4417,7 @@ function _tampilkanPanelAdmin(s) {
 
   document.getElementById('modal-admin-panel').style.display = 'flex';
 }
+
 
 // ── Manajemen User (Super Admin) ──────────────────────────────
 function bukaModalUser() {
@@ -10653,7 +10674,7 @@ function muatDataPengukuran(force) {
   if (!s) return;
 
   var wrap = document.getElementById('ukur-list-wrap');
-  if (wrap) wrap.innerHTML = '<div class="loading"><div class="spinner"></div>Memuat semua data pengukuran sesuai filter... (mungkin beberapa detik untuk range tanggal yang panjang)</div>';
+  if (wrap) wrap.innerHTML = '<div class="loading"><div class="spinner"></div>Memuat data...</div>';
 
   var noGardu = (document.getElementById('ukur-filter-nogardu') || {}).value || '';
   var tglAwal = (document.getElementById('ukur-filter-tgl-awal') || {}).value || '';
@@ -14367,113 +14388,6 @@ function tutupModalCsvImport() {
 
 </script>
 
-<!-- ============================================================
-     PATCH: Import Bulk Inspeksi — override _tampilkanPanelAdmin
-     agar tombol Import selalu muncul untuk superadmin.
-     Script ini harus berada PALING BAWAH agar override setelah
-     semua fungsi asli terdefinisi.
-     ============================================================ -->
-<script>
-(function() {
-  'use strict';
-
-  function _applyPatch() {
-    var _origTampilkan = window._tampilkanPanelAdmin;
-
-    window._tampilkanPanelAdmin = function(s) {
-      // 1. Panggil fungsi asli (judul, PIN modal, dll)
-      if (typeof _origTampilkan === 'function') {
-        try { _origTampilkan(s); } catch(e) {
-          // Jika fungsi asli error (mis. element tidak ada), tetap lanjut
-          var modal = document.getElementById('modal-admin-panel');
-          if (modal) modal.style.display = 'flex';
-        }
-      }
-
-      var isSuperadmin = !!(s && s.role === 'superadmin');
-      var actionsEl = document.getElementById('admin-panel-actions');
-      if (!actionsEl) return;
-
-      // 2. Fix judul / subtitle (re-set kalau asli gagal)
-      var titleEl = document.getElementById('admin-panel-title');
-      var subEl   = document.getElementById('admin-panel-sub');
-      try {
-        if (titleEl) titleEl.textContent = isSuperadmin ? '\uD83D\uDD13 Super Admin Aktif' : '\uD83D\uDD13 Admin: ' + (s.ulp || 'ULP Anda');
-        if (subEl)   subEl.textContent   = isSuperadmin ? 'Akses penuh ke semua ULP' : 'Tambah & edit gardu ULP Anda';
-      } catch(e) {}
-
-      // 3. Pastikan tombol Import ada di DOM
-      var importBtn = document.getElementById('apbtn-import');
-      if (!importBtn) {
-        importBtn = document.createElement('button');
-        importBtn.id        = 'apbtn-import';
-        importBtn.className = 'btn btn-outline';
-        importBtn.textContent = '\uD83D\uDCE5 Import Bulk Inspeksi';
-        importBtn.onclick = function() {
-          var ap = document.getElementById('modal-admin-panel');
-          if (ap) ap.style.display = 'none';
-          if (typeof bukaModalCsvImport === 'function') {
-            bukaModalCsvImport();
-          } else {
-            var m = document.getElementById('modal-csv-import');
-            if (m) m.style.display = 'flex';
-          }
-        };
-        // Sisipkan sebelum tombol merah Logout
-        var logoutBtn = actionsEl.querySelector('.btn-red');
-        if (logoutBtn) actionsEl.insertBefore(importBtn, logoutBtn);
-        else actionsEl.appendChild(importBtn);
-      }
-
-      // 4. Show/hide sesuai role
-      importBtn.style.display = isSuperadmin ? '' : 'none';
-
-      // 5. Pastikan modal terbuka
-      var modal = document.getElementById('modal-admin-panel');
-      if (modal) modal.style.display = 'flex';
-    };
-
-    // 6. Definisikan bukaModalCsvImport jika belum ada di scope global
-    if (typeof window.bukaModalCsvImport !== 'function') {
-      window.bukaModalCsvImport = function() {
-        var s;
-        try { s = JSON.parse(sessionStorage.getItem('plnSession') || 'null'); } catch(e) {}
-        if (!s || s.role !== 'superadmin') {
-          if (typeof showMsg === 'function') showMsg('Akses ditolak. Hanya Superadmin.', true);
-          else alert('Akses ditolak. Hanya Superadmin.');
-          return;
-        }
-        var urlEl = document.getElementById('supa-url');
-        var keyEl = document.getElementById('supa-key');
-        if (urlEl && typeof SUPABASE_URL  !== 'undefined') urlEl.value = SUPABASE_URL;
-        if (keyEl && typeof SUPABASE_ANON !== 'undefined') keyEl.value = SUPABASE_ANON;
-        var ap = document.getElementById('modal-admin-panel');
-        if (ap) ap.style.display = 'none';
-        var m = document.getElementById('modal-csv-import');
-        if (m) m.style.display = 'flex';
-        else alert('Modal Import Bulk Inspeksi tidak ditemukan.\nPastikan index.html terbaru sudah di-deploy.');
-      };
-    }
-
-    if (typeof window.tutupModalCsvImport !== 'function') {
-      window.tutupModalCsvImport = function() {
-        var m = document.getElementById('modal-csv-import');
-        if (m) m.style.display = 'none';
-        try { if (typeof resetAll === 'function') resetAll(); } catch(e) {}
-      };
-    }
-
-    console.log('[PLN Patch] Import Bulk Inspeksi fix OK.');
-  }
-
-  // Jalankan setelah DOM + semua script selesai load
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', _applyPatch);
-  } else {
-    _applyPatch();
-  }
-})();
-</script>
 
 <!-- ══ CUSTOM ALERT & CONFIRM MODALS ══════════════════════════ -->
 <div id="modal-custom-alert" style="display:none;position:fixed;inset:0;z-index:9900;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:var(--sp-md);">
