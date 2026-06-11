@@ -1217,15 +1217,13 @@ input[type=number]{-moz-appearance:textfield;}
   #detail-col-left{
     display:flex;flex-direction:column;gap:var(--sp-sm);
     position:sticky;top:calc(var(--topbar-h) + 12px);
-    max-height:calc(100vh - var(--topbar-h) - 32px);
-    overflow-y:auto;
-    overflow-x:visible;
-    padding-right:4px;
+    height:calc(100vh - var(--topbar-h) - 32px);
+    overflow:hidden;
+    padding-right:2px;
     min-width:0;
     word-break:break-word;
   }
-  #detail-col-left::-webkit-scrollbar{width:4px;}
-  #detail-col-left::-webkit-scrollbar-thumb{background:var(--pln-border2);border-radius:2px;}
+  #detail-col-left::-webkit-scrollbar{display:none;}
   #detail-col-left .card{
     width:100%;
     box-sizing:border-box;
@@ -5704,6 +5702,86 @@ function renderDetailGardu(g, riwayat){
   _trenAllData = [];
   // Load tren beban async after DOM ready
   muatTrenBeban(g['NO_GARDU']);
+
+  // Auto-compress kolom kiri agar semua konten muat tanpa scroll
+  if (!isMobile) {
+    requestAnimationFrame(function(){ fitDetailColLeft(); });
+  }
+}
+
+/* ── fitDetailColLeft ────────────────────────────────────────────
+   Mengukur tinggi total konten kolom kiri setelah render,
+   lalu compress elemen secara proporsional agar semua muat
+   dalam satu viewport tanpa scroll.
+──────────────────────────────────────────────────────────────── */
+function fitDetailColLeft() {
+  var col = document.getElementById('detail-col-left');
+  if (!col) return;
+
+  // Tinggi tersedia = jarak atas kolom ke bawah viewport minus margin
+  var topbarH = col.getBoundingClientRect().top;
+  var available = window.innerHeight - topbarH - 16;
+
+  // Reset inline styles dulu supaya pengukuran akurat
+  col.style.gap = '';
+  col.style.fontSize = '';
+  var cards = col.querySelectorAll('.card');
+  cards.forEach(function(c){ c.style.padding = ''; });
+  var mapWrap = col.querySelector('.gps-map-wrap');
+  var mapInner = mapWrap ? mapWrap.querySelector('div') : null;
+  if (mapInner) { mapInner.style.height = '240px'; }
+  var mapIframe = mapWrap ? mapWrap.querySelector('iframe') : null;
+  if (mapIframe) { mapIframe.style.height = '240px'; }
+
+  function getOverflow() {
+    return col.scrollHeight - available;
+  }
+
+  var overflow = getOverflow();
+  if (overflow <= 0) { col.style.overflow = 'hidden'; return; }
+
+  // Step 1: Kurangi gap antar elemen
+  col.style.gap = '4px';
+  overflow = getOverflow();
+
+  // Step 2: Kurangi padding kartu
+  if (overflow > 0) {
+    cards.forEach(function(c){
+      var cs = window.getComputedStyle(c);
+      var pt = parseFloat(cs.paddingTop);
+      var pb = parseFloat(cs.paddingBottom);
+      var pl = parseFloat(cs.paddingLeft);
+      var pr = parseFloat(cs.paddingRight);
+      c.style.padding = Math.max(6,pt*0.6)+'px '+Math.max(10,pl*0.75)+'px '+Math.max(6,pb*0.6)+'px '+Math.max(10,pr*0.75)+'px';
+    });
+    overflow = getOverflow();
+  }
+
+  // Step 3: Perkecil peta bertahap
+  if (overflow > 0 && mapInner) {
+    var mapHeights = [200, 170, 150, 130, 110];
+    for (var i = 0; i < mapHeights.length; i++) {
+      var h = mapHeights[i] + 'px';
+      mapInner.style.height = h;
+      if (mapIframe) mapIframe.style.height = h;
+      overflow = getOverflow();
+      if (overflow <= 0) break;
+    }
+  }
+
+  // Step 4: Perkecil font 90%
+  if (overflow > 0) {
+    col.style.fontSize = '0.9em';
+    overflow = getOverflow();
+  }
+
+  // Step 5: Gap paling kecil
+  if (overflow > 0) {
+    col.style.gap = '2px';
+  }
+
+  // Selalu non-scrollable
+  col.style.overflow = 'hidden';
 }
 
 function ukurCell(label, val, unit) {
