@@ -648,18 +648,11 @@ input[type=number]{-moz-appearance:textfield;}
   }
 }
 
-/* ══ DETAIL VIEW — Fixed full-screen semua device ═══════════ */
+/* ══ DETAIL VIEW — Base style (desktop: mengikuti alur halaman) ═ */
 #detail-view{
-  position:fixed;
-  inset:0;
-  z-index:150;
-  overflow-y:auto;
-  overflow-x:hidden;
-  -webkit-overflow-scrolling:touch;
+  width:100%;
   background:var(--pln-bg);
-  width:100%!important;
-  max-width:100%!important;
-  margin:0!important;
+  overflow-x:hidden;
 }
 /* Semua konten di dalam detail view tidak boleh overflow horizontal */
 #detail-view .card,
@@ -1134,15 +1127,19 @@ input[type=number]{-moz-appearance:textfield;}
   #desktop-topbar-bar .dtb-user-name{font-size:10px;color:rgba(255,255,255,.7);font-weight:500;}
   #app-content{padding-top:var(--topbar-h);}
 
-  /* Detail view full width — mulai dari bawah topbar utama, tidak menutupinya */
+  /* Detail view full width — mulai dari bawah topbar utama */
   #detail-view{
     max-width:100%;
-    width:calc(100% - 220px)!important;
-    left:220px!important;
-    right:0!important;
-    top:var(--topbar-h)!important;
-    overflow-x:hidden!important;
-    z-index:155!important;
+    width:calc(100% - 220px);
+    position:fixed;
+    inset:0;
+    z-index:150;
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    left:220px;
+    right:0;
+    top:var(--topbar-h);
   }
   /* Sub-bar "DETAIL GARDU" — muncul sticky di atas konten detail, di bawah topbar utama */
   #detail-subbar{
@@ -1166,6 +1163,16 @@ input[type=number]{-moz-appearance:textfield;}
   .sidebar-user{display:none!important;}
   /* Sub-bar detail hanya untuk desktop */
   #detail-subbar{display:none!important;}
+  /* Mobile: detail view full-screen fixed agar scroll terisolasi */
+  #detail-view{
+    position:fixed;
+    inset:0;
+    z-index:150;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    max-width:100%;
+    margin:0;
+  }
 }
 
 /* ══ PETA: FILTER ULP BAR ════════════════════════════════════ */
@@ -1207,10 +1214,10 @@ input[type=number]{-moz-appearance:textfield;}
   #detail-view .page-body-nonav{
     padding:var(--sp-md) var(--sp-md) var(--sp-lg);
   }
-  /* Layout grid: 2 kolom — kiri min 320px, fleksibel hingga 420px */
+  /* Layout grid: 2 kolom */
   #detail-desktop-grid{
     display:grid;
-    grid-template-columns:minmax(320px,420px) minmax(0,1fr);
+    grid-template-columns:380px 1fr;
     gap:var(--sp-md);
     align-items:start;
   }
@@ -1268,7 +1275,7 @@ input[type=number]{-moz-appearance:textfield;}
   }
   /* Map lebih tinggi di desktop */
   .gps-map-wrap iframe{
-    height:240px!important;
+    height:220px!important;
   }
   /* Pastikan gps-map-wrap tidak terpotong di kolom kiri */
   #detail-col-left .gps-map-wrap,
@@ -1279,7 +1286,7 @@ input[type=number]{-moz-appearance:textfield;}
   }
   #detail-col-left .gps-map-wrap > div:first-child,
   #detail-col-left-sticky .gps-map-wrap > div:first-child {
-    height:240px!important;
+    height:220px!important;
   }
   /* Tren chart lebih lebar */
   .tren-chart-svg-wrap svg{
@@ -5331,7 +5338,7 @@ function renderDetailGardu(g, riwayat){
   if (hasGps) {
     var embedUrl = 'https://maps.google.com/maps?q='+lat+','+lon+'&z=17&output=embed';
     html += '<div class="gps-map-wrap" style="cursor:pointer;position:relative;margin-bottom:var(--sp-sm);" onclick="window.open(\''+mapsUrl+'\',\'_blank\',\'noopener\')">';
-    html += '<div style="width:100%;height:240px;background:linear-gradient(135deg,#e8edf2,#d5dce8);display:flex;align-items:center;justify-content:center;position:relative;">';
+    html += '<div style="width:100%;height:clamp(140px,35vw,180px);background:linear-gradient(135deg,#e8edf2,#d5dce8);display:flex;align-items:center;justify-content:center;position:relative;">';
     html += '<span style="font-size:28px;opacity:.35;">🗺️</span>';
     html += '<iframe src="'+embedUrl+'" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Lokasi Gardu" style="position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none;"></iframe>';
     html += '</div>';
