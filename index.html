@@ -3058,6 +3058,15 @@ input[type=number]{-moz-appearance:textfield;}
   <!-- Desktop unified topbar bar (shown only on desktop via CSS) -->
   <div id="desktop-topbar-bar" style="display:none;">
     <div class="dtb-title" id="desktop-topbar-title">Manajemen Gardu</div>
+    <!-- Tombol export kontekstual — tampil sesuai tab aktif -->
+    <button id="desktop-btn-export-pengukuran" onclick="exportPengukuranExcel()"
+      style="display:none;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:12px;font-weight:700;cursor:pointer;padding:6px 14px;border-radius:20px;letter-spacing:.3px;font-family:inherit;align-items:center;gap:5px;white-space:nowrap;transition:background .15s;">
+      ⬇️ Export Pengukuran
+    </button>
+    <button id="desktop-btn-export-pemeliharaan" onclick="exportPemeliharaanExcel()"
+      style="display:none;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:12px;font-weight:700;cursor:pointer;padding:6px 14px;border-radius:20px;letter-spacing:.3px;font-family:inherit;align-items:center;gap:5px;white-space:nowrap;transition:background .15s;">
+      ⬇️ Export Pemeliharaan
+    </button>
     <div id="desktop-topbar-user" style="display:flex;align-items:center;gap:10px;">
       <div class="dtb-user">
         <span id="desktop-user-badge" class="user-badge badge-petugas" style="font-size:9px;">—</span>
@@ -3565,6 +3574,12 @@ input[type=number]{-moz-appearance:textfield;}
         <div class="btn-row">
           <button class="btn btn-outline" onclick="document.getElementById('modal-edit-gardu').style.display='none'">Batal</button>
           <button class="btn btn-blue" onclick="submitEditGardu()">Simpan Perubahan</button>
+        </div>
+        <!-- Tombol hapus gardu — dipisah agar tidak terpencet tidak sengaja -->
+        <div style="margin-top:var(--sp-xs);border-top:1.5px solid var(--pln-border);padding-top:var(--sp-sm);">
+          <button class="btn btn-red" onclick="konfirmasiHapusGardu()" id="btn-hapus-gardu-edit" style="opacity:.85;">
+            🗑️ Hapus Gardu Ini
+          </button>
         </div>
       </div>
     </div>
@@ -4973,6 +4988,23 @@ function bukaTab(id, idx){
     var pb2 = document.querySelector('#' + id + ' .page-body');
     if (pb2) pb2.scrollTop = 0;
   });
+
+  // ── Update desktop topbar: judul tab & tombol export kontekstual ──
+  var TAB_TITLES = {
+    'tab-daftar':       'Daftar Gardu',
+    'tab-peta':         'Peta Gardu Papua',
+    'tab-rekap':        'Rekap & Statistik',
+    'tab-pengukuran':   'Riwayat Pengukuran Gardu',
+    'tab-pemeliharaan': 'Pemeliharaan Gardu',
+    'tab-sop':          'SOP & Panduan'
+  };
+  var dtbTitle = document.getElementById('desktop-topbar-title');
+  if (dtbTitle) dtbTitle.textContent = TAB_TITLES[id] || 'Manajemen Gardu';
+  // Tampilkan tombol export hanya di tab yang relevan
+  var btnExpPengukuran   = document.getElementById('desktop-btn-export-pengukuran');
+  var btnExpPemeliharaan = document.getElementById('desktop-btn-export-pemeliharaan');
+  if (btnExpPengukuran)   btnExpPengukuran.style.display   = (id === 'tab-pengukuran')   ? 'inline-flex' : 'none';
+  if (btnExpPemeliharaan) btnExpPemeliharaan.style.display = (id === 'tab-pemeliharaan') ? 'inline-flex' : 'none';
 
   if(id==='tab-rekap' && !rekapSudahMuat) muatRekap();
   if(id==='tab-pemeliharaan') { /* data dimuat on-demand saat user tekan Tampilkan */ }
@@ -9194,6 +9226,12 @@ function cariGarduUntukEdit() {
     document.getElementById('edit-gardu-fields').style.display = 'flex';
     var msgEl = document.getElementById('edit-gardu-msg');
     if (msgEl) msgEl.style.display = 'none';
+    // Tampilkan/sembunyikan tombol hapus sesuai role (hanya superadmin)
+    var hapusBtn = document.getElementById('btn-hapus-gardu-edit');
+    if (hapusBtn) {
+      var _sCheck = getSession();
+      hapusBtn.parentElement.style.display = (_sCheck && _sCheck.role === 'superadmin') ? 'block' : 'none';
+    }
   });
 }
 
@@ -9258,6 +9296,55 @@ function submitEditGardu() {
     });
   });
   }); // end bukaModalKonfirmasi
+}
+
+// ── Hapus Gardu ─────────────────────────────────────────────────────────────
+function konfirmasiHapusGardu() {
+  var noGardu = document.getElementById('ef-nogardu-lama').value;
+  if (!noGardu) { alert('Cari gardu dahulu.'); return; }
+
+  var s = getSession();
+  // Hanya superadmin yang boleh hapus gardu
+  if (!s || s.role !== 'superadmin') {
+    showAlert('❌ Hanya Superadmin yang dapat menghapus gardu.'); return;
+  }
+
+  // Konfirmasi pertama — modal kuning peringatan
+  bukaModalKonfirmasi({
+    ikon: '⚠️',
+    judul: 'Hapus Gardu?',
+    pesan: 'Gardu <strong>' + noGardu + '</strong> akan dihapus secara permanen beserta seluruh data inspeksi dan pemeliharaannya.\n\nTindakan ini TIDAK DAPAT DIBATALKAN.',
+    labelAksi: '🗑️ Ya, Hapus',
+    labelBatal: 'Batal',
+    warna: 'var(--pln-red)'
+  }, function() {
+    // Konfirmasi kedua — minta PIN
+    bukaModalPinGardu('Konfirmasi PIN — Hapus Gardu', function(pin) {
+      tutupModalPinGardu();
+      _doHapusGardu(noGardu, pin);
+    });
+  });
+}
+
+function _doHapusGardu(noGardu, pin) {
+  var s = getSession();
+  if (!s) { showAlert('❌ Sesi habis. Silakan login ulang.'); return; }
+  var msgEl = document.getElementById('edit-gardu-msg');
+  if (msgEl) { msgEl.style.display='block'; msgEl.style.background='var(--pln-bg)'; msgEl.style.color='var(--pln-text2)'; msgEl.textContent='⏳ Menghapus gardu...'; }
+  // Nonaktifkan tombol selama proses
+  var hapusBtn = document.getElementById('btn-hapus-gardu-edit');
+  if (hapusBtn) hapusBtn.disabled = true;
+
+  apiGet({ action: 'hapusGardu', token: s.token, pin: pin, noGardu: noGardu }, function(res) {
+    if (hapusBtn) hapusBtn.disabled = false;
+    if (res.status === 'ok') {
+      document.getElementById('modal-edit-gardu').style.display = 'none';
+      muatDaftarGardu(true);
+      showAlert('✅ Gardu ' + noGardu + ' berhasil dihapus.');
+    } else {
+      if (msgEl) { msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B'; msgEl.textContent=userFriendlyError(res.message, 'Gagal menghapus gardu.'); }
+    }
+  });
 }
 
 function tutupPanelAdmin() {
