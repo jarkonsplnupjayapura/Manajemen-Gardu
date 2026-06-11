@@ -648,11 +648,18 @@ input[type=number]{-moz-appearance:textfield;}
   }
 }
 
-/* ══ DETAIL VIEW — Base style (desktop: mengikuti alur halaman) ═ */
+/* ══ DETAIL VIEW — Fixed full-screen semua device ═══════════ */
 #detail-view{
-  width:100%;
-  background:var(--pln-bg);
+  position:fixed;
+  inset:0;
+  z-index:150;
+  overflow-y:auto;
   overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  background:var(--pln-bg);
+  width:100%!important;
+  max-width:100%!important;
+  margin:0!important;
 }
 /* Semua konten di dalam detail view tidak boleh overflow horizontal */
 #detail-view .card,
@@ -1127,19 +1134,15 @@ input[type=number]{-moz-appearance:textfield;}
   #desktop-topbar-bar .dtb-user-name{font-size:10px;color:rgba(255,255,255,.7);font-weight:500;}
   #app-content{padding-top:var(--topbar-h);}
 
-  /* Detail view full width — mulai dari bawah topbar utama */
+  /* Detail view full width — mulai dari bawah topbar utama, tidak menutupinya */
   #detail-view{
     max-width:100%;
-    width:calc(100% - 220px);
-    position:fixed;
-    inset:0;
-    z-index:150;
-    overflow-y:auto;
-    overflow-x:hidden;
-    -webkit-overflow-scrolling:touch;
-    left:220px;
-    right:0;
-    top:var(--topbar-h);
+    width:calc(100% - 220px)!important;
+    left:220px!important;
+    right:0!important;
+    top:var(--topbar-h)!important;
+    overflow-x:hidden!important;
+    z-index:155!important;
   }
   /* Sub-bar "DETAIL GARDU" — muncul sticky di atas konten detail, di bawah topbar utama */
   #detail-subbar{
@@ -1163,16 +1166,6 @@ input[type=number]{-moz-appearance:textfield;}
   .sidebar-user{display:none!important;}
   /* Sub-bar detail hanya untuk desktop */
   #detail-subbar{display:none!important;}
-  /* Mobile: detail view full-screen fixed agar scroll terisolasi */
-  #detail-view{
-    position:fixed;
-    inset:0;
-    z-index:150;
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-    max-width:100%;
-    margin:0;
-  }
 }
 
 /* ══ PETA: FILTER ULP BAR ════════════════════════════════════ */
@@ -1214,59 +1207,47 @@ input[type=number]{-moz-appearance:textfield;}
   #detail-view .page-body-nonav{
     padding:var(--sp-md) var(--sp-md) var(--sp-lg);
   }
-  /* Layout grid: 2 kolom */
+  /* Layout grid: 2 kolom — kiri min 320px, fleksibel hingga 420px */
   #detail-desktop-grid{
     display:grid;
-    grid-template-columns:380px 1fr;
+    grid-template-columns:minmax(320px,420px) minmax(0,1fr);
     gap:var(--sp-md);
     align-items:start;
   }
   #detail-col-left{
     display:flex;flex-direction:column;gap:var(--sp-sm);
-    min-width:0;
-    word-break:break-word;
-  }
-  /* Wrapper sticky untuk konten gardu di kolom kiri */
-  #detail-col-left-sticky{
-    position:sticky;
-    top:calc(var(--topbar-h) + 12px);
-    display:flex;flex-direction:column;gap:var(--sp-sm);
+    position:sticky;top:calc(var(--topbar-h) + 12px);
     max-height:calc(100vh - var(--topbar-h) - 32px);
     overflow-y:auto;
     overflow-x:hidden;
     padding-right:4px;
+    min-width:0;
+    word-break:break-word;
   }
-  #detail-col-left-sticky::-webkit-scrollbar{width:4px;}
-  #detail-col-left-sticky::-webkit-scrollbar-thumb{background:var(--pln-border2);border-radius:2px;}
-  #detail-col-left .card,
-  #detail-col-left-sticky .card{
+  #detail-col-left::-webkit-scrollbar{width:4px;}
+  #detail-col-left::-webkit-scrollbar-thumb{background:var(--pln-border2);border-radius:2px;}
+  #detail-col-left .card{
     width:100%;
     box-sizing:border-box;
-    overflow:visible;
+    overflow:hidden;
   }
   /* Grid 2 kolom di dalam detail — pastikan tidak overflow */
-  #detail-col-left .grid2,
-  #detail-col-left-sticky .grid2{
+  #detail-col-left .grid2{
     grid-template-columns:1fr 1fr;
     word-break:break-word;
     overflow:hidden;
   }
   #detail-col-left .grid2 .val,
-  #detail-col-left .grid2 .val-sm,
-  #detail-col-left-sticky .grid2 .val,
-  #detail-col-left-sticky .grid2 .val-sm{
+  #detail-col-left .grid2 .val-sm{
     word-break:break-word;
     overflow-wrap:anywhere;
     white-space:normal;
   }
-  /* Baris merek & kepemilikan — tampil horizontal sejajar di detail kiri */
-  #detail-col-left .detail-footer-meta,
-  #detail-col-left-sticky .detail-footer-meta{
-    flex-direction:row;
-    flex-wrap:wrap;
-    gap:8px;
-    align-items:center;
-    justify-content:flex-start;
+  /* Baris merek & kepemilikan — tampil vertikal di detail kiri */
+  #detail-col-left .detail-footer-meta{
+    flex-direction:column;
+    gap:4px;
+    align-items:flex-start;
   }
   #detail-col-right{
     display:flex;flex-direction:column;gap:var(--sp-sm);
@@ -1275,17 +1256,6 @@ input[type=number]{-moz-appearance:textfield;}
   }
   /* Map lebih tinggi di desktop */
   .gps-map-wrap iframe{
-    height:220px!important;
-  }
-  /* Pastikan gps-map-wrap tidak terpotong di kolom kiri */
-  #detail-col-left .gps-map-wrap,
-  #detail-col-left-sticky .gps-map-wrap{
-    width:100%;
-    flex-shrink:0;
-    overflow:hidden;
-  }
-  #detail-col-left .gps-map-wrap > div:first-child,
-  #detail-col-left-sticky .gps-map-wrap > div:first-child {
     height:220px!important;
   }
   /* Tren chart lebih lebar */
@@ -5315,8 +5285,10 @@ function renderDetailGardu(g, riwayat){
   html += '<div><div class="lbl">Unit / ULP</div><div class="val">'+esc(unitupDisplay)+' / '+esc(ulpDisplay)+'</div></div>';
   html += '<div><div class="lbl">Penyulang</div><div class="val">'+esc(g['PENYULANG']||'—')+'</div></div>';
   html += '<div><div class="lbl">Tipe</div><div class="val">'+esc(g['TIPE']||'—')+'</div></div>';
-  html += '<div><div class="lbl">Kepemilikan</div><div class="val">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</div></div>';
-  html += '<div><div class="lbl">Merek Trafo</div><div class="val">'+esc(g['MEREK_TRAFO']||'—')+'</div></div>';
+  html += '</div>';
+  html += '<div class="detail-footer-meta" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;border-top:1px solid var(--pln-border);padding-top:var(--sp-sm);">';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;">🏢 Kepemilikan: <b style="color:var(--pln-text2);">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</b></span>';
   html += '</div>';
   html += '</div>';
 
@@ -5700,7 +5672,7 @@ function renderDetailGardu(g, riwayat){
       var leftContent = html.substring(0, splitIdx);
       var rightContent = html.substring(splitIdx);
       finalHtml = '<div id="detail-desktop-grid">' +
-        '<div id="detail-col-left"><div id="detail-col-left-sticky">' + leftContent + '</div></div>' +
+        '<div id="detail-col-left">' + leftContent + '</div>' +
         '<div id="detail-col-right">' + rightContent + '</div>' +
         '</div>';
     } else {
@@ -5721,9 +5693,7 @@ function renderDetailGardu(g, riwayat){
   _trenAllData = [];
   // Load tren beban async after DOM ready
   muatTrenBeban(g['NO_GARDU']);
-
 }
-
 
 function ukurCell(label, val, unit) {
   // Auto-koreksi nilai arus (A) yang kemungkinan tersimpan salah format
