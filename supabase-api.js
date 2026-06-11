@@ -501,11 +501,12 @@ async function _getExportRekap(p, signal) {
   // ── LANGKAH 3: Buat index inspeksi — simpan HANYA yang terbaru per gardu ────
   // fn_get_riwayat_inspeksi sudah mengembalikan data urut tgl_ukur DESC
   // sehingga row pertama yang ditemukan per no_gardu = inspeksi terbaru
-  var inspeksiMap = {}; // NO_GARDU (uppercase) → row inspeksi terbaru (raw dari RPC)
+  var inspeksiMap = {}; // NO_GARDU (uppercase) → row inspeksi terbaru (mapped via _mapInspeksiRow)
   allInspeksi.forEach(function(r) {
     var key = (r.no_gardu || '').trim().toUpperCase();
     if (key && !inspeksiMap[key]) {
-      inspeksiMap[key] = r; // simpan hanya yang pertama (= terbaru)
+      // Gunakan _mapInspeksiRow agar field name konsisten (sama dengan halaman Pengukuran)
+      inspeksiMap[key] = _mapInspeksiRow(r);
     }
   });
 
@@ -517,7 +518,7 @@ async function _getExportRekap(p, signal) {
     var ins = inspeksiMap[key] || {};
 
     // Hitung hari sejak inspeksi terakhir
-    var tglUkur = ins.tgl_ukur || '';
+    var tglUkur = ins['TGLUKUR'] || ins.tgl_ukur || '';
     var hariSejak = '';
     if (tglUkur) {
       var d = new Date(tglUkur); d.setHours(0, 0, 0, 0);
@@ -526,7 +527,7 @@ async function _getExportRekap(p, signal) {
     }
 
     // Keterangan otomatis
-    var prosen   = ins.prosen != null ? parseFloat(ins.prosen) : NaN;
+    var prosen   = ins['PROSEN'] != null && ins['PROSEN'] !== '' ? parseFloat(ins['PROSEN']) : NaN;
     var hariNum  = hariSejak !== '' ? parseInt(hariSejak) : NaN;
     var keterangan;
     if (!tglUkur) {
@@ -549,16 +550,16 @@ async function _getExportRekap(p, signal) {
       status:      g['STATUS_OPERASIONAL'] || '',
       kepemilikan: g['STATUS_KEPEMILIKAN'] || '',
       tglUkur:     tglUkur,
-      jamUkur:     ins.jam_ukur  ? String(ins.jam_ukur).slice(0, 5) : '',
-      petugas:     ins.petugas                                        || '',
-      prosen:      ins.prosen    != null ? String(ins.prosen)         : '',
-      rTotal:      ins.r_total   != null ? String(ins.r_total)        : '',
-      sTotal:      ins.s_total   != null ? String(ins.s_total)        : '',
-      tTotal:      ins.t_total   != null ? String(ins.t_total)        : '',
-      nTotal:      ins.n_total   != null ? String(ins.n_total)        : '',
-      thdR:        ins.thd_r     != null ? String(ins.thd_r)          : '',
-      thdS:        ins.thd_s     != null ? String(ins.thd_s)          : '',
-      thdT:        ins.thd_t     != null ? String(ins.thd_t)          : '',
+      jamUkur:     ins['JAM UKUR']         || '',
+      petugas:     ins['PETUGAS']          || '',
+      prosen:      ins['PROSEN']           || '',
+      rTotal:      ins['R TOTAL']          || '',
+      sTotal:      ins['S TOTAL']          || '',
+      tTotal:      ins['T TOTAL']          || '',
+      nTotal:      ins['N TOTAL']          || '',
+      thdR:        ins['THD-R']            || '',
+      thdS:        ins['THD-S']            || '',
+      thdT:        ins['THD-T']            || '',
       hariSejak:   hariSejak,
       keterangan:  keterangan
     };

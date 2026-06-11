@@ -8138,16 +8138,25 @@ function generatePrintHTML(rows, periodeLabel, ulpFilter) {
     var bg = (!r.tglUkur || r.hariSejak > 90 || parseFloat(r.prosen) > 80)
       ? '#FDECEA' : (r.hariSejak > 60 ? '#FFFDE7' : '#F1F8E9');
     var statusClr = (r.keterangan === 'OVERDUE' || r.keterangan === 'BEBAN LEBIH') ? '#C62828' : '#2E7D32';
+    var bebanClr  = parseFloat(r.prosen) > 80 ? '#C62828' : (parseFloat(r.prosen) > 60 ? '#E65100' : '#2E7D32');
     return [
       '<tr style="background:', bg, '">',
       '<td>', esc(r.noGardu), '</td>',
       '<td>', esc(r.ulp), '</td>',
       '<td>', esc(r.penyulang), '</td>',
       '<td>', esc(r.alamat), '</td>',
-      '<td>', esc(String(r.daya || '')), '</td>',
-      '<td>', formatTgl(r.tglUkur), '</td>',
+      '<td style="text-align:center;">', esc(String(r.daya || '—')), '</td>',
+      '<td style="text-align:center;">', formatTgl(r.tglUkur) || '—', '</td>',
+      '<td style="text-align:center;">', esc(r.jamUkur || '—'), '</td>',
       '<td>', esc(r.petugas || '—'), '</td>',
-      '<td style="text-align:center;">', (r.prosen || '—'), '</td>',
+      '<td style="text-align:center;font-weight:600;color:', bebanClr, ';">', (r.prosen || '—'), '</td>',
+      '<td style="text-align:center;">', (r.rTotal || '—'), '</td>',
+      '<td style="text-align:center;">', (r.sTotal || '—'), '</td>',
+      '<td style="text-align:center;">', (r.tTotal || '—'), '</td>',
+      '<td style="text-align:center;">', (r.nTotal || '—'), '</td>',
+      '<td style="text-align:center;">', (r.thdR || '—'), '</td>',
+      '<td style="text-align:center;">', (r.thdS || '—'), '</td>',
+      '<td style="text-align:center;">', (r.thdT || '—'), '</td>',
       '<td style="text-align:center;">', (r.hariSejak || '—'), '</td>',
       '<td style="font-weight:600;color:', statusClr, ';">', r.keterangan, '</td>',
       '</tr>'
@@ -8176,10 +8185,10 @@ function generatePrintHTML(rows, periodeLabel, ulpFilter) {
   parts.push('<meta name="viewport" content="width=device-width,initial-scale=1">');
   parts.push('<title>Laporan Gardu - PT. PLN UP3 Jayapura</title>');
   parts.push('<style>');
-  parts.push('@media print{@page{size:A4 landscape;margin:12mm;}');
+  parts.push('@media print{@page{size:A4 landscape;margin:8mm;}');
   parts.push('body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}');
   parts.push('*{box-sizing:border-box;}');
-  parts.push('body{font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#1a1a1a;margin:0;padding:16px;background:#fff;}');
+  parts.push('body{font-family:Arial,Helvetica,sans-serif;font-size:9px;color:#1a1a1a;margin:0;padding:12px;background:#fff;}');
   parts.push('.kop{display:flex;align-items:center;gap:14px;padding-bottom:10px;');
   parts.push('  border-bottom:3px double #003B7B;margin-bottom:14px;}');
   parts.push('.kop-logo{width:52px;height:52px;background:#F5A300;border-radius:8px;');
@@ -8199,10 +8208,10 @@ function generatePrintHTML(rows, periodeLabel, ulpFilter) {
   parts.push('.sec-title{font-size:9px;font-weight:700;color:#003B7B;');
   parts.push('  margin:12px 0 5px;padding-left:8px;border-left:3px solid #F5A300;');
   parts.push('  text-transform:uppercase;letter-spacing:.5px;}');
-  parts.push('table{width:100%;border-collapse:collapse;font-size:8.5px;}');
-  parts.push('thead th{background:#003B7B;color:#fff;padding:5px 6px;font-size:8px;');
-  parts.push('  font-weight:700;text-align:left;white-space:nowrap;}');
-  parts.push('tbody td{padding:4px 6px;border-bottom:1px solid #eee;vertical-align:top;}');
+  parts.push('table{width:100%;border-collapse:collapse;font-size:8px;}');
+  parts.push('thead th{background:#003B7B;color:#fff;padding:4px 5px;font-size:7.5px;');
+  parts.push('  font-weight:700;text-align:center;white-space:nowrap;}');
+  parts.push('tbody td{padding:3px 5px;border-bottom:1px solid #eee;vertical-align:middle;font-size:7.5px;}');
   parts.push('tbody tr:nth-child(even){filter:brightness(0.97);}');
   parts.push('.bar-wrap{display:flex;align-items:center;gap:5px;}');
   parts.push('.bar-bg{background:#e0e0e0;border-radius:3px;height:8px;flex:1;}');
@@ -8254,8 +8263,10 @@ function generatePrintHTML(rows, periodeLabel, ulpFilter) {
   parts.push('<table>');
   parts.push('<thead><tr>');
   parts.push('<th>NO GARDU</th><th>ULP</th><th>PENYULANG</th><th>ALAMAT</th>');
-  parts.push('<th>DAYA (kVA)</th><th>TGL UKUR</th><th>PETUGAS</th>');
-  parts.push('<th>BEBAN%</th><th>HARI SEJAK</th><th>STATUS</th>');
+  parts.push('<th>DAYA<br>(kVA)</th><th>TGL INSPEKSI</th><th>JAM UKUR</th><th>PETUGAS</th>');
+  parts.push('<th>BEBAN (%)</th><th>R TOTAL</th><th>S TOTAL</th><th>T TOTAL</th><th>N TOTAL</th>');
+  parts.push('<th>THD-R (%)</th><th>THD-S (%)</th><th>THD-T (%)</th>');
+  parts.push('<th>HARI SEJAK</th><th>KETERANGAN</th>');
   parts.push('</tr></thead>');
   parts.push('<tbody>' + dataRows + '</tbody>');
   parts.push('</table>');
