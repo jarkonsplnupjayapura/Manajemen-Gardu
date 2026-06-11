@@ -1225,7 +1225,15 @@ input[type=number]{-moz-appearance:textfield;}
   #detail-col-right{
     display:flex;flex-direction:column;gap:var(--sp-sm);
   }
-  /* Map lebih tinggi di desktop */
+  /* Map di kolom kiri desktop — tinggi tetap, tidak terpotong */
+  #detail-col-left .gps-map-wrap > div:first-child{
+    height:200px!important;
+  }
+  #detail-col-left .gps-map-wrap iframe{
+    height:200px!important;
+    position:relative!important;
+  }
+  /* Map di kolom kanan / mobile */
   .gps-map-wrap iframe{
     height:220px!important;
   }
@@ -5252,8 +5260,8 @@ function renderDetailGardu(g, riwayat){
   html += '<div><div class="lbl">Tipe</div><div class="val">'+esc(g['TIPE']||'—')+'</div></div>';
   html += '</div>';
   html += '<div class="detail-footer-meta" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;border-top:1px solid var(--pln-border);padding-top:var(--sp-sm);">';
-  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
-  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;">🏢 Kepemilikan: <b style="color:var(--pln-text2);">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</b></span>';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);flex-shrink:1;min-width:0;word-break:break-word;">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);flex-shrink:1;min-width:0;word-break:break-word;">🏢 Kepemilikan: <b style="color:var(--pln-text2);">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</b></span>';
   html += '</div>';
   html += '</div>';
 
