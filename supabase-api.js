@@ -459,17 +459,20 @@ async function _getGarduKritis(p, signal) {
   return data;
 }
 
-// ── EXPORT REKAP via RPC ─────────────────────────────────────
+// ── EXPORT REKAP via REST (selalu ambil kolom detail lengkap) ──────────────
 async function _getExportRekap(p, signal) {
   var ulpFilter = (p && p.ulp) ? _normalizeUlpEnum(p.ulp) : null;
 
-  // Ambil data gardu dari v_gardu_lengkap + inspeksi terakhir dari
-  // fn_get_riwayat_inspeksi (mengembalikan semua field: r_total, s_total,
-  // t_total, n_total, thd_r/s/t, jam_ukur sesuai DDL tabel inspeksi).
+  // STRATEGI EXPORT v9:
+  // Langkah 1: Ambil semua data gardu dari v_gardu_lengkap (pagination).
+  // Langkah 2: Ambil inspeksi terakhir per gardu LANGSUNG dari tabel inspeksi
+  //            via REST (select=*) — ini DIJAMIN mengembalikan semua kolom detail
+  //            (r_total, s_total, t_total, n_total, thd_r, thd_s, thd_t, jam_ukur, dll).
+  //            fn_get_riwayat_inspeksi TIDAK dipakai di sini karena kadang
+  //            tidak mengembalikan field detail sehingga kolom export jadi kosong.
+  // Langkah 3: Merge & hitung keterangan otomatis.
 
-  // ── Ambil gardu + inspeksi terakhir secara manual ──
-
-  // 2a. Ambil semua gardu dari v_gardu_lengkap (pagination)
+  // ── LANGKAH 1: Ambil semua gardu dari v_gardu_lengkap ──────
   var PAGE_SIZE = 500;
   var garduRows = [];
   var offset    = 0;
@@ -501,68 +504,63 @@ async function _getExportRekap(p, signal) {
     return { status: 'error', message: 'Tidak ada data gardu ditemukan.' };
   }
 
-  // 2b. Ambil inspeksi terakhir per gardu dari tabel inspeksi
-  // Pakai fn_get_riwayat_inspeksi tanpa filter no_gardu → semua gardu, limit besar
-  var inspMap = {}; // no_gardu → row inspeksi terakhir
-  var BATCH  = 2000;
-  var iOff   = 0;
-  var iMore  = true;
+  // ── LANGKAH 2: Ambil inspeksi terakhir per gardu via REST SELECT * ──────
+  // Query REST ke tabel inspeksi dengan select=* untuk mendapatkan SEMUA kolom detail.
+  // Diurutkan desc sehingga baris pertama per no_gardu adalah yang terbaru.
+  var inspMap = {}; // no_gardu → row inspeksi terakhir (dengan semua kolom detail)
+  try {
+    var inspUrl = '/rest/v1/inspeksi?select=*&order=tgl_ukur.desc,jam_ukur.desc';
+    if (ulpFilter) inspUrl += '&ulp=eq.' + encodeURIComponent(ulpFilter);
 
-  while (iMore) {
-    var iParams = {
-      p_no_gardu:  null,
-      p_ulp:       ulpFilter,
-      p_tgl_awal:  null,
-      p_tgl_akhir: null,
-      p_limit:     BATCH,
-      p_offset:    iOff
-    };
-    var iData = await rpcCall('fn_get_riwayat_inspeksi', iParams, signal);
-    if (!iData || iData.status !== 'ok') break; // non-fatal — lanjut tanpa detail
+    var iOff2  = 0;
+    var iMore2 = true;
+    while (iMore2) {
+      var iRes = await sbFetch(inspUrl, {
+        signal: signal,
+        headers: {
+          'Range-Unit': 'items',
+          'Range':      iOff2 + '-' + (iOff2 + 999),
+          'Prefer':     'count=none'
+        }
+      });
+      if (!iRes.ok) break;
+      var iBatch2 = await iRes.json();
+      if (!iBatch2 || !iBatch2.length) break;
+      iBatch2.forEach(function(r) {
+        var key = (r.no_gardu || '').trim().toUpperCase();
+        // Simpan hanya yang terbaru per gardu (urutan desc sudah dijaga server)
+        if (key && !inspMap[key]) inspMap[key] = r;
+      });
+      iOff2  += 1000;
+      iMore2  = iBatch2.length === 1000;
+    }
+  } catch (e2) { /* non-fatal — inspMap tetap kosong, gardu ditampilkan tanpa detail */ }
 
-    var iBatch = iData.data || [];
-    iBatch.forEach(function(r) {
-      var key = (r.no_gardu || r.noGardu || '').trim().toUpperCase();
-      if (!key) return;
-      // Simpan hanya yang terbaru (sudah diurutkan desc dari server)
-      if (!inspMap[key]) inspMap[key] = r;
-    });
-
-    iOff  += BATCH;
-    iMore  = iBatch.length === BATCH;
-  }
-
-  // 2c. Fallback kedua: jika fn_get_riwayat_inspeksi tidak support p_offset,
-  //     coba query REST langsung pada tabel inspeksi
+  // Fallback: jika REST inspeksi gagal (misal RLS), coba via RPC
   if (Object.keys(inspMap).length === 0) {
     try {
-      var inspUrl = '/rest/v1/inspeksi?select=no_gardu,tgl_ukur,jam_ukur,petugas,prosen,' +
-                   'r_total,s_total,t_total,n_total,thd_r,thd_s,thd_t' +
-                   '&order=tgl_ukur.desc,jam_ukur.desc';
-      if (ulpFilter) inspUrl += '&ulp=eq.' + encodeURIComponent(ulpFilter);
-
-      var iOff2  = 0;
-      var iMore2 = true;
-      while (iMore2) {
-        var iRes = await sbFetch(inspUrl, {
-          signal: signal,
-          headers: {
-            'Range-Unit': 'items',
-            'Range':      iOff2 + '-' + (iOff2 + 999),
-            'Prefer':     'count=none'
-          }
-        });
-        if (!iRes.ok) break;
-        var iBatch2 = await iRes.json();
-        if (!iBatch2 || !iBatch2.length) break;
-        iBatch2.forEach(function(r) {
-          var key = (r.no_gardu || '').trim().toUpperCase();
+      var BATCH = 2000;
+      var iOff  = 0;
+      var iMore = true;
+      while (iMore) {
+        var iData = await rpcCall('fn_get_riwayat_inspeksi', {
+          p_no_gardu:  null,
+          p_ulp:       ulpFilter,
+          p_tgl_awal:  null,
+          p_tgl_akhir: null,
+          p_limit:     BATCH,
+          p_offset:    iOff
+        }, signal);
+        if (!iData || iData.status !== 'ok') break;
+        var iBatch = iData.data || [];
+        iBatch.forEach(function(r) {
+          var key = (r.no_gardu || r.noGardu || '').trim().toUpperCase();
           if (key && !inspMap[key]) inspMap[key] = r;
         });
-        iOff2  += 1000;
-        iMore2  = iBatch2.length === 1000;
+        iOff  += BATCH;
+        iMore  = iBatch.length === BATCH;
       }
-    } catch (e2) { /* non-fatal */ }
+    } catch (e3) { /* non-fatal */ }
   }
 
   // 2d. Merge: gabungkan data gardu + inspeksi terakhir
