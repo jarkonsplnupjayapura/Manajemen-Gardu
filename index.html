@@ -1225,17 +1225,40 @@ input[type=number]{-moz-appearance:textfield;}
   #detail-col-right{
     display:flex;flex-direction:column;gap:var(--sp-sm);
   }
-  /* Map di kolom kiri desktop — tinggi tetap, tidak terpotong */
-  #detail-col-left .gps-map-wrap > div:first-child{
-    height:200px!important;
-  }
-  #detail-col-left .gps-map-wrap iframe{
-    height:200px!important;
-    position:relative!important;
-  }
   /* Map di kolom kanan / mobile */
   .gps-map-wrap iframe{
     height:220px!important;
+  }
+  /* Map di kolom kiri desktop — render penuh tanpa clip */
+  #detail-col-left .gps-map-wrap{
+    overflow:visible;
+    border-radius:var(--radius);
+  }
+  #detail-col-left .gps-map-wrap > div:first-child{
+    height:200px!important;
+    border-radius:var(--radius);
+    overflow:hidden;
+  }
+  #detail-col-left .gps-map-wrap iframe{
+    height:200px!important;
+    width:100%!important;
+    left:0!important;
+    right:0!important;
+  }
+  /* Merek & Kepemilikan — jangan clip, wrap ke bawah */
+  #detail-col-left .lbl{
+    white-space:normal;
+    overflow:visible;
+    text-overflow:clip;
+  }
+  #detail-col-left .grid2 > *{
+    overflow:visible;
+  }
+  #detail-col-left .detail-footer-meta span{
+    white-space:normal;
+    overflow:visible;
+    text-overflow:clip;
+    word-break:break-word;
   }
   /* Tren chart lebih lebar */
   .tren-chart-svg-wrap svg{
