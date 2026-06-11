@@ -463,46 +463,11 @@ async function _getGarduKritis(p, signal) {
 async function _getExportRekap(p, signal) {
   var ulpFilter = (p && p.ulp) ? _normalizeUlpEnum(p.ulp) : null;
 
-  // ── STRATEGI BARU ─────────────────────────────────────────
-  // fn_get_export_rekap tidak selalu mengembalikan field detail inspeksi
-  // (r_total, s_total, t_total, n_total, thd_r/s/t, jam_ukur, dll).
-  // Solusi: ambil data gardu dari v_gardu_lengkap + data inspeksi terakhir
-  // dari tabel inspeksi secara langsung, lalu merge di sisi klien.
-  // ─────────────────────────────────────────────────────────
+  // Ambil data gardu dari v_gardu_lengkap + inspeksi terakhir dari
+  // fn_get_riwayat_inspeksi (mengembalikan semua field: r_total, s_total,
+  // t_total, n_total, thd_r/s/t, jam_ukur sesuai DDL tabel inspeksi).
 
-  // 1. Coba dulu via RPC (agar kompatibel jika server sudah diperbarui)
-  var rpcOk = false;
-  var rpcRows = [];
-  try {
-    var rpcData = await rpcCall('fn_get_export_rekap', {
-      p_ulp:   ulpFilter,
-      p_bulan: p.bulan || null
-    }, signal);
-    if (rpcData && rpcData.status === 'ok' && Array.isArray(rpcData.data) && rpcData.data.length > 0) {
-      // Validasi: cek apakah RPC benar-benar mengembalikan field detail
-      // (minimal salah satu gardu punya r_total atau tgl_ukur)
-      var sample = rpcData.data[0];
-      var hasDetail = sample.r_total != null || sample.tgl_ukur != null ||
-                      sample.rTotal  != null || sample.tglUkur  != null ||
-                      sample.petugas != null || sample.prosen   != null;
-      if (hasDetail) {
-        rpcOk  = true;
-        rpcRows = rpcData.data;
-      }
-    }
-  } catch (e) {
-    // RPC gagal — lanjut ke fallback
-  }
-
-  if (rpcOk) {
-    // RPC berhasil & punya field detail — pakai hasilnya langsung
-    var rows = rpcRows.map(function(r) {
-      return _mapExportRow(r);
-    });
-    return { status: 'ok', data: rows };
-  }
-
-  // ── FALLBACK: Ambil gardu + inspeksi terakhir secara manual ──
+  // ── Ambil gardu + inspeksi terakhir secara manual ──
 
   // 2a. Ambil semua gardu dari v_gardu_lengkap (pagination)
   var PAGE_SIZE = 500;
