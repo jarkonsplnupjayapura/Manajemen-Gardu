@@ -1245,19 +1245,24 @@ input[type=number]{-moz-appearance:textfield;}
     left:0!important;
     right:0!important;
   }
-  /* Merek & Kepemilikan — jangan clip, wrap ke bawah */
+  /* Merek & Kepemilikan di kolom kiri — jangan clip, tampilkan penuh */
+  #detail-col-left .card{
+    overflow:visible;
+  }
+  #detail-col-left .grid2{
+    overflow:visible;
+  }
   #detail-col-left .lbl{
     white-space:normal;
     overflow:visible;
     text-overflow:clip;
   }
-  #detail-col-left .grid2 > *{
+  #detail-col-left .detail-footer-meta{
     overflow:visible;
   }
   #detail-col-left .detail-footer-meta span{
     white-space:normal;
     overflow:visible;
-    text-overflow:clip;
     word-break:break-word;
   }
   /* Tren chart lebih lebar */
