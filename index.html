@@ -1141,12 +1141,10 @@ input[type=number]{-moz-appearance:textfield;}
     left:220px!important;
     right:0!important;
     top:var(--topbar-h)!important;
-    bottom:0!important;
-    overflow:hidden!important;
+    overflow-x:hidden!important;
     z-index:155!important;
-    /* display & flex-direction diatur oleh blok layout 2-kolom di bawah */
   }
-  /* Sub-bar "DETAIL GARDU" — sticky di atas, tidak scroll */
+  /* Sub-bar "DETAIL GARDU" — muncul sticky di atas konten detail, di bawah topbar utama */
   #detail-subbar{
     display:flex !important;
     align-items:center;
@@ -1154,7 +1152,8 @@ input[type=number]{-moz-appearance:textfield;}
     background:var(--pln-biru);
     padding:0 var(--sp-md);
     height:clamp(44px,10vw,52px);
-    flex-shrink:0;   /* jangan menyusut — tetap di atas */
+    position:sticky;
+    top:0;
     z-index:10;
     box-shadow:0 2px 8px rgba(10,45,107,.18);
     border-bottom:1px solid rgba(255,255,255,.10);
@@ -1202,142 +1201,73 @@ input[type=number]{-moz-appearance:textfield;}
   white-space:nowrap;margin-left:auto;font-weight:500;
 }
 
-/* ══════════════════════════════════════════════════════════════
-   DETAIL GARDU — LAYOUT 2 KOLOM (SEDERHANA & STABIL)
-   Catatan teknis: position:sticky tidak bisa bekerja di dalam
-   #detail-view yang sudah overflow-y:auto (fixed full-screen).
-   Solusi: 2 kolom masing-masing scroll sendiri (overflow-y:auto).
-   Pendekatan ini minimal — tidak ada flex-direction:column chain.
-   ══════════════════════════════════════════════════════════════ */
-
-/* ── Merk + Kepemilikan — sejajar kiri-kanan dalam 1 baris ── */
-.detail-footer-meta {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-  border-top: 1px solid var(--pln-border);
-  padding-top: var(--sp-sm);
-  margin-top: var(--sp-xs);
-}
-.detail-footer-meta > span {
-  font-size: var(--fs-xs);
-  color: var(--pln-text3);
-  white-space: nowrap;
-  flex-shrink: 1;
-  min-width: 0;
-}
-
-/* ── Base (mobile): 1 kolom ── */
-#detail-desktop-grid {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  box-sizing: border-box;
-}
-#detail-col-left,
-#detail-col-right {
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-/* ── Desktop (≥768px): 2 kolom dual-scroll ── */
-@media (min-width: 768px) {
-
-  /* #detail-view menjadi flex column agar bisa membagi sisa tinggi */
-  #detail-view {
-    display: flex !important;
-    flex-direction: column !important;
-    overflow: hidden !important;
+/* ══ DESKTOP: DETAIL GARDU 2-KOLOM ══════════════════════════ */
+@media(min-width:768px){
+  #detail-view{max-width:100%!important;}
+  #detail-view .page-body-nonav{
+    padding:var(--sp-md) var(--sp-md) var(--sp-lg);
   }
-
-  /* page-body-nonav: flex row, mengisi sisa tinggi */
-  #detail-view .page-body-nonav {
-    flex: 1 1 0 !important;
-    min-height: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-    display: flex !important;
+  /* Layout grid: 2 kolom — kiri min 320px, fleksibel hingga 420px */
+  #detail-desktop-grid{
+    display:grid;
+    grid-template-columns:minmax(320px,420px) minmax(0,1fr);
+    gap:var(--sp-md);
+    align-items:start;
   }
-
-  /* Wrapper 2 kolom: tinggi penuh, flex row */
-  #detail-desktop-grid {
-    display: flex !important;
-    flex-direction: row !important;
-    flex: 1 1 0 !important;
-    min-height: 0 !important;
-    align-items: stretch !important;
-    overflow: hidden !important;
+  #detail-col-left{
+    display:flex;flex-direction:column;gap:var(--sp-sm);
+    position:sticky;top:calc(var(--topbar-h) + 12px);
+    max-height:calc(100vh - var(--topbar-h) - 32px);
+    overflow-y:auto;
+    overflow-x:hidden;
+    padding-right:4px;
+    min-width:0;
+    word-break:break-word;
   }
-
-  /* Kolom kiri: lebar tetap, scroll sendiri */
-  #detail-col-left {
-    flex: 0 0 360px !important;
-    width: 360px !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    padding: var(--sp-md) !important;
-    border-right: 1px solid var(--pln-border) !important;
-    box-sizing: border-box !important;
+  #detail-col-left::-webkit-scrollbar{width:4px;}
+  #detail-col-left::-webkit-scrollbar-thumb{background:var(--pln-border2);border-radius:2px;}
+  #detail-col-left .card{
+    width:100%;
+    box-sizing:border-box;
+    overflow:hidden;
   }
-  #detail-col-left::-webkit-scrollbar { width: 4px; }
-  #detail-col-left::-webkit-scrollbar-thumb { background: var(--pln-border2); border-radius: 2px; }
-
-  /* Kolom kanan: flex:1, scroll sendiri */
-  #detail-col-right {
-    flex: 1 1 0 !important;
-    min-width: 0 !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    padding: var(--sp-md) !important;
-    box-sizing: border-box !important;
+  /* Grid 2 kolom di dalam detail — pastikan tidak overflow */
+  #detail-col-left .grid2{
+    grid-template-columns:1fr 1fr;
+    word-break:break-word;
+    overflow:hidden;
   }
-  #detail-col-right::-webkit-scrollbar { width: 5px; }
-  #detail-col-right::-webkit-scrollbar-thumb { background: var(--pln-border2); border-radius: 3px; }
+  #detail-col-left .grid2 .val,
+  #detail-col-left .grid2 .val-sm{
+    word-break:break-word;
+    overflow-wrap:anywhere;
+    white-space:normal;
+  }
+  /* Baris merek & kepemilikan — tampil vertikal di detail kiri */
+  #detail-col-left .detail-footer-meta{
+    flex-direction:column;
+    gap:4px;
+    align-items:flex-start;
+  }
+  #detail-col-right{
+    display:flex;flex-direction:column;gap:var(--sp-sm);
+    min-width:0;
+    overflow:hidden;
+  }
+  /* Map lebih tinggi di desktop */
+  .gps-map-wrap iframe{
+    height:220px!important;
+  }
+  /* Tren chart lebih lebar */
+  .tren-chart-svg-wrap svg{
+    max-width:100%!important;
+  }
 }
 
-/* ── Layar lebar: kolom kiri lebih besar ── */
-@media (min-width: 1200px) {
-  #detail-col-left { flex: 0 0 400px !important; width: 400px !important; }
-}
-@media (min-width: 1400px) {
-  #detail-col-left { flex: 0 0 440px !important; width: 440px !important; }
-}
-
-/* ── Mobile override ── */
-@media (max-width: 767px) {
-  #detail-view {
-    display: block !important;
-    overflow-y: auto !important;
-    overflow: auto !important;
-  }
-  #detail-view .page-body-nonav {
-    display: block !important;
-    flex: none !important;
-    overflow: visible !important;
-    padding: var(--sp-md) !important;
-    padding-bottom: calc(var(--sp-lg) + env(safe-area-inset-bottom, 0px)) !important;
-  }
-  #detail-desktop-grid {
-    flex-direction: column !important;
-    height: auto !important;
-    overflow: visible !important;
-  }
-  #detail-col-left {
-    flex: none !important;
-    width: 100% !important;
-    overflow: visible !important;
-    border-right: none !important;
-    padding: 0 !important;
-  }
-  #detail-col-right {
-    flex: none !important;
-    width: 100% !important;
-    overflow: visible !important;
-    padding: 0 !important;
+/* Layar sangat lebar (≥1400px): beri lebih ruang ke kolom kiri */
+@media(min-width:1400px){
+  #detail-desktop-grid{
+    grid-template-columns:460px minmax(0,1fr);
   }
 }
 
@@ -2322,8 +2252,13 @@ input[type=number]{-moz-appearance:textfield;}
     width: 100% !important;
   }
 
-  /* ── 17. Detail view mobile: ditangani penuh oleh blok CSS khusus detail gardu ── */
-  /* Tidak ada override di sini — CSS detail gardu sudah punya @media(max-width:767px) sendiri */
+  /* ── 17. Detail view: full screen mobile ── */
+  #detail-view {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    top: 0 !important;
+  }
 
   /* ── 18. Grid 2 kolom: tetap 2 kolom tapi jangan overflow ── */
   .grid2 {
@@ -5351,9 +5286,9 @@ function renderDetailGardu(g, riwayat){
   html += '<div><div class="lbl">Penyulang</div><div class="val">'+esc(g['PENYULANG']||'—')+'</div></div>';
   html += '<div><div class="lbl">Tipe</div><div class="val">'+esc(g['TIPE']||'—')+'</div></div>';
   html += '</div>';
-  html += '<div class="detail-footer-meta">';
-  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
-  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);">🏢 Kepemilikan: <b style="color:var(--pln-text2);">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</b></span>';
+  html += '<div class="detail-footer-meta" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;border-top:1px solid var(--pln-border);padding-top:var(--sp-sm);">';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;">🏢 Kepemilikan: <b style="color:var(--pln-text2);">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</b></span>';
   html += '</div>';
   html += '</div>';
 
@@ -5722,19 +5657,27 @@ function renderDetailGardu(g, riwayat){
 
   html += '<div style="height:var(--sp-lg);"></div>';
 
-  // ── 2-kolom wrapper (selalu aktif — CSS yang mengatur desktop/mobile) ──
-  // Desktop (≥768px): kiri sticky, kanan scroll via CSS grid
-  // Mobile (<768px): CSS override ke single column otomatis
-  var splitMarker = '<div class="sec">5 Inspeksi Terakhir</div>';
-  var splitIdx = html.indexOf(splitMarker);
+  // ── Desktop 2-kolom wrapper ──────────────────────────────────
+  // Di desktop (≥768px): kiri = info gardu + map + keterangan, kanan = riwayat inspeksi + tren
+  // Di mobile: tetap single column (urutan normal)
+  var isMobile = window.innerWidth < 768;
   var finalHtml;
-  if (splitIdx >= 0) {
-    var leftContent = html.substring(0, splitIdx);
-    var rightContent = html.substring(splitIdx);
-    finalHtml = '<div id="detail-desktop-grid">' +
-      '<div id="detail-col-left">' + leftContent + '</div>' +
-      '<div id="detail-col-right">' + rightContent + '</div>' +
-      '</div>';
+  if (!isMobile) {
+    // Pisahkan konten menjadi 2 kolom
+    // Parsing sederhana: semua konten sebelum section "5 Inspeksi Terakhir" = kiri
+    //                    section inspeksi + tren = kanan
+    var splitMarker = '<div class="sec">5 Inspeksi Terakhir</div>';
+    var splitIdx = html.indexOf(splitMarker);
+    if (splitIdx >= 0) {
+      var leftContent = html.substring(0, splitIdx);
+      var rightContent = html.substring(splitIdx);
+      finalHtml = '<div id="detail-desktop-grid">' +
+        '<div id="detail-col-left">' + leftContent + '</div>' +
+        '<div id="detail-col-right">' + rightContent + '</div>' +
+        '</div>';
+    } else {
+      finalHtml = html;
+    }
   } else {
     finalHtml = html;
   }
