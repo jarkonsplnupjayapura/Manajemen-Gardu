@@ -1207,28 +1207,35 @@ input[type=number]{-moz-appearance:textfield;}
   #detail-view .page-body-nonav{
     padding:var(--sp-md) var(--sp-md) var(--sp-lg);
   }
-  /* Layout 2 kolom sederhana — flexbox, tidak pakai grid kompleks */
+  /* Layout grid: 2 kolom — kiri min 320px, fleksibel hingga 420px */
   #detail-desktop-grid{
-    display:flex;
+    display:grid;
+    grid-template-columns:minmax(320px,420px) minmax(0,1fr);
     gap:var(--sp-md);
-    align-items:flex-start;
+    align-items:start;
   }
-  /* Kolom kiri: sticky sederhana, TANPA overflow-y/max-height agar tidak kosong */
   #detail-col-left{
-    flex:0 0 380px;
-    max-width:420px;
-    position:sticky;
-    top:calc(var(--topbar-h) + 10px);
+    display:flex;flex-direction:column;gap:var(--sp-sm);
+    position:sticky;top:calc(var(--topbar-h) + 12px);
+    max-height:calc(100vh - var(--topbar-h) - 32px);
+    overflow-y:auto;
+    overflow-x:hidden;
+    padding-right:4px;
     min-width:0;
+    word-break:break-word;
   }
+  #detail-col-left::-webkit-scrollbar{width:4px;}
+  #detail-col-left::-webkit-scrollbar-thumb{background:var(--pln-border2);border-radius:2px;}
   #detail-col-left .card{
     width:100%;
     box-sizing:border-box;
+    overflow:hidden;
   }
-  /* Grid 2 kolom di dalam detail */
+  /* Grid 2 kolom di dalam detail — pastikan tidak overflow */
   #detail-col-left .grid2{
     grid-template-columns:1fr 1fr;
     word-break:break-word;
+    overflow:hidden;
   }
   #detail-col-left .grid2 .val,
   #detail-col-left .grid2 .val-sm{
@@ -1236,19 +1243,16 @@ input[type=number]{-moz-appearance:textfield;}
     overflow-wrap:anywhere;
     white-space:normal;
   }
-  /* Baris merek & kepemilikan — SEJAJAR kiri-kanan dalam 1 baris */
+  /* Baris merek & kepemilikan — tampil vertikal di detail kiri */
   #detail-col-left .detail-footer-meta{
-    display:flex;
-    flex-direction:row;
-    justify-content:space-between;
-    align-items:center;
-    flex-wrap:wrap;
-    gap:6px;
+    flex-direction:column;
+    gap:4px;
+    align-items:flex-start;
   }
-  /* Kolom kanan: scroll normal mengikuti halaman */
   #detail-col-right{
-    flex:1;
+    display:flex;flex-direction:column;gap:var(--sp-sm);
     min-width:0;
+    overflow:hidden;
   }
   /* Map lebih tinggi di desktop */
   .gps-map-wrap iframe{
@@ -1262,9 +1266,8 @@ input[type=number]{-moz-appearance:textfield;}
 
 /* Layar sangat lebar (≥1400px): beri lebih ruang ke kolom kiri */
 @media(min-width:1400px){
-  #detail-col-left{
-    flex:0 0 460px;
-    max-width:460px;
+  #detail-desktop-grid{
+    grid-template-columns:460px minmax(0,1fr);
   }
 }
 
