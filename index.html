@@ -195,10 +195,6 @@ body{
   padding:var(--sp-md);
   padding-bottom:calc(var(--sp-lg) + env(safe-area-inset-bottom));
 }
-/* detail-content uses its own padding via fixed-header / scroll-body */
-#detail-content.page-body-nonav{
-  padding:0;
-}
 
 /* ══ CARDS ═══════════════════════════════════════════════════ */
 .card{
@@ -657,39 +653,14 @@ input[type=number]{-moz-appearance:textfield;}
   position:fixed;
   inset:0;
   z-index:150;
-  overflow:hidden;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
   background:var(--pln-bg);
   width:100%!important;
   max-width:100%!important;
   margin:0!important;
-  display:flex;
-  flex-direction:column;
 }
-/* Area scroll konten detail — hanya bagian data yang scroll */
-#detail-content{
-  flex:1;
-  overflow-y:auto;
-  overflow-x:hidden;
-  -webkit-overflow-scrolling:touch;
-}
-/* Mobile: info gardu + keterangan + map + tombol = fixed di atas */
-#detail-fixed-header{
-  flex-shrink:0;
-  overflow:hidden;
-  background:var(--pln-bg);
-  padding:var(--sp-md) var(--sp-md) 0;
-  box-shadow:0 2px 8px rgba(10,45,107,.06);
-}
-/* Mobile: riwayat inspeksi = area scroll */
-#detail-scroll-body{
-  flex:1;
-  overflow-y:auto;
-  overflow-x:hidden;
-  -webkit-overflow-scrolling:touch;
-  padding:0 var(--sp-md) calc(var(--sp-lg) + env(safe-area-inset-bottom));
-}
-#detail-fixed-header .card{margin-bottom:var(--sp-sm);}
-#detail-fixed-header .gps-map-wrap{margin-bottom:var(--sp-sm);}
 /* Semua konten di dalam detail view tidak boleh overflow horizontal */
 #detail-view .card,
 #detail-view .riwayat-card,
@@ -1172,28 +1143,6 @@ input[type=number]{-moz-appearance:textfield;}
     top:var(--topbar-h)!important;
     overflow-x:hidden!important;
     z-index:155!important;
-    display:flex!important;
-    flex-direction:column!important;
-  }
-  /* Desktop: detail-content juga scroll */
-  #detail-content{
-    flex:1;
-    overflow-y:auto;
-    overflow-x:hidden;
-  }
-  /* Desktop: fixed-header dan scroll-body jadi display normal (bukan fixed) */
-  #detail-fixed-header{
-    display:block;
-    padding:0;
-    box-shadow:none;
-    overflow:visible;
-    flex-shrink:unset;
-  }
-  #detail-scroll-body{
-    display:block;
-    overflow:visible;
-    flex:unset;
-    padding:0;
   }
   /* Sub-bar "DETAIL GARDU" — muncul sticky di atas konten detail, di bawah topbar utama */
   #detail-subbar{
@@ -1256,10 +1205,6 @@ input[type=number]{-moz-appearance:textfield;}
 @media(min-width:768px){
   #detail-view{max-width:100%!important;}
   #detail-view .page-body-nonav{
-    padding:0;
-  }
-  /* Desktop: re-apply padding to the grid wrapper */
-  #detail-desktop-grid{
     padding:var(--sp-md) var(--sp-md) var(--sp-lg);
   }
   /* Layout grid: 2 kolom — kiri min 320px, fleksibel hingga 420px */
@@ -2155,6 +2100,203 @@ input[type=number]{-moz-appearance:textfield;}
 </script>
 
 <!-- Leaflet.markercluster — anti-lag untuk banyak marker -->
+
+<!-- ══ MOBILE RESPONSIVE FIX (max-width: 768px) ══════════════
+     Hanya perbaikan CSS mobile — tidak mengubah logika/alur/desktop
+     ══════════════════════════════════════════════════════════ -->
+<style>
+@media (max-width: 768px) {
+
+  /* ── 1. Pastikan body tidak overflow double scroll ── */
+  html, body {
+    overflow-x: hidden;
+    /* Jangan set overflow-y:hidden, biarkan scroll alami dari satu kontainer */
+  }
+
+  /* ── 2. Login screen: full screen fixed, tidak boleh overlap ── */
+  #login-screen {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 99999 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important; /* mulai dari atas agar tidak terpotong di layar kecil */
+    padding-top: max(env(safe-area-inset-top, 0px), 20px) !important;
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px) !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* ── 3. Login card tidak overflow layar ── */
+  .login-card-outer {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 16px !important;
+    box-sizing: border-box !important;
+  }
+
+  .login-card {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ── 4. App-content: normal flow, tidak fixed, tidak ada margin aneh ── */
+  #app-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-top: 0 !important;
+    display: block !important;
+    /* Pastikan tidak ada positioning yang mengganggu scroll */
+    position: static !important;
+  }
+
+  /* ── 5. Pages tampil penuh lebar di mobile ── */
+  .page {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  /* ── 6. Body tidak pakai flex di mobile (flex hanya untuk desktop sidebar) ── */
+  body {
+    display: block !important;
+    min-height: 100vh !important;
+  }
+
+  /* ── 7. Bottom nav mobile: fixed di bawah, normal ── */
+  .bottom-nav {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 100 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ── 8. Topbar sticky di atas, tidak tertumpuk ── */
+  .topbar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    display: flex !important; /* Pastikan topbar tidak di-hidden oleh aturan desktop */
+  }
+
+  /* ── 9. Page body: padding bawah cukup untuk nav bar ── */
+  .page-body {
+    padding-bottom: calc(var(--nav-h) + 16px + env(safe-area-inset-bottom, 0px)) !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ── 10. Semua card tidak overflow horizontal ── */
+  .card,
+  .gardu-item,
+  .riwayat-card,
+  .pagination-wrap,
+  .data-freshness-banner {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  /* ── 11. Sidebar brand & user: HIDDEN di mobile ── */
+  .sidebar-brand,
+  .sidebar-user {
+    display: none !important;
+  }
+
+  /* ── 12. Desktop topbar bar: HIDDEN di mobile ── */
+  #desktop-topbar-bar {
+    display: none !important;
+  }
+
+  /* ── 13. Pagination wrap: responsif ── */
+  .pagination-wrap {
+    flex-direction: column !important;
+    gap: 8px !important;
+    align-items: flex-start !important;
+  }
+
+  .pagination-btns {
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+  }
+
+  /* ── 14. Tag row: wrap normal ── */
+  .tag-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  /* ── 15. Search wrap: tidak overflow ── */
+  .search-wrap {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ── 16. Form inspeksi & pemeliharaan: full mobile ── */
+  #form-inspeksi-view,
+  #form-pemeliharaan-view {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+  }
+
+  /* ── 17. Detail view: full screen mobile ── */
+  #detail-view {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    top: 0 !important;
+  }
+
+  /* ── 18. Grid 2 kolom: tetap 2 kolom tapi jangan overflow ── */
+  .grid2 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    max-width: 100% !important;
+  }
+
+  /* ── 19. Gardu item: tidak overflow ── */
+  .gardu-name {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+  }
+
+  /* ── 20. Topbar title tidak overflow ── */
+  .topbar-title {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* ── 21. Login top area: tidak terpotong ── */
+  .login-top-area {
+    padding-top: 8px !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* ── 22. Login footer bottom: tidak tertumpuk ── */
+  .login-footer-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px) !important;
+    margin-top: 12px !important;
+  }
+
+}
+</style>
 
 </head>
 <body>
@@ -3845,9 +3987,7 @@ function doLogin() {
     if (res && res.status === 'ok' && res.user) {
       var u = res.user;
       setSession({ username: u.username, role: u.role, ulp: u.ulp || '', nama: u.nama, token: res.token });
-      // FIX QR-LOGIN BUG: Sembunyikan login-screen secara total sebelum onLoginSuccess
-      var lsEl = document.getElementById('login-screen');
-      if (lsEl) { lsEl.style.display = 'none'; lsEl.style.visibility = 'hidden'; lsEl.style.opacity = '0'; lsEl.style.pointerEvents = 'none'; }
+      document.getElementById('login-screen').style.display = 'none';
       document.getElementById('login-password').value = '';
       onLoginSuccess(u);
     } else {
@@ -3898,9 +4038,6 @@ function doLogout() {
   var dtbBar2 = document.getElementById('desktop-topbar-bar');
   if (dtbBar2) dtbBar2.style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
-  // FIX QR-LOGIN BUG: Reset visibility setelah display flex agar login screen terlihat
-  var lsLogout = document.getElementById('login-screen');
-  if (lsLogout) { lsLogout.style.visibility = ''; lsLogout.style.opacity = ''; lsLogout.style.pointerEvents = ''; }
   document.getElementById('login-username').value = '';
   document.getElementById('login-password').value = '';
   var le = document.getElementById('login-err');
@@ -3916,11 +4053,6 @@ function onLoginSuccess(user) {
   document.body.style.overflow = '';
   document.body.style.position = '';
   document.body.style.top = '';
-  // FIX QR-LOGIN BUG: Reset scroll position ke paling atas setelah login
-  // Diperlukan karena redirect dari QR mode bisa meninggalkan scroll position yang aneh
-  try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
-  document.documentElement.scrollTop = 0;
-  document.body.scrollTop = 0;
   // Update badge header
   var badge = document.getElementById('topbar-user-badge');
   var uLabel = document.getElementById('topbar-username-label');
@@ -4735,15 +4867,6 @@ window.onload = function(){
     onLoginSuccess(session);
   } else {
     // Belum login — tampilkan login screen, jangan muat data
-    // FIX QR-LOGIN BUG: Reset scroll ke atas sebelum tampilkan login screen
-    // Mencegah body masih ter-scroll dari kondisi sebelumnya (redirect dari QR mode)
-    try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-    // Pastikan body bersih dari sisa inline style apapun
-    document.body.style.overflow = '';
-    document.body.style.position = '';
-    document.body.style.top = '';
     document.getElementById('login-screen').style.display = 'flex';
   }
   // Peta di-init HANYA saat user membuka tab peta (lihat bukaTab)
@@ -5162,10 +5285,10 @@ function renderDetailGardu(g, riwayat){
   html += '<div><div class="lbl">Unit / ULP</div><div class="val">'+esc(unitupDisplay)+' / '+esc(ulpDisplay)+'</div></div>';
   html += '<div><div class="lbl">Penyulang</div><div class="val">'+esc(g['PENYULANG']||'—')+'</div></div>';
   html += '<div><div class="lbl">Tipe</div><div class="val">'+esc(g['TIPE']||'—')+'</div></div>';
-  html += '<div><div class="lbl">Kepemilikan</div><div class="val">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</div></div>';
   html += '</div>';
-  html += '<div class="detail-footer-meta" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;border-top:1px solid var(--pln-border);padding-top:var(--sp-sm);">';
-  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
+  html += '<div class="detail-footer-meta" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;border-top:1px solid var(--pln-border);padding-top:var(--sp-sm);">';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;">🏢 Kepemilikan: <b style="color:var(--pln-text2);">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</b></span>';
   html += '</div>';
   html += '</div>';
 
@@ -5556,18 +5679,7 @@ function renderDetailGardu(g, riwayat){
       finalHtml = html;
     }
   } else {
-    // Mobile: bungkus info+keterangan+map+tombol dalam sticky-header, riwayat dalam scroll
-    var splitMarker = '<div class="sec">5 Inspeksi Terakhir</div>';
-    var splitIdx = html.indexOf(splitMarker);
-    if (splitIdx >= 0) {
-      var headerContent = html.substring(0, splitIdx);
-      var scrollContent = html.substring(splitIdx);
-      finalHtml =
-        '<div id="detail-fixed-header">' + headerContent + '</div>' +
-        '<div id="detail-scroll-body">' + scrollContent + '</div>';
-    } else {
-      finalHtml = html;
-    }
+    finalHtml = html;
   }
 
   document.getElementById('detail-content').innerHTML = finalHtml;
