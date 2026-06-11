@@ -1219,25 +1219,42 @@ input[type=number]{-moz-appearance:textfield;}
     min-width:0;
     word-break:break-word;
   }
-  #detail-col-left .card{
+  /* Wrapper sticky untuk konten gardu di kolom kiri */
+  #detail-col-left-sticky{
+    position:sticky;
+    top:calc(var(--topbar-h) + 12px);
+    display:flex;flex-direction:column;gap:var(--sp-sm);
+    max-height:calc(100vh - var(--topbar-h) - 32px);
+    overflow-y:auto;
+    overflow-x:hidden;
+    padding-right:4px;
+  }
+  #detail-col-left-sticky::-webkit-scrollbar{width:4px;}
+  #detail-col-left-sticky::-webkit-scrollbar-thumb{background:var(--pln-border2);border-radius:2px;}
+  #detail-col-left .card,
+  #detail-col-left-sticky .card{
     width:100%;
     box-sizing:border-box;
     overflow:visible;
   }
   /* Grid 2 kolom di dalam detail — pastikan tidak overflow */
-  #detail-col-left .grid2{
+  #detail-col-left .grid2,
+  #detail-col-left-sticky .grid2{
     grid-template-columns:1fr 1fr;
     word-break:break-word;
     overflow:hidden;
   }
   #detail-col-left .grid2 .val,
-  #detail-col-left .grid2 .val-sm{
+  #detail-col-left .grid2 .val-sm,
+  #detail-col-left-sticky .grid2 .val,
+  #detail-col-left-sticky .grid2 .val-sm{
     word-break:break-word;
     overflow-wrap:anywhere;
     white-space:normal;
   }
-  /* Baris merek — tampil penuh di detail kiri */
-  #detail-col-left .detail-footer-meta{
+  /* Baris merek & kepemilikan — tampil horizontal sejajar di detail kiri */
+  #detail-col-left .detail-footer-meta,
+  #detail-col-left-sticky .detail-footer-meta{
     flex-direction:row;
     flex-wrap:wrap;
     gap:8px;
@@ -1254,12 +1271,14 @@ input[type=number]{-moz-appearance:textfield;}
     height:240px!important;
   }
   /* Pastikan gps-map-wrap tidak terpotong di kolom kiri */
-  #detail-col-left .gps-map-wrap{
+  #detail-col-left .gps-map-wrap,
+  #detail-col-left-sticky .gps-map-wrap{
     width:100%;
     flex-shrink:0;
     overflow:hidden;
   }
-  #detail-col-left .gps-map-wrap > div:first-child {
+  #detail-col-left .gps-map-wrap > div:first-child,
+  #detail-col-left-sticky .gps-map-wrap > div:first-child {
     height:240px!important;
   }
   /* Tren chart lebih lebar */
@@ -5290,9 +5309,7 @@ function renderDetailGardu(g, riwayat){
   html += '<div><div class="lbl">Penyulang</div><div class="val">'+esc(g['PENYULANG']||'—')+'</div></div>';
   html += '<div><div class="lbl">Tipe</div><div class="val">'+esc(g['TIPE']||'—')+'</div></div>';
   html += '<div><div class="lbl">Kepemilikan</div><div class="val">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</div></div>';
-  html += '</div>';
-  html += '<div class="detail-footer-meta" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;border-top:1px solid var(--pln-border);padding-top:var(--sp-sm);">';
-  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
+  html += '<div><div class="lbl">Merek Trafo</div><div class="val">'+esc(g['MEREK_TRAFO']||'—')+'</div></div>';
   html += '</div>';
   html += '</div>';
 
@@ -5676,7 +5693,7 @@ function renderDetailGardu(g, riwayat){
       var leftContent = html.substring(0, splitIdx);
       var rightContent = html.substring(splitIdx);
       finalHtml = '<div id="detail-desktop-grid">' +
-        '<div id="detail-col-left">' + leftContent + '</div>' +
+        '<div id="detail-col-left"><div id="detail-col-left-sticky">' + leftContent + '</div></div>' +
         '<div id="detail-col-right">' + rightContent + '</div>' +
         '</div>';
     } else {
