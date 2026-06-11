@@ -5195,7 +5195,7 @@ function updateFreshnessBanner(generatedAtStr) {
   // _generatedAt = waktu server Apps Script men-generate cache, BUKAN waktu data di-update di spreadsheet
   // Data aktual di spreadsheet mungkin lebih lama — tekan Refresh untuk paksa reload dari sheet
   textEl.innerHTML = '<b>Data per ' + esc(generatedAtStr) + ' WIT</b>' +
-    '&nbsp;&nbsp;·&nbsp;&nbsp;<span class="freshness-date" style="color:var(--pln-text3);">Waktu cache server · tekan Refresh untuk data terbaru dari spreadsheet</span>';
+    '&nbsp;&nbsp;·&nbsp;&nbsp;<span class="freshness-date" style="color:var(--pln-text3);">Waktu cache server · tekan Refresh untuk data terbaru</span>';
 }
 
 function buildFilterULP(data){
@@ -6104,6 +6104,9 @@ function bukaFormInspeksi(noGardu) {
 
   // Isi info gardu (readonly display)
   document.getElementById('fi-topbar-title').textContent = noGardu;
+  // MED-1 FIX: Simpan noGardu di data attribute form sebagai sumber recovery terpercaya
+  var _fiFormEl = document.getElementById('form-inspeksi-view');
+  if (_fiFormEl) _fiFormEl.setAttribute('data-no-gardu', (g['NO_GARDU'] || noGardu).trim().toUpperCase());
   document.getElementById('fi-disp-nogardu').textContent = g['NO_GARDU'] || '—';
   document.getElementById('fi-disp-kva').textContent = (g['KAPASITAS_KVA']||g['DAYA_KVA']||'—') + ' kVA';
   document.getElementById('fi-disp-ulp').textContent = (g['ULP']||'—').replace(/^ULP\s*/i,'');
@@ -6205,6 +6208,9 @@ function _fiDoClose() {
   _fiFormDirty = false;
   fiStopAutosave();
   document.getElementById('form-inspeksi-view').style.display = 'none';
+  // MED-1 FIX: Hapus data-no-gardu saat form ditutup agar tidak bisa di-recover salah
+  var _fiFormClose = document.getElementById('form-inspeksi-view');
+  if (_fiFormClose) _fiFormClose.removeAttribute('data-no-gardu');
   _fiGardu = null;
   try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
   document.documentElement.scrollTop = 0;
@@ -6668,11 +6674,17 @@ function submitFormInspeksi() {
   if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
 
   // MED-1 FIX: Guard kuat untuk _fiGardu null — bisa terjadi saat QR redirect
-  // sebelum garduIndex selesai dimuat (race condition). Coba recover dari DOM dulu.
+  // sebelum garduIndex selesai dimuat (race condition). Recover dari data-no-gardu
+  // yang di-set oleh bukaFormInspeksi saat form dibuka — lebih terpercaya daripada
+  // membaca textContent yang bisa berisi label dekoratif.
   if (!_fiGardu) {
-    // Coba recover dari title bar yang sudah di-set saat bukaFormInspeksi dipanggil
-    var titleEl = document.getElementById('fi-topbar-title');
-    var noGarduRecov = titleEl ? titleEl.textContent.trim() : '';
+    var _fiFormEl2 = document.getElementById('form-inspeksi-view');
+    var noGarduRecov = (_fiFormEl2 && _fiFormEl2.getAttribute('data-no-gardu')) || '';
+    // Fallback ke title bar jika data attribute belum ada (browser lama / cache lama)
+    if (!noGarduRecov) {
+      var titleEl = document.getElementById('fi-topbar-title');
+      noGarduRecov = titleEl ? titleEl.textContent.trim() : '';
+    }
     if (noGarduRecov && garduIndex[noGarduRecov.toUpperCase()]) {
       _fiGardu = garduIndex[noGarduRecov.toUpperCase()];
       console.warn('[MED-1] _fiGardu di-recover dari garduIndex untuk:', noGarduRecov);
@@ -6882,7 +6894,14 @@ function bukaEditInspeksi(id, r) {
     'Gardu: ' + (r['NO_GARDU'] || r['NOGARDU'] || '—') + '  |  ID: ' + id;
 
   // Informasi dasar
-  document.getElementById('ei-tgl').value     = r['TGLUKUR'] || '';
+  // MED-2 FIX: Batasi tanggal maks = hari ini agar browser tidak mengizinkan input tanggal masa depan
+  var _eiTglEl = document.getElementById('ei-tgl');
+  var _eiToday = new Date().toISOString().slice(0, 10);
+  var _eiMinDate = new Date();
+  _eiMinDate.setFullYear(_eiMinDate.getFullYear() - 5);
+  _eiTglEl.setAttribute('max', _eiToday);
+  _eiTglEl.setAttribute('min', _eiMinDate.toISOString().slice(0, 10));
+  _eiTglEl.value     = r['TGLUKUR'] || '';
   document.getElementById('ei-jam').value     = r['JAM UKUR'] ? String(r['JAM UKUR']).slice(0,5) : '';
   document.getElementById('ei-petugas').value = r['PETUGAS'] || '';
   document.getElementById('ei-fasa').value    = r['FASA'] || '';
