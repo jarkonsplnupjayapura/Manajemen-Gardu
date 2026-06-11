@@ -1216,16 +1216,9 @@ input[type=number]{-moz-appearance:textfield;}
   }
   #detail-col-left{
     display:flex;flex-direction:column;gap:var(--sp-sm);
-    position:sticky;top:calc(var(--topbar-h) + 12px);
-    max-height:calc(100vh - var(--topbar-h) - 32px);
-    overflow-y:auto;
-    overflow-x:hidden;
-    padding-right:4px;
     min-width:0;
     word-break:break-word;
   }
-  #detail-col-left::-webkit-scrollbar{width:4px;}
-  #detail-col-left::-webkit-scrollbar-thumb{background:var(--pln-border2);border-radius:2px;}
   #detail-col-left .card{
     width:100%;
     box-sizing:border-box;
@@ -1243,7 +1236,7 @@ input[type=number]{-moz-appearance:textfield;}
     overflow-wrap:anywhere;
     white-space:normal;
   }
-  /* Baris merek & kepemilikan — tampil horizontal sejajar di detail kiri */
+  /* Baris merek — tampil penuh di detail kiri */
   #detail-col-left .detail-footer-meta{
     flex-direction:row;
     flex-wrap:wrap;
@@ -5296,10 +5289,10 @@ function renderDetailGardu(g, riwayat){
   html += '<div><div class="lbl">Unit / ULP</div><div class="val">'+esc(unitupDisplay)+' / '+esc(ulpDisplay)+'</div></div>';
   html += '<div><div class="lbl">Penyulang</div><div class="val">'+esc(g['PENYULANG']||'—')+'</div></div>';
   html += '<div><div class="lbl">Tipe</div><div class="val">'+esc(g['TIPE']||'—')+'</div></div>';
+  html += '<div><div class="lbl">Kepemilikan</div><div class="val">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</div></div>';
   html += '</div>';
   html += '<div class="detail-footer-meta" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;border-top:1px solid var(--pln-border);padding-top:var(--sp-sm);">';
-  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;max-width:60%;">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
-  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;flex-shrink:0;">🏢 Kepemilikan: <b style="color:var(--pln-text2);">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</b></span>';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
   html += '</div>';
   html += '</div>';
 
