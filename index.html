@@ -6104,9 +6104,6 @@ function bukaFormInspeksi(noGardu) {
 
   // Isi info gardu (readonly display)
   document.getElementById('fi-topbar-title').textContent = noGardu;
-  // MED-1 FIX: Simpan noGardu di data attribute form sebagai sumber recovery terpercaya
-  var _fiFormEl = document.getElementById('form-inspeksi-view');
-  if (_fiFormEl) _fiFormEl.setAttribute('data-no-gardu', (g['NO_GARDU'] || noGardu).trim().toUpperCase());
   document.getElementById('fi-disp-nogardu').textContent = g['NO_GARDU'] || '—';
   document.getElementById('fi-disp-kva').textContent = (g['KAPASITAS_KVA']||g['DAYA_KVA']||'—') + ' kVA';
   document.getElementById('fi-disp-ulp').textContent = (g['ULP']||'—').replace(/^ULP\s*/i,'');
@@ -6120,7 +6117,12 @@ function bukaFormInspeksi(noGardu) {
 
   // Default: hari ini + jam sekarang
   var now = new Date();
-  document.getElementById('fi-tgl').value = now.toISOString().slice(0,10);
+  var _fiTodayStr = now.toISOString().slice(0,10);
+  var _fiMinDate  = new Date(); _fiMinDate.setFullYear(_fiMinDate.getFullYear() - 5);
+  var _fiTglEl    = document.getElementById('fi-tgl');
+  _fiTglEl.setAttribute('max', _fiTodayStr);
+  _fiTglEl.setAttribute('min', _fiMinDate.toISOString().slice(0,10));
+  _fiTglEl.value = _fiTodayStr;
   document.getElementById('fi-jam').value =
     String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
 
@@ -6208,9 +6210,6 @@ function _fiDoClose() {
   _fiFormDirty = false;
   fiStopAutosave();
   document.getElementById('form-inspeksi-view').style.display = 'none';
-  // MED-1 FIX: Hapus data-no-gardu saat form ditutup agar tidak bisa di-recover salah
-  var _fiFormClose = document.getElementById('form-inspeksi-view');
-  if (_fiFormClose) _fiFormClose.removeAttribute('data-no-gardu');
   _fiGardu = null;
   try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
   document.documentElement.scrollTop = 0;
@@ -6674,17 +6673,11 @@ function submitFormInspeksi() {
   if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
 
   // MED-1 FIX: Guard kuat untuk _fiGardu null — bisa terjadi saat QR redirect
-  // sebelum garduIndex selesai dimuat (race condition). Recover dari data-no-gardu
-  // yang di-set oleh bukaFormInspeksi saat form dibuka — lebih terpercaya daripada
-  // membaca textContent yang bisa berisi label dekoratif.
+  // sebelum garduIndex selesai dimuat (race condition). Coba recover dari DOM dulu.
   if (!_fiGardu) {
-    var _fiFormEl2 = document.getElementById('form-inspeksi-view');
-    var noGarduRecov = (_fiFormEl2 && _fiFormEl2.getAttribute('data-no-gardu')) || '';
-    // Fallback ke title bar jika data attribute belum ada (browser lama / cache lama)
-    if (!noGarduRecov) {
-      var titleEl = document.getElementById('fi-topbar-title');
-      noGarduRecov = titleEl ? titleEl.textContent.trim() : '';
-    }
+    // Coba recover dari title bar yang sudah di-set saat bukaFormInspeksi dipanggil
+    var titleEl = document.getElementById('fi-topbar-title');
+    var noGarduRecov = titleEl ? titleEl.textContent.trim() : '';
     if (noGarduRecov && garduIndex[noGarduRecov.toUpperCase()]) {
       _fiGardu = garduIndex[noGarduRecov.toUpperCase()];
       console.warn('[MED-1] _fiGardu di-recover dari garduIndex untuk:', noGarduRecov);
@@ -6894,14 +6887,7 @@ function bukaEditInspeksi(id, r) {
     'Gardu: ' + (r['NO_GARDU'] || r['NOGARDU'] || '—') + '  |  ID: ' + id;
 
   // Informasi dasar
-  // MED-2 FIX: Batasi tanggal maks = hari ini agar browser tidak mengizinkan input tanggal masa depan
-  var _eiTglEl = document.getElementById('ei-tgl');
-  var _eiToday = new Date().toISOString().slice(0, 10);
-  var _eiMinDate = new Date();
-  _eiMinDate.setFullYear(_eiMinDate.getFullYear() - 5);
-  _eiTglEl.setAttribute('max', _eiToday);
-  _eiTglEl.setAttribute('min', _eiMinDate.toISOString().slice(0, 10));
-  _eiTglEl.value     = r['TGLUKUR'] || '';
+  document.getElementById('ei-tgl').value     = r['TGLUKUR'] || '';
   document.getElementById('ei-jam').value     = r['JAM UKUR'] ? String(r['JAM UKUR']).slice(0,5) : '';
   document.getElementById('ei-petugas').value = r['PETUGAS'] || '';
   document.getElementById('ei-fasa').value    = r['FASA'] || '';
@@ -7388,7 +7374,13 @@ function bukaEditPemeliharaan(id, d) {
   document.getElementById('edit-pm-id').value = id;
   document.getElementById('edit-pm-subtitle').textContent =
     'Gardu: ' + (d.no_gardu || '—') + '  |  ID: ' + id;
-  document.getElementById('ep-tanggal').value = d.tanggal || '';
+  // Batasi tanggal: max=hari ini, min=5 tahun ke belakang
+  var _epTglEl     = document.getElementById('ep-tanggal');
+  var _epTodayStr  = new Date().toISOString().slice(0, 10);
+  var _epMinDate   = new Date(); _epMinDate.setFullYear(_epMinDate.getFullYear() - 5);
+  _epTglEl.setAttribute('max', _epTodayStr);
+  _epTglEl.setAttribute('min', _epMinDate.toISOString().slice(0, 10));
+  _epTglEl.value = d.tanggal || '';
   document.getElementById('ep-petugas').value = d.petugas || '';
   document.getElementById('ep-kategori').value = d.kategori || '';
   // Jenis pekerjaan
@@ -7417,6 +7409,20 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('ep-jenis-lainnya-wrap').style.display =
       this.value === 'Lainnya' ? 'block' : 'none';
   });
+
+  // Batasi semua filter tanggal & input tanggal statis: max = hari ini
+  // Filter boleh memilih tanggal historis, tapi tidak bisa masa depan
+  var _todayIso = new Date().toISOString().slice(0, 10);
+  [
+    'ukur-filter-tgl-awal',   // filter pengukuran dari
+    'ukur-filter-tgl-akhir',  // filter pengukuran sampai
+    'pm-filter-tgl-awal',     // filter pemeliharaan dari
+    'pm-filter-tgl-akhir',    // filter pemeliharaan sampai
+    'fi-tgl'                  // form inspeksi baru (juga diset dinamis di bukaFormInspeksi)
+  ].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.setAttribute('max', _todayIso);
+  });
 });
 
 function simpanEditPemeliharaan() {
@@ -7434,6 +7440,13 @@ function simpanEditPemeliharaan() {
   var okEl = document.getElementById('edit-pm-ok');
   errEl.style.display = 'none'; okEl.style.display = 'none';
   if (!tanggal) { errEl.textContent = '⚠️ Tanggal wajib diisi.'; errEl.style.display = 'block'; return; }
+  // Validasi tanggal tidak boleh masa depan atau lebih dari 5 tahun ke belakang
+  var _epTglD   = new Date(tanggal);
+  var _epToday  = new Date(); _epToday.setHours(23,59,59,999);
+  var _epMinD   = new Date(); _epMinD.setFullYear(_epMinD.getFullYear() - 5);
+  if (isNaN(_epTglD.getTime()))  { errEl.textContent = '⚠️ Format tanggal tidak valid.'; errEl.style.display = 'block'; return; }
+  if (_epTglD > _epToday)        { errEl.textContent = '⚠️ Tanggal tidak boleh melebihi hari ini.'; errEl.style.display = 'block'; return; }
+  if (_epTglD < _epMinD)         { errEl.textContent = '⚠️ Tanggal terlalu lama (lebih dari 5 tahun ke belakang).'; errEl.style.display = 'block'; return; }
   if (!petugas) { errEl.textContent = '⚠️ Nama petugas wajib diisi.'; errEl.style.display = 'block'; return; }
   if (!jenis) { errEl.textContent = '⚠️ Jenis pekerjaan wajib diisi.'; errEl.style.display = 'block'; return; }
   var btn = document.getElementById('btn-simpan-edit-pm');
@@ -7480,6 +7493,12 @@ function bukaModalExport() {
   var nowY = new Date().getFullYear();
   tahunSel.innerHTML = '';
   for(var y=nowY; y>=nowY-4; y--) tahunSel.innerHTML += '<option value="'+y+'">'+y+'</option>';
+  // Batasi export-tgl-dari dan export-tgl-sampai max=hari ini (data inspeksi tidak bisa masa depan)
+  var _expTodayStr = new Date().toISOString().slice(0, 10);
+  var _expDariEl   = document.getElementById('export-tgl-dari');
+  var _expSmpEl    = document.getElementById('export-tgl-sampai');
+  if (_expDariEl) _expDariEl.setAttribute('max', _expTodayStr);
+  if (_expSmpEl)  _expSmpEl.setAttribute('max',  _expTodayStr);
   document.getElementById('modal-export').style.display='flex';
   _showExportLoading(false);
   onPeriodeChange();
@@ -10264,9 +10283,15 @@ function pmResetForm() {
   var msg = document.getElementById('pm-submit-msg');
   if (msg) msg.style.display = 'none';
 
-  // Set tanggal default hari ini
+  // Set tanggal default hari ini + batasi max=hari ini, min=5 tahun lalu
   el = document.getElementById('pm-tanggal');
-  if (el) el.value = new Date().toISOString().split('T')[0];
+  if (el) {
+    var _pmTodayStr = new Date().toISOString().split('T')[0];
+    var _pmMinDate  = new Date(); _pmMinDate.setFullYear(_pmMinDate.getFullYear() - 5);
+    el.setAttribute('max', _pmTodayStr);
+    el.setAttribute('min', _pmMinDate.toISOString().split('T')[0]);
+    el.value = _pmTodayStr;
+  }
 
   // Auto-fill petugas dari sesi
   var s = getSession();
@@ -10299,6 +10324,13 @@ async function pmSubmit() {
   if (!noGardu)  { pmShowErr('No. Gardu wajib diisi.');        return; }
   if (!ulp)      { pmShowErr('ULP wajib diisi.');       return; }
   if (!tanggal)  { pmShowErr('Tanggal wajib diisi.');          return; }
+  // Validasi tanggal tidak boleh masa depan atau lebih dari 5 tahun ke belakang
+  var _pmTglD   = new Date(tanggal);
+  var _pmToday  = new Date(); _pmToday.setHours(23,59,59,999);
+  var _pmMinD   = new Date(); _pmMinD.setFullYear(_pmMinD.getFullYear() - 5);
+  if (isNaN(_pmTglD.getTime()))         { pmShowErr('Format tanggal tidak valid.'); return; }
+  if (_pmTglD > _pmToday)               { pmShowErr('Tanggal tidak boleh melebihi hari ini.'); return; }
+  if (_pmTglD < _pmMinD)               { pmShowErr('Tanggal terlalu lama (lebih dari 5 tahun ke belakang).'); return; }
   if (!petugas)  { pmShowErr('Nama Petugas wajib diisi.');     return; }
   if (!kategori) { pmShowErr('Unit (PLN/NON PLN) wajib dipilih.');       return; }
   if (!jenis)    { pmShowErr('Jenis Pekerjaan wajib dipilih.'); return; }
