@@ -463,73 +463,169 @@ async function _getGarduKritis(p, signal) {
 async function _getExportRekap(p, signal) {
   var ulpFilter = (p && p.ulp) ? _normalizeUlpEnum(p.ulp) : null;
 
-  // ── LANGKAH 1: Ambil semua data gardu (master) via v_gardu_lengkap ──────────
-  // Gunakan fungsi _getDaftarGardu yang sudah teruji bekerja
-  var garduResult = await _getDaftarGardu(ulpFilter ? { ulp: ulpFilter } : {}, signal);
-  if (!garduResult || garduResult.status !== 'ok' || !garduResult.data) {
-    return { status: 'error', message: garduResult.message || 'Gagal memuat data gardu.' };
-  }
-  var garduList = garduResult.data; // array of {NO_GARDU, ULP, PENYULANG, ALAMAT, KAPASITAS_KVA, STATUS_OPERASIONAL, ...}
+  // ── STRATEGI BARU ─────────────────────────────────────────
+  // fn_get_export_rekap tidak selalu mengembalikan field detail inspeksi
+  // (r_total, s_total, t_total, n_total, thd_r/s/t, jam_ukur, dll).
+  // Solusi: ambil data gardu dari v_gardu_lengkap + data inspeksi terakhir
+  // dari tabel inspeksi secara langsung, lalu merge di sisi klien.
+  // ─────────────────────────────────────────────────────────
 
-  // ── LANGKAH 2: Ambil SEMUA data inspeksi via fn_get_riwayat_inspeksi ────────
-  // Ini path yang sama persis dengan halaman Pengukuran yang sudah bekerja
-  var BATCH_SIZE = 1000;
-  var allInspeksi = [];
-  var offset = 0;
-  var hasMore = true;
-  var serverTotal = 0;
+  // 1. Coba dulu via RPC (agar kompatibel jika server sudah diperbarui)
+  var rpcOk = false;
+  var rpcRows = [];
+  try {
+    var rpcData = await rpcCall('fn_get_export_rekap', {
+      p_ulp:   ulpFilter,
+      p_bulan: p.bulan || null
+    }, signal);
+    if (rpcData && rpcData.status === 'ok' && Array.isArray(rpcData.data) && rpcData.data.length > 0) {
+      // Validasi: cek apakah RPC benar-benar mengembalikan field detail
+      // (minimal salah satu gardu punya r_total atau tgl_ukur)
+      var sample = rpcData.data[0];
+      var hasDetail = sample.r_total != null || sample.tgl_ukur != null ||
+                      sample.rTotal  != null || sample.tglUkur  != null ||
+                      sample.petugas != null || sample.prosen   != null;
+      if (hasDetail) {
+        rpcOk  = true;
+        rpcRows = rpcData.data;
+      }
+    }
+  } catch (e) {
+    // RPC gagal — lanjut ke fallback
+  }
+
+  if (rpcOk) {
+    // RPC berhasil & punya field detail — pakai hasilnya langsung
+    var rows = rpcRows.map(function(r) {
+      return _mapExportRow(r);
+    });
+    return { status: 'ok', data: rows };
+  }
+
+  // ── FALLBACK: Ambil gardu + inspeksi terakhir secara manual ──
+
+  // 2a. Ambil semua gardu dari v_gardu_lengkap (pagination)
+  var PAGE_SIZE = 500;
+  var garduRows = [];
+  var offset    = 0;
+  var hasMore   = true;
+  var baseGarduUrl = '/rest/v1/v_gardu_lengkap?select=*&order=no_gardu.asc';
+  if (ulpFilter) baseGarduUrl += '&ulp=eq.' + encodeURIComponent(ulpFilter);
 
   while (hasMore) {
-    var batchParams = {
+    var res = await sbFetch(baseGarduUrl, {
+      signal: signal,
+      headers: {
+        'Range-Unit': 'items',
+        'Range':      offset + '-' + (offset + PAGE_SIZE - 1),
+        'Prefer':     'count=none'
+      }
+    });
+    if (!res.ok) {
+      var errTxt = await res.text().catch(function() { return res.status; });
+      return { status: 'error', message: 'Gagal memuat data gardu (' + res.status + '): ' + errTxt };
+    }
+    var batch = await res.json();
+    if (!batch || !batch.length) break;
+    garduRows = garduRows.concat(batch);
+    offset   += PAGE_SIZE;
+    hasMore   = batch.length === PAGE_SIZE;
+  }
+
+  if (!garduRows.length) {
+    return { status: 'error', message: 'Tidak ada data gardu ditemukan.' };
+  }
+
+  // 2b. Ambil inspeksi terakhir per gardu dari tabel inspeksi
+  // Pakai fn_get_riwayat_inspeksi tanpa filter no_gardu → semua gardu, limit besar
+  var inspMap = {}; // no_gardu → row inspeksi terakhir
+  var BATCH  = 2000;
+  var iOff   = 0;
+  var iMore  = true;
+
+  while (iMore) {
+    var iParams = {
       p_no_gardu:  null,
       p_ulp:       ulpFilter,
       p_tgl_awal:  null,
       p_tgl_akhir: null,
-      p_limit:     BATCH_SIZE,
-      p_offset:    offset
+      p_limit:     BATCH,
+      p_offset:    iOff
     };
-    var batchData = await rpcCall('fn_get_riwayat_inspeksi', batchParams, signal);
-    if (!batchData || batchData.status !== 'ok') break; // non-fatal — lanjut tanpa inspeksi
+    var iData = await rpcCall('fn_get_riwayat_inspeksi', iParams, signal);
+    if (!iData || iData.status !== 'ok') break; // non-fatal — lanjut tanpa detail
 
-    var batchRows = batchData.data || [];
-    if (offset === 0) serverTotal = batchData.total || 0;
-    allInspeksi = allInspeksi.concat(batchRows);
-    offset += BATCH_SIZE;
-    hasMore = batchRows.length === BATCH_SIZE && allInspeksi.length < (serverTotal || Infinity);
+    var iBatch = iData.data || [];
+    iBatch.forEach(function(r) {
+      var key = (r.no_gardu || r.noGardu || '').trim().toUpperCase();
+      if (!key) return;
+      // Simpan hanya yang terbaru (sudah diurutkan desc dari server)
+      if (!inspMap[key]) inspMap[key] = r;
+    });
+
+    iOff  += BATCH;
+    iMore  = iBatch.length === BATCH;
   }
 
-  // ── LANGKAH 3: Buat index inspeksi — simpan HANYA yang terbaru per gardu ────
-  // fn_get_riwayat_inspeksi sudah mengembalikan data urut tgl_ukur DESC
-  // sehingga row pertama yang ditemukan per no_gardu = inspeksi terbaru
-  var inspeksiMap = {}; // NO_GARDU (uppercase) → row inspeksi terbaru (mapped via _mapInspeksiRow)
-  allInspeksi.forEach(function(r) {
-    var key = (r.no_gardu || '').trim().toUpperCase();
-    if (key && !inspeksiMap[key]) {
-      // Gunakan _mapInspeksiRow agar field name konsisten (sama dengan halaman Pengukuran)
-      inspeksiMap[key] = _mapInspeksiRow(r);
-    }
-  });
+  // 2c. Fallback kedua: jika fn_get_riwayat_inspeksi tidak support p_offset,
+  //     coba query REST langsung pada tabel inspeksi
+  if (Object.keys(inspMap).length === 0) {
+    try {
+      var inspUrl = '/rest/v1/inspeksi?select=no_gardu,tgl_ukur,jam_ukur,petugas,prosen,' +
+                   'r_total,s_total,t_total,n_total,thd_r,thd_s,thd_t' +
+                   '&order=tgl_ukur.desc,jam_ukur.desc';
+      if (ulpFilter) inspUrl += '&ulp=eq.' + encodeURIComponent(ulpFilter);
 
-  // ── LANGKAH 4: Merge gardu + inspeksi terbaru ───────────────────────────────
+      var iOff2  = 0;
+      var iMore2 = true;
+      while (iMore2) {
+        var iRes = await sbFetch(inspUrl, {
+          signal: signal,
+          headers: {
+            'Range-Unit': 'items',
+            'Range':      iOff2 + '-' + (iOff2 + 999),
+            'Prefer':     'count=none'
+          }
+        });
+        if (!iRes.ok) break;
+        var iBatch2 = await iRes.json();
+        if (!iBatch2 || !iBatch2.length) break;
+        iBatch2.forEach(function(r) {
+          var key = (r.no_gardu || '').trim().toUpperCase();
+          if (key && !inspMap[key]) inspMap[key] = r;
+        });
+        iOff2  += 1000;
+        iMore2  = iBatch2.length === 1000;
+      }
+    } catch (e2) { /* non-fatal */ }
+  }
+
+  // 2d. Merge: gabungkan data gardu + inspeksi terakhir
+  // Hitung hari sejak inspeksi terakhir
   var today = new Date(); today.setHours(0, 0, 0, 0);
 
-  var rows = garduList.map(function(g) {
-    var key = (g['NO_GARDU'] || '').trim().toUpperCase();
-    var ins = inspeksiMap[key] || {};
+  // Deduplikasi gardu
+  var seenGardu = {};
+  var merged = [];
+  garduRows.forEach(function(g) {
+    var key = (g.no_gardu || '').trim().toUpperCase();
+    if (!key || seenGardu[key]) return;
+    seenGardu[key] = true;
 
-    // Hitung hari sejak inspeksi terakhir
-    var tglUkur = ins['TGLUKUR'] || ins.tgl_ukur || '';
+    var ins = inspMap[key] || {};
+
+    // Hari sejak inspeksi
+    var tglUkur = ins.tgl_ukur || ins.tglUkur || '';
     var hariSejak = '';
     if (tglUkur) {
       var d = new Date(tglUkur); d.setHours(0, 0, 0, 0);
-      var diff = Math.round((today - d) / 86400000);
-      hariSejak = diff >= 0 ? String(diff) : '';
+      hariSejak = String(Math.max(0, Math.round((today - d) / 86400000)));
     }
 
     // Keterangan otomatis
-    var prosen   = ins['PROSEN'] != null && ins['PROSEN'] !== '' ? parseFloat(ins['PROSEN']) : NaN;
-    var hariNum  = hariSejak !== '' ? parseInt(hariSejak) : NaN;
-    var keterangan;
+    var prosen    = ins.prosen != null ? parseFloat(ins.prosen) : NaN;
+    var hariNum   = hariSejak !== '' ? parseInt(hariSejak) : NaN;
+    var keterangan = '';
     if (!tglUkur) {
       keterangan = 'BELUM INSPEKSI';
     } else if (!isNaN(prosen) && prosen > 80) {
@@ -540,32 +636,59 @@ async function _getExportRekap(p, signal) {
       keterangan = 'OK';
     }
 
-    return {
+    merged.push({
       noGardu:     key,
-      ulp:         g['ULP']                || '',
-      unitup:      g['UNITUP']             || '',
-      penyulang:   g['PENYULANG']          || '',
-      alamat:      g['ALAMAT']             || '',
-      daya:        g['KAPASITAS_KVA']      || g['DAYA_KVA'] || '',
-      status:      g['STATUS_OPERASIONAL'] || '',
-      kepemilikan: g['STATUS_KEPEMILIKAN'] || '',
+      ulp:         g.ulp                                          || '',
+      unitup:      g.unitup                                        || '',
+      penyulang:   g.penyulang                                     || '',
+      alamat:      g.alamat                                        || '',
+      daya:        g.kapasitas_kva != null ? String(g.kapasitas_kva) : '',
+      status:      g.status_operasional                            || '',
+      kepemilikan: g.status_kepemilikan                            || '',
       tglUkur:     tglUkur,
-      jamUkur:     ins['JAM UKUR']         || '',
-      petugas:     ins['PETUGAS']          || '',
-      prosen:      ins['PROSEN']           || '',
-      rTotal:      ins['R TOTAL']          || '',
-      sTotal:      ins['S TOTAL']          || '',
-      tTotal:      ins['T TOTAL']          || '',
-      nTotal:      ins['N TOTAL']          || '',
-      thdR:        ins['THD-R']            || '',
-      thdS:        ins['THD-S']            || '',
-      thdT:        ins['THD-T']            || '',
+      jamUkur:     ins.jam_ukur ? String(ins.jam_ukur).slice(0, 5) : '',
+      petugas:     ins.petugas                                     || '',
+      prosen:      ins.prosen    != null ? String(ins.prosen)       : '',
+      rTotal:      ins.r_total   != null ? String(ins.r_total)      : '',
+      sTotal:      ins.s_total   != null ? String(ins.s_total)      : '',
+      tTotal:      ins.t_total   != null ? String(ins.t_total)      : '',
+      nTotal:      ins.n_total   != null ? String(ins.n_total)      : '',
+      thdR:        ins.thd_r     != null ? String(ins.thd_r)        : '',
+      thdS:        ins.thd_s     != null ? String(ins.thd_s)        : '',
+      thdT:        ins.thd_t     != null ? String(ins.thd_t)        : '',
       hariSejak:   hariSejak,
       keterangan:  keterangan
-    };
+    });
   });
 
-  return { status: 'ok', data: rows };
+  return { status: 'ok', data: merged };
+}
+
+// ── Helper: normalisasi satu baris export dari RPC ────────────
+function _mapExportRow(r) {
+  return {
+    noGardu:     r.noGardu     || r.no_gardu              || '',
+    ulp:         r.ulp                                     || '',
+    unitup:      r.unitup                                  || '',
+    penyulang:   r.penyulang                               || '',
+    alamat:      r.alamat                                  || '',
+    daya:        r.daya        != null ? String(r.daya)        : (r.kapasitas_kva != null ? String(r.kapasitas_kva) : ''),
+    status:      r.status      || r.status_operasional     || '',
+    kepemilikan: r.kepemilikan || r.status_kepemilikan     || '',
+    tglUkur:     r.tglUkur     || r.tgl_ukur               || '',
+    jamUkur:     (r.jamUkur || r.jam_ukur) ? String(r.jamUkur || r.jam_ukur).slice(0, 5) : '',
+    petugas:     r.petugas                                 || '',
+    prosen:      r.prosen      != null ? String(r.prosen)      : '',
+    rTotal:      r.rTotal      != null ? String(r.rTotal)      : (r.r_total   != null ? String(r.r_total)   : ''),
+    sTotal:      r.sTotal      != null ? String(r.sTotal)      : (r.s_total   != null ? String(r.s_total)   : ''),
+    tTotal:      r.tTotal      != null ? String(r.tTotal)      : (r.t_total   != null ? String(r.t_total)   : ''),
+    nTotal:      r.nTotal      != null ? String(r.nTotal)      : (r.n_total   != null ? String(r.n_total)   : ''),
+    thdR:        r.thdR        != null ? String(r.thdR)        : (r.thd_r     != null ? String(r.thd_r)     : ''),
+    thdS:        r.thdS        != null ? String(r.thdS)        : (r.thd_s     != null ? String(r.thd_s)     : ''),
+    thdT:        r.thdT        != null ? String(r.thdT)        : (r.thd_t     != null ? String(r.thd_t)     : ''),
+    hariSejak:   r.hariSejak   != null ? String(r.hariSejak)   : (r.hari_sejak != null ? String(r.hari_sejak) : ''),
+    keterangan:  r.keterangan                              || ''
+  };
 }
 
 // ── VERIFY PIN via RPC ───────────────────────────────────────

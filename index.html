@@ -11,7 +11,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Manajemen Gardu – PLN UP3 Jayapura</title>
-<!-- Cache-bust: v20260609-sw12 -->
+<!-- SW: minimal — no-cache, background sync only -->
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-baru-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -7412,23 +7412,18 @@ function getPeriodeLabel(periode) {
 }
 
 function doExport() {
-  var fmt       = document.getElementById('export-format-selected').value || 'A';
-  var periode   = getPeriodeFilter();
+  var fmt     = document.getElementById('export-format-selected').value || 'A';
+  var periode = getPeriodeFilter();
   var ulpFilter = document.getElementById('export-ulp-filter').value || '';
   _showExportLoading(true);
-  _setExportProgress(5, 'Menghubungi server...', 'Mengambil data gardu & inspeksi...');
-
+  _setExportProgress(5, 'Menghubungi server...', 'Mengambil data rekap gardu...');
+  // Kirim parameter ULP ke server untuk non-superadmin (hemat bandwidth & cegah kebocoran data)
   var s = getSession();
   var exportParams = { action: 'getExportRekap', bulan: '' };
-  // Non-superadmin: paksa ULP sesuai akun
   if (s && s.role !== 'superadmin' && s.ulp) {
     var sheetVal = ulpAkunToSheet(s.ulp);
     if (sheetVal) exportParams.ulp = sheetVal;
-  } else if (ulpFilter) {
-    // Superadmin pilih ULP tertentu — kirim ke server untuk efisiensi
-    exportParams.ulp = ulpFilter;
   }
-
   apiGet(exportParams, function(res) {
     _showExportLoading(false);
     if (res.status !== 'ok' || !res.data) { alert('❌ ' + userFriendlyError(res.message, 'Gagal memuat data.')); return; }
@@ -7467,7 +7462,7 @@ function doExport() {
       });
     }
 
-    // Filter ULP (client-side crosscheck — jika server sudah filter ini no-op)
+    // Filter ULP
     var rows = ulpFilter
       ? rowsPeriode.filter(function(r){ return (r.ulp||'').trim() === ulpFilter; })
       : rowsPeriode;
@@ -7525,7 +7520,7 @@ function applyRowStyle(row, style) {
 // ExcelJS dimuat async — bisa belum tersedia saat fungsi export dipanggil pertama kali.
 // Fungsi ini polling setiap 200ms, resolve saat ExcelJS ada, reject setelah timeout.
 function _waitExcelJS(timeoutMs) {
-  timeoutMs = timeoutMs || 30000; // 30 detik — toleransi CDN lambat
+  timeoutMs = timeoutMs || 10000;
   return new Promise(function(resolve, reject) {
     if (typeof ExcelJS !== 'undefined') { resolve(); return; }
     var elapsed = 0;
@@ -8185,10 +8180,10 @@ function generatePrintHTML(rows, periodeLabel, ulpFilter) {
   parts.push('<meta name="viewport" content="width=device-width,initial-scale=1">');
   parts.push('<title>Laporan Gardu - PT. PLN UP3 Jayapura</title>');
   parts.push('<style>');
-  parts.push('@media print{@page{size:A4 landscape;margin:8mm;}');
+  parts.push('@media print{@page{size:A4 landscape;margin:12mm;}');
   parts.push('body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}');
   parts.push('*{box-sizing:border-box;}');
-  parts.push('body{font-family:Arial,Helvetica,sans-serif;font-size:9px;color:#1a1a1a;margin:0;padding:12px;background:#fff;}');
+  parts.push('body{font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#1a1a1a;margin:0;padding:16px;background:#fff;}');
   parts.push('.kop{display:flex;align-items:center;gap:14px;padding-bottom:10px;');
   parts.push('  border-bottom:3px double #003B7B;margin-bottom:14px;}');
   parts.push('.kop-logo{width:52px;height:52px;background:#F5A300;border-radius:8px;');
@@ -11845,35 +11840,27 @@ function konfirmasiAksi(pesan, judul, labelAksi, callback) {
 <script src="supabase-api.js"></script>
 
 <!-- ============================================================
-     KRITIS-5 FIX: Registrasi Service Worker PWA
-     Harus di-register setelah DOM ready agar tidak blokir render.
-     sw.js di-cache-bust dengan versi agar update SW terdeteksi.
-     ============================================================ -->
-<!-- ============================================================
-     Registrasi Service Worker — minimal (hanya untuk Background Sync)
-     SW tidak cache aset apapun, sehingga tidak ada masalah cache lama.
-     Browser selalu ambil semua file langsung dari server seperti biasa.
-     SW hanya bertugas kirim ulang data yang antri saat jaringan kembali.
+     Registrasi Service Worker MINIMAL — hanya Background Sync
+     Tidak ada caching aset. Browser ambil semua file dari server
+     seperti biasa → tidak ada masalah cache lama saat deploy baru.
+     SW hanya bertugas kirim ulang data antrian saat jaringan kembali.
      ============================================================ -->
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./sw.js?v=20260609')
+    navigator.serviceWorker.register('./sw.js')
       .then(function(reg) {
         console.log('[SW] Terdaftar, scope:', reg.scope);
-        // Cek update setiap kali halaman dibuka
-        reg.update().catch(function() {});
       })
       .catch(function(err) {
         console.warn('[SW] Gagal register:', err);
       });
 
-    // Dengarkan pesan dari SW (mis. SYNC_SUCCESS)
+    // Dengarkan pesan dari SW (SYNC_SUCCESS dari background sync)
     navigator.serviceWorker.addEventListener('message', function(event) {
       if (!event.data) return;
       if (event.data.type === 'SYNC_SUCCESS') {
         console.log('[SW Sync]', event.data.message);
-        // Tampilkan notifikasi ke user jika ada fungsi toast
         if (typeof showToast === 'function') {
           showToast(event.data.message, 'success');
         }
