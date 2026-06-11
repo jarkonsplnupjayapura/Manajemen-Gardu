@@ -1201,37 +1201,97 @@ input[type=number]{-moz-appearance:textfield;}
   white-space:nowrap;margin-left:auto;font-weight:500;
 }
 
-/* ══ DESKTOP: DETAIL GARDU 2-KOLOM ══════════════════════════ */
+/* ══ DETAIL GARDU — 2 KOLOM RESPONSIF ════════════════════════
+   Desktop (≥768px) : kiri sticky, kanan scroll
+   Mobile  (<768px) : single column, normal flow
+   ══════════════════════════════════════════════════════════ */
+
+/* ── BASE: detail-footer-meta (merek + kepemilikan) selalu tampil ── */
+.detail-footer-meta{
+  display:flex;
+  flex-direction:column;   /* default: vertikal agar teks panjang tidak terpotong */
+  gap:4px;
+  align-items:flex-start;
+  flex-wrap:wrap;
+  border-top:1px solid var(--pln-border);
+  padding-top:var(--sp-sm);
+}
+/* Setiap baris merek/kepemilikan: tidak disembunyikan, tidak di-clip */
+.detail-footer-meta > span{
+  font-size:var(--fs-xs);
+  color:var(--pln-text3);
+  white-space:normal;        /* izinkan wrap — bukan nowrap agar kepemilikan tidak hilang */
+  word-break:break-word;
+  max-width:100%;
+}
+
+/* ── MOBILE: single column, grid dimatikan ── */
+#detail-desktop-grid{
+  display:flex;
+  flex-direction:column;
+  gap:0;
+}
+#detail-col-left,
+#detail-col-right{
+  display:block;
+  width:100%;
+  min-width:0;
+  overflow:hidden;
+}
+/* Mobile: card & grid normal */
+#detail-col-left .card,
+#detail-col-right .card,
+#detail-col-right .riwayat-card{
+  width:100%;
+  box-sizing:border-box;
+  max-width:100%;
+}
+
+/* ── DESKTOP (≥768px): 2-kolom sticky-left + scroll-right ── */
 @media(min-width:768px){
   #detail-view{max-width:100%!important;}
   #detail-view .page-body-nonav{
     padding:var(--sp-md) var(--sp-md) var(--sp-lg);
+    max-width:100%;
+    box-sizing:border-box;
   }
-  /* Layout grid: 2 kolom — kiri min 320px, fleksibel hingga 420px */
+
+  /* Grid 2 kolom: kiri 380px tetap, kanan sisa lebar */
   #detail-desktop-grid{
     display:grid;
-    grid-template-columns:minmax(320px,420px) minmax(0,1fr);
+    grid-template-columns:minmax(300px,380px) minmax(0,1fr);
     gap:var(--sp-md);
     align-items:start;
+    width:100%;
+    box-sizing:border-box;
   }
+
+  /* Kolom kiri: sticky dari bawah topbar, bisa scroll sendiri jika konten panjang */
   #detail-col-left{
-    display:flex;flex-direction:column;gap:var(--sp-sm);
-    position:sticky;top:calc(var(--topbar-h) + 12px);
-    max-height:calc(100vh - var(--topbar-h) - 32px);
+    position:sticky;
+    top:calc(var(--topbar-h) + 8px);
+    max-height:calc(100vh - var(--topbar-h) - 24px);
     overflow-y:auto;
     overflow-x:hidden;
+    display:flex;
+    flex-direction:column;
+    gap:var(--sp-sm);
     padding-right:4px;
     min-width:0;
-    word-break:break-word;
+    box-sizing:border-box;
   }
   #detail-col-left::-webkit-scrollbar{width:4px;}
   #detail-col-left::-webkit-scrollbar-thumb{background:var(--pln-border2);border-radius:2px;}
+
+  /* Card di kolom kiri: penuh lebar, tidak overflow */
   #detail-col-left .card{
     width:100%;
     box-sizing:border-box;
     overflow:hidden;
+    margin-bottom:0;    /* gap sudah dari flex-direction:column + gap:sp-sm */
   }
-  /* Grid 2 kolom di dalam detail — pastikan tidak overflow */
+
+  /* Grid 2-sel di dalam kolom kiri */
   #detail-col-left .grid2{
     grid-template-columns:1fr 1fr;
     word-break:break-word;
@@ -1243,31 +1303,44 @@ input[type=number]{-moz-appearance:textfield;}
     overflow-wrap:anywhere;
     white-space:normal;
   }
-  /* Baris merek & kepemilikan — tampil vertikal di detail kiri */
+
+  /* Kepemilikan di desktop: vertikal agar teks panjang muat */
   #detail-col-left .detail-footer-meta{
     flex-direction:column;
     gap:4px;
     align-items:flex-start;
   }
+
+  /* Kolom kanan: scroll mengikuti halaman (tidak fixed) */
   #detail-col-right{
-    display:flex;flex-direction:column;gap:var(--sp-sm);
+    display:flex;
+    flex-direction:column;
+    gap:var(--sp-sm);
     min-width:0;
     overflow:hidden;
+    box-sizing:border-box;
   }
+  #detail-col-right .riwayat-card,
+  #detail-col-right .card{
+    width:100%;
+    box-sizing:border-box;
+    overflow:hidden;
+  }
+
   /* Map lebih tinggi di desktop */
-  .gps-map-wrap iframe{
-    height:220px!important;
+  .gps-map-wrap div[style*="height"]{
+    height:200px!important;
   }
-  /* Tren chart lebih lebar */
+  /* Tren chart lebar penuh */
   .tren-chart-svg-wrap svg{
     max-width:100%!important;
   }
 }
 
-/* Layar sangat lebar (≥1400px): beri lebih ruang ke kolom kiri */
+/* ── LAYAR SANGAT LEBAR (≥1400px): lebih ruang untuk kiri ── */
 @media(min-width:1400px){
   #detail-desktop-grid{
-    grid-template-columns:460px minmax(0,1fr);
+    grid-template-columns:420px minmax(0,1fr);
   }
 }
 
@@ -2258,6 +2331,24 @@ input[type=number]{-moz-appearance:textfield;}
     right: 0 !important;
     width: 100% !important;
     top: 0 !important;
+  }
+
+  /* ── 17b. Detail 2-col grid: single column di mobile ── */
+  #detail-desktop-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+  }
+  #detail-col-left {
+    position: static !important;   /* batalkan sticky di mobile */
+    max-height: none !important;
+    overflow-y: visible !important;
+    padding-right: 0 !important;
+    width: 100% !important;
+  }
+  #detail-col-right {
+    width: 100% !important;
+    overflow: hidden !important;
   }
 
   /* ── 18. Grid 2 kolom: tetap 2 kolom tapi jangan overflow ── */
@@ -5286,9 +5377,9 @@ function renderDetailGardu(g, riwayat){
   html += '<div><div class="lbl">Penyulang</div><div class="val">'+esc(g['PENYULANG']||'—')+'</div></div>';
   html += '<div><div class="lbl">Tipe</div><div class="val">'+esc(g['TIPE']||'—')+'</div></div>';
   html += '</div>';
-  html += '<div class="detail-footer-meta" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;border-top:1px solid var(--pln-border);padding-top:var(--sp-sm);">';
-  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
-  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;">🏢 Kepemilikan: <b style="color:var(--pln-text2);">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</b></span>';
+  html += '<div class="detail-footer-meta">';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);">🏢 Kepemilikan: <b style="color:var(--pln-text2);">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</b></span>';
   html += '</div>';
   html += '</div>';
 
@@ -5657,27 +5748,19 @@ function renderDetailGardu(g, riwayat){
 
   html += '<div style="height:var(--sp-lg);"></div>';
 
-  // ── Desktop 2-kolom wrapper ──────────────────────────────────
-  // Di desktop (≥768px): kiri = info gardu + map + keterangan, kanan = riwayat inspeksi + tren
-  // Di mobile: tetap single column (urutan normal)
-  var isMobile = window.innerWidth < 768;
+  // ── 2-kolom wrapper (selalu aktif — CSS yang mengatur desktop/mobile) ──
+  // Desktop (≥768px): kiri sticky, kanan scroll via CSS grid
+  // Mobile (<768px): CSS override ke single column otomatis
+  var splitMarker = '<div class="sec">5 Inspeksi Terakhir</div>';
+  var splitIdx = html.indexOf(splitMarker);
   var finalHtml;
-  if (!isMobile) {
-    // Pisahkan konten menjadi 2 kolom
-    // Parsing sederhana: semua konten sebelum section "5 Inspeksi Terakhir" = kiri
-    //                    section inspeksi + tren = kanan
-    var splitMarker = '<div class="sec">5 Inspeksi Terakhir</div>';
-    var splitIdx = html.indexOf(splitMarker);
-    if (splitIdx >= 0) {
-      var leftContent = html.substring(0, splitIdx);
-      var rightContent = html.substring(splitIdx);
-      finalHtml = '<div id="detail-desktop-grid">' +
-        '<div id="detail-col-left">' + leftContent + '</div>' +
-        '<div id="detail-col-right">' + rightContent + '</div>' +
-        '</div>';
-    } else {
-      finalHtml = html;
-    }
+  if (splitIdx >= 0) {
+    var leftContent = html.substring(0, splitIdx);
+    var rightContent = html.substring(splitIdx);
+    finalHtml = '<div id="detail-desktop-grid">' +
+      '<div id="detail-col-left">' + leftContent + '</div>' +
+      '<div id="detail-col-right">' + rightContent + '</div>' +
+      '</div>';
   } else {
     finalHtml = html;
   }
