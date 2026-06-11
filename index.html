@@ -1141,10 +1141,15 @@ input[type=number]{-moz-appearance:textfield;}
     left:220px!important;
     right:0!important;
     top:var(--topbar-h)!important;
+    bottom:0!important;
     overflow-x:hidden!important;
+    overflow-y:hidden!important;  /* PENTING: kolom kanan yang scroll, bukan #detail-view */
     z-index:155!important;
+    display:flex!important;
+    flex-direction:column!important;
+    height:calc(100vh - var(--topbar-h))!important;
   }
-  /* Sub-bar "DETAIL GARDU" — muncul sticky di atas konten detail, di bawah topbar utama */
+  /* Sub-bar "DETAIL GARDU" — sticky di atas, tidak scroll */
   #detail-subbar{
     display:flex !important;
     align-items:center;
@@ -1152,8 +1157,7 @@ input[type=number]{-moz-appearance:textfield;}
     background:var(--pln-biru);
     padding:0 var(--sp-md);
     height:clamp(44px,10vw,52px);
-    position:sticky;
-    top:0;
+    flex-shrink:0;   /* jangan menyusut — tetap di atas */
     z-index:10;
     box-shadow:0 2px 8px rgba(10,45,107,.18);
     border-bottom:1px solid rgba(255,255,255,.10);
@@ -1201,97 +1205,126 @@ input[type=number]{-moz-appearance:textfield;}
   white-space:nowrap;margin-left:auto;font-weight:500;
 }
 
-/* ══ DETAIL GARDU — 2 KOLOM RESPONSIF ════════════════════════
-   Desktop (≥768px) : kiri sticky, kanan scroll
-   Mobile  (<768px) : single column, normal flow
-   ══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   DETAIL GARDU — LAYOUT 2 KOLOM RESPONSIF
+   ══════════════════════════════════════════════════════════════
+   Prinsip:
+   • Mobile  (<768px) : single column, scroll normal di #detail-view
+   • Desktop (≥768px) : 2 kolom flex di dalam #detail-view
+       - #detail-view  → overflow-y: hidden (tidak scroll sendiri)
+       - page-body-nonav → flex row, height 100%
+       - #detail-desktop-grid → flex row, flex:1, overflow hidden
+       - #detail-col-left  → overflow-y: auto, flex-shrink:0 (STICKY sendiri)
+       - #detail-col-right → overflow-y: auto, flex:1 (yang scroll)
+   Dengan cara ini sticky BEKERJA karena scroll container = kolom masing-masing,
+   bukan #detail-view (overflow pada parent membatalkan sticky).
+   ══════════════════════════════════════════════════════════════ */
 
-/* ── BASE: detail-footer-meta (merek + kepemilikan) selalu tampil ── */
+/* ── Merek + Kepemilikan: selalu satu baris kiri-kanan ── */
 .detail-footer-meta{
   display:flex;
-  flex-direction:column;   /* default: vertikal agar teks panjang tidak terpotong */
-  gap:4px;
-  align-items:flex-start;
-  flex-wrap:wrap;
+  flex-direction:row;         /* horizontal: merek kiri, kepemilikan kanan */
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;             /* wrap kalau layar terlalu sempit */
+  gap:6px;
   border-top:1px solid var(--pln-border);
   padding-top:var(--sp-sm);
 }
-/* Setiap baris merek/kepemilikan: tidak disembunyikan, tidak di-clip */
 .detail-footer-meta > span{
   font-size:var(--fs-xs);
   color:var(--pln-text3);
-  white-space:normal;        /* izinkan wrap — bukan nowrap agar kepemilikan tidak hilang */
-  word-break:break-word;
-  max-width:100%;
+  white-space:nowrap;
+  flex-shrink:1;
+  min-width:0;
 }
 
-/* ── MOBILE: single column, grid dimatikan ── */
+/* ══ MOBILE BASE — single column, scroll di #detail-view ══════ */
 #detail-desktop-grid{
   display:flex;
   flex-direction:column;
   gap:0;
+  width:100%;
 }
 #detail-col-left,
 #detail-col-right{
-  display:block;
   width:100%;
   min-width:0;
-  overflow:hidden;
+  box-sizing:border-box;
 }
-/* Mobile: card & grid normal */
 #detail-col-left .card,
 #detail-col-right .card,
 #detail-col-right .riwayat-card{
   width:100%;
   box-sizing:border-box;
   max-width:100%;
+  overflow:hidden;
 }
 
-/* ── DESKTOP (≥768px): 2-kolom sticky-left + scroll-right ── */
+/* ══ DESKTOP (≥768px) ══════════════════════════════════════════ */
 @media(min-width:768px){
-  #detail-view{max-width:100%!important;}
+
+  /* 1. #detail-view: TIDAK scroll sendiri di desktop —
+        biarkan tiap kolom yang punya scroll masing-masing.
+        overflow-y:hidden agar position:sticky pada children bekerja. */
+  #detail-view{
+    overflow-y:hidden !important;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* 2. page-body-nonav: flex row, ambil sisa tinggi setelah sub-bar */
   #detail-view .page-body-nonav{
-    padding:var(--sp-md) var(--sp-md) var(--sp-lg);
-    max-width:100%;
+    display:flex;
+    flex-direction:row;
+    align-items:stretch;
+    flex:1;
+    min-height:0;
+    padding:0;                /* hilangkan padding — tiap kolom atur padding sendiri */
+    overflow:hidden;
     box-sizing:border-box;
   }
 
-  /* Grid 2 kolom: kiri 380px tetap, kanan sisa lebar */
+  /* 3. Grid wrapper: flex row, ambil seluruh ruang */
   #detail-desktop-grid{
-    display:grid;
-    grid-template-columns:minmax(300px,380px) minmax(0,1fr);
-    gap:var(--sp-md);
-    align-items:start;
+    display:flex;
+    flex-direction:row;
+    align-items:stretch;
+    gap:0;
     width:100%;
-    box-sizing:border-box;
+    min-height:0;
+    flex:1;
+    overflow:hidden;
   }
 
-  /* Kolom kiri: sticky dari bawah topbar, bisa scroll sendiri jika konten panjang */
+  /* 4. Kolom KIRI — lebar tetap, scroll sendiri (sticky secara efektif) */
   #detail-col-left{
-    position:sticky;
-    top:calc(var(--topbar-h) + 8px);
-    max-height:calc(100vh - var(--topbar-h) - 24px);
-    overflow-y:auto;
-    overflow-x:hidden;
+    flex:0 0 360px;           /* lebar tetap 360px, tidak mengecil tidak membesar */
+    width:360px;
+    min-width:0;
     display:flex;
     flex-direction:column;
     gap:var(--sp-sm);
-    padding-right:4px;
-    min-width:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    height:100%;
+    padding:var(--sp-md) var(--sp-sm) var(--sp-md) var(--sp-md);
     box-sizing:border-box;
+    border-right:1px solid var(--pln-border);
+    background:var(--pln-bg);
   }
   #detail-col-left::-webkit-scrollbar{width:4px;}
   #detail-col-left::-webkit-scrollbar-thumb{background:var(--pln-border2);border-radius:2px;}
+  #detail-col-left::-webkit-scrollbar-track{background:transparent;}
 
-  /* Card di kolom kiri: penuh lebar, tidak overflow */
+  /* Card di kolom kiri: tidak overflow, lebar penuh */
   #detail-col-left .card{
     width:100%;
     box-sizing:border-box;
     overflow:hidden;
-    margin-bottom:0;    /* gap sudah dari flex-direction:column + gap:sp-sm */
+    margin-bottom:0;
+    flex-shrink:0;
   }
-
-  /* Grid 2-sel di dalam kolom kiri */
   #detail-col-left .grid2{
     grid-template-columns:1fr 1fr;
     word-break:break-word;
@@ -1303,32 +1336,42 @@ input[type=number]{-moz-appearance:textfield;}
     overflow-wrap:anywhere;
     white-space:normal;
   }
-
-  /* Kepemilikan di desktop: vertikal agar teks panjang muat */
+  /* Merek + kepemilikan di kolom kiri: bisa wrap jika kolom sempit */
   #detail-col-left .detail-footer-meta{
-    flex-direction:column;
+    flex-wrap:wrap;
     gap:4px;
-    align-items:flex-start;
+  }
+  #detail-col-left .detail-footer-meta > span{
+    white-space:normal;
+    flex-shrink:1;
   }
 
-  /* Kolom kanan: scroll mengikuti halaman (tidak fixed) */
+  /* 5. Kolom KANAN — flex:1, scroll sendiri */
   #detail-col-right{
+    flex:1;
+    min-width:0;
     display:flex;
     flex-direction:column;
     gap:var(--sp-sm);
-    min-width:0;
-    overflow:hidden;
+    overflow-y:auto;
+    overflow-x:hidden;
+    height:100%;
+    padding:var(--sp-md) var(--sp-md) var(--sp-lg) var(--sp-md);
     box-sizing:border-box;
   }
+  #detail-col-right::-webkit-scrollbar{width:6px;}
+  #detail-col-right::-webkit-scrollbar-thumb{background:var(--pln-border2);border-radius:3px;}
+  #detail-col-right::-webkit-scrollbar-track{background:transparent;}
   #detail-col-right .riwayat-card,
   #detail-col-right .card{
     width:100%;
     box-sizing:border-box;
     overflow:hidden;
+    flex-shrink:0;
   }
 
   /* Map lebih tinggi di desktop */
-  .gps-map-wrap div[style*="height"]{
+  .gps-map-wrap div[style*="clamp(140px"]{
     height:200px!important;
   }
   /* Tren chart lebar penuh */
@@ -1337,10 +1380,50 @@ input[type=number]{-moz-appearance:textfield;}
   }
 }
 
-/* ── LAYAR SANGAT LEBAR (≥1400px): lebih ruang untuk kiri ── */
+/* ── Layar sangat lebar (≥1400px): kolom kiri lebih lebar ── */
 @media(min-width:1400px){
+  #detail-col-left{
+    flex:0 0 420px;
+    width:420px;
+  }
+}
+
+/* ══ MOBILE OVERRIDE — pastikan tidak ada sisa desktop ══════════ */
+@media(max-width:767px){
+  #detail-view{
+    overflow-y:auto !important;
+    display:block !important;
+  }
+  #detail-view .page-body-nonav{
+    display:block !important;
+    height:auto !important;
+    overflow:visible !important;
+    padding:var(--sp-md) !important;
+    padding-bottom:calc(var(--sp-lg) + env(safe-area-inset-bottom)) !important;
+  }
   #detail-desktop-grid{
-    grid-template-columns:420px minmax(0,1fr);
+    display:flex !important;
+    flex-direction:column !important;
+    gap:0 !important;
+    overflow:visible !important;
+    height:auto !important;
+  }
+  #detail-col-left{
+    flex:none !important;
+    width:100% !important;
+    height:auto !important;
+    overflow:visible !important;
+    overflow-y:visible !important;
+    padding:0 !important;
+    border-right:none !important;
+  }
+  #detail-col-right{
+    flex:none !important;
+    width:100% !important;
+    height:auto !important;
+    overflow:visible !important;
+    overflow-y:visible !important;
+    padding:0 !important;
   }
 }
 
@@ -2325,12 +2408,17 @@ input[type=number]{-moz-appearance:textfield;}
     width: 100% !important;
   }
 
-  /* ── 17. Detail view: full screen mobile ── */
+  /* ── 17. Detail view: full screen mobile — kembalikan scroll normal ── */
   #detail-view {
     left: 0 !important;
     right: 0 !important;
+    bottom: 0 !important;
     width: 100% !important;
     top: 0 !important;
+    height: 100vh !important;
+    overflow-y: auto !important;  /* mobile: #detail-view yang scroll */
+    display: block !important;
+    flex-direction: unset !important;
   }
 
   /* ── 17b. Detail 2-col grid: single column di mobile ── */
@@ -2338,17 +2426,36 @@ input[type=number]{-moz-appearance:textfield;}
     display: flex !important;
     flex-direction: column !important;
     gap: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
+    flex: none !important;
   }
   #detail-col-left {
-    position: static !important;   /* batalkan sticky di mobile */
-    max-height: none !important;
-    overflow-y: visible !important;
-    padding-right: 0 !important;
+    flex: none !important;
     width: 100% !important;
+    height: auto !important;
+    overflow-y: visible !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    border-right: none !important;
+    background: transparent !important;
   }
   #detail-col-right {
+    flex: none !important;
     width: 100% !important;
-    overflow: hidden !important;
+    height: auto !important;
+    overflow: visible !important;
+    overflow-y: visible !important;
+    padding: 0 !important;
+  }
+  /* Mobile: page-body-nonav kembali ke block */
+  #detail-view .page-body-nonav {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    flex: none !important;
+    padding: var(--sp-md) !important;
+    padding-bottom: calc(var(--sp-lg) + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   /* ── 18. Grid 2 kolom: tetap 2 kolom tapi jangan overflow ── */
