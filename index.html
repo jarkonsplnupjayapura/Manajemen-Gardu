@@ -1207,78 +1207,27 @@ input[type=number]{-moz-appearance:textfield;}
   #detail-view .page-body-nonav{
     padding:var(--sp-md) var(--sp-md) var(--sp-lg);
   }
-  /* Layout grid: 2 kolom — kiri min 320px, fleksibel hingga 420px */
   #detail-desktop-grid{
     display:grid;
-    grid-template-columns:minmax(320px,420px) minmax(0,1fr);
+    grid-template-columns:380px 1fr;
     gap:var(--sp-md);
     align-items:start;
   }
   #detail-col-left{
     display:flex;flex-direction:column;gap:var(--sp-sm);
     position:sticky;top:calc(var(--topbar-h) + 12px);
-    max-height:calc(100vh - var(--topbar-h) - 24px);
+    max-height:calc(100vh - var(--topbar-h) - 32px);
     overflow-y:auto;
-    overflow-x:hidden;
-    padding-right:6px;
-    min-width:0;
-    word-break:break-word;
-    scroll-padding-bottom:16px;
+    padding-right:4px;
   }
   #detail-col-left::-webkit-scrollbar{width:4px;}
   #detail-col-left::-webkit-scrollbar-thumb{background:var(--pln-border2);border-radius:2px;}
-  #detail-col-left .card{
-    width:100%;
-    box-sizing:border-box;
-    overflow:visible;
-    flex-shrink:0;
-  }
-  /* Map wrap di kolom kiri — pastikan tidak terpotong */
-  #detail-col-left .gps-map-wrap{
-    overflow:hidden;
-    flex-shrink:0;
-    width:100%;
-    box-sizing:border-box;
-  }
-  #detail-col-left .gps-map-wrap > div:first-child {
-    height:clamp(160px,22vw,220px)!important;
-  }
-  /* Grid 2 kolom di dalam detail — pastikan tidak overflow */
-  #detail-col-left .grid2{
-    grid-template-columns:1fr 1fr;
-    word-break:break-word;
-    overflow:hidden;
-  }
-  #detail-col-left .grid2 .val,
-  #detail-col-left .grid2 .val-sm{
-    word-break:break-word;
-    overflow-wrap:anywhere;
-    white-space:normal;
-  }
-  /* Baris merek & kepemilikan — tetap horizontal, merek kiri kepemilikan kanan */
-  #detail-col-left .detail-footer-meta{
-    flex-direction:row;
-    flex-wrap:wrap;
-    gap:6px;
-    align-items:center;
-    justify-content:space-between;
-  }
-  #detail-col-left .detail-footer-meta span{
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    max-width:none;
-  }
   #detail-col-right{
     display:flex;flex-direction:column;gap:var(--sp-sm);
-    min-width:0;
-    overflow:hidden;
   }
-  /* Map lebih tinggi di desktop, tidak terpotong */
+  /* Map lebih tinggi di desktop */
   .gps-map-wrap iframe{
-    height:100%!important;
-    position:absolute!important;
-    inset:0!important;
+    height:220px!important;
   }
   /* Tren chart lebih lebar */
   .tren-chart-svg-wrap svg{
@@ -1286,12 +1235,6 @@ input[type=number]{-moz-appearance:textfield;}
   }
 }
 
-/* Layar sangat lebar (≥1400px): beri lebih ruang ke kolom kiri */
-@media(min-width:1400px){
-  #detail-desktop-grid{
-    grid-template-columns:460px minmax(0,1fr);
-  }
-}
 
 /* ══ FORM PEMELIHARAAN — Step Wizard ════════════════════════ */
 #form-pemeliharaan-view{animation:fiSlideIn .22s cubic-bezier(.22,1,.36,1);}
@@ -5308,9 +5251,9 @@ function renderDetailGardu(g, riwayat){
   html += '<div><div class="lbl">Penyulang</div><div class="val">'+esc(g['PENYULANG']||'—')+'</div></div>';
   html += '<div><div class="lbl">Tipe</div><div class="val">'+esc(g['TIPE']||'—')+'</div></div>';
   html += '</div>';
-  html += '<div class="detail-footer-meta" style="display:flex;flex-direction:row;justify-content:space-between;align-items:center;flex-wrap:nowrap;gap:8px;border-top:1px solid var(--pln-border);padding-top:var(--sp-sm);">';
-  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
-  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);flex-shrink:0;white-space:nowrap;text-align:right;">🏢 <b style="color:var(--pln-text2);">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</b></span>';
+  html += '<div class="detail-footer-meta" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;border-top:1px solid var(--pln-border);padding-top:var(--sp-sm);">';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">🔧 Merek: <b style="color:var(--pln-text2);">'+esc(g['MEREK_TRAFO']||'—')+'</b></span>';
+  html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);white-space:nowrap;">🏢 Kepemilikan: <b style="color:var(--pln-text2);">'+esc(g['STATUS_KEPEMILIKAN']||'—')+'</b></span>';
   html += '</div>';
   html += '</div>';
 
