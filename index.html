@@ -1172,8 +1172,12 @@ input[type=number]{-moz-appearance:textfield;}
     top:var(--topbar-h)!important;
     overflow-x:hidden!important;
     z-index:155!important;
-    display:flex!important;
     flex-direction:column!important;
+    /* JANGAN set display:flex!important di sini — biarkan JS yang kontrol show/hide */
+  }
+  /* Hanya jika detail-view aktif (bukan display:none) maka flex */
+  #detail-view.detail-is-open{
+    display:flex!important;
   }
   /* Desktop: detail-content juga scroll */
   #detail-content{
@@ -1195,8 +1199,9 @@ input[type=number]{-moz-appearance:textfield;}
     flex:unset;
     padding:0;
   }
-  /* Sub-bar "DETAIL GARDU" — muncul sticky di atas konten detail, di bawah topbar utama */
-  #detail-subbar{
+  /* Sub-bar "DETAIL GARDU" — muncul sticky di atas konten detail, di bawah topbar utama
+     Hanya tampil saat detail-view aktif (.detail-is-open) */
+  #detail-view.detail-is-open #detail-subbar{
     display:flex !important;
     align-items:center;
     gap:var(--sp-sm);
@@ -1208,6 +1213,9 @@ input[type=number]{-moz-appearance:textfield;}
     z-index:10;
     box-shadow:0 2px 8px rgba(10,45,107,.18);
     border-bottom:1px solid rgba(255,255,255,.10);
+  }
+  #detail-subbar{
+    display:none;
   }
 }
 
@@ -3888,7 +3896,8 @@ function doLogout() {
   if (rekapEl) rekapEl.innerHTML = '';
   var listEl = document.getElementById('list-gardu');
   if (listEl) listEl.innerHTML = '';
-  document.getElementById('detail-view').style.display = 'none';
+  var _dvLogout = document.getElementById('detail-view');
+  if (_dvLogout) { _dvLogout.style.display = 'none'; _dvLogout.classList.remove('detail-is-open'); }
   document.getElementById('bottom-nav').style.display = 'flex';
   document.getElementById('modal-admin-panel').style.display = 'none';
   var signoutBtn2 = document.getElementById('btn-signout');
@@ -4689,7 +4698,9 @@ window.onload = function(){
       };
     }
 
-    document.getElementById('detail-view').style.display = 'block';
+    var _dvQr = document.getElementById('detail-view');
+    _dvQr.style.display = 'block';
+    _dvQr.classList.add('detail-is-open');
     document.getElementById('detail-view-title').textContent = QR_NOGARDU;
     var _dsbTqr = document.getElementById('detail-subbar-title');
     if (_dsbTqr) _dsbTqr.textContent = QR_NOGARDU;
@@ -4821,7 +4832,8 @@ var TAB_IDS = ['tab-daftar','tab-peta','tab-rekap','tab-pengukuran','tab-pemelih
 // O1: Pagination — client-side 50/halaman sudah aktif.
 //   Untuk server-side pagination: tambahkan param ?action=daftarGardu&page=N&limit=50&ulp=X di Apps Script.
 function bukaTab(id, idx){
-  document.getElementById('detail-view').style.display = 'none';
+  var _dvBt = document.getElementById('detail-view');
+  if (_dvBt) { _dvBt.style.display = 'none'; _dvBt.classList.remove('detail-is-open'); }
   document.getElementById('bottom-nav').style.display = 'flex';
 
   // ── Sembunyikan semua tab dulu (sebelum scroll reset) ──
@@ -5106,7 +5118,9 @@ function bukaDetailGardu(noGardu){
   // Tampilkan sub-bar detail di desktop
   var _dsb = document.getElementById('detail-subbar');
   if (_dsb) _dsb.style.display = isDesktop ? 'flex' : 'none';
-  document.getElementById('detail-view').style.display = 'block';
+  var _dvEl = document.getElementById('detail-view');
+  _dvEl.style.display = 'block';
+  _dvEl.classList.add('detail-is-open');
   document.getElementById('detail-view-title').textContent = noGardu;
   // Sync sub-bar title
   var _dsbT = document.getElementById('detail-subbar-title');
@@ -5844,7 +5858,7 @@ function bukaLinkSOP(key) {
 
 function tutupDetail(){
   var dv = document.getElementById('detail-view');
-  if (dv) dv.scrollTop = 0;
+  if (dv) { dv.scrollTop = 0; dv.classList.remove('detail-is-open'); }
   dv.style.display = 'none';
   // Sembunyikan sub-bar detail
   var _dsb = document.getElementById('detail-subbar');
