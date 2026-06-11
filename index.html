@@ -7412,60 +7412,83 @@ function getPeriodeLabel(periode) {
 }
 
 function doExport() {
-  var fmt     = document.getElementById('export-format-selected').value || 'A';
-  var periode = getPeriodeFilter();
+  var fmt       = document.getElementById('export-format-selected').value || 'A';
+  var periode   = getPeriodeFilter();
   var ulpFilter = document.getElementById('export-ulp-filter').value || '';
   _showExportLoading(true);
-  _setExportProgress(5, 'Menghubungi server...', 'Mengambil data rekap gardu...');
-  // Kirim parameter ULP ke server untuk non-superadmin (hemat bandwidth & cegah kebocoran data)
+  _setExportProgress(5, 'Menghubungi server...', 'Mengambil data gardu & inspeksi...');
+
+  // Kirim parameter ULP ke server agar query lebih efisien
+  // – Non-superadmin: paksa pakai ULP akunnya sendiri
+  // – Superadmin + pilih ULP di filter: kirim ULP yang dipilih
   var s = getSession();
   var exportParams = { action: 'getExportRekap', bulan: '' };
+
   if (s && s.role !== 'superadmin' && s.ulp) {
+    // Paksa filter ULP sesuai akun
     var sheetVal = ulpAkunToSheet(s.ulp);
     if (sheetVal) exportParams.ulp = sheetVal;
+  } else if (ulpFilter) {
+    // Superadmin memilih ULP tertentu — kirim ke server untuk efisiensi
+    exportParams.ulp = ulpFilter;
   }
+
+  _setExportProgress(15, 'Mengambil data...', 'Memuat data gardu dari server...');
+
   apiGet(exportParams, function(res) {
     _showExportLoading(false);
-    if (res.status !== 'ok' || !res.data) { alert('❌ ' + userFriendlyError(res.message, 'Gagal memuat data.')); return; }
+    if (res.status !== 'ok' || !res.data) {
+      alert('❌ ' + userFriendlyError(res.message, 'Gagal memuat data. Coba lagi atau hubungi administrator.'));
+      return;
+    }
 
-    // Filter periode (berdasarkan tglUkur)
-    // Untuk rekap: kita mau tampilkan SEMUA gardu, tapi data inspeksinya dibatasi periode
-    // Jadi: gardu yang belum inspeksi di periode itu tetap muncul sbg "Belum"
-    var allRows = res.data;
-    // Filter berdasarkan periode: rows yang punya tglUkur di periode, + gardu tanpa inspeksi
+    _setExportProgress(70, 'Memproses data...', 'Menerapkan filter periode...');
+
+    // ── Filter periode (berdasarkan tglUkur) ─────────────────
+    // Semua gardu selalu ditampilkan; gardu yang inspeksinya di luar
+    // periode ditandai "BELUM INSPEKSI" agar rekap tetap lengkap.
+    var allRows    = res.data;
     var rowsPeriode;
+
     if (periode.mode === 'semua') {
       rowsPeriode = allRows;
     } else {
       rowsPeriode = allRows.map(function(r) {
-        // Kalau tglUkur-nya tidak masuk periode, anggap belum inspeksi
-        var tgl = r.tglUkur || '';
+        var tgl   = r.tglUkur || '';
         var masuk = false;
         if (tgl) {
           if (periode.mode === 'bulan')   masuk = tgl.slice(0,7) === periode.bulan;
           if (periode.mode === 'tahun')   masuk = tgl.slice(0,4) === String(periode.tahun);
           if (periode.mode === 'rentang') {
-            masuk = (!periode.tglDari || tgl >= periode.tglDari) &&
+            masuk = (!periode.tglDari   || tgl >= periode.tglDari) &&
                     (!periode.tglSampai || tgl <= periode.tglSampai);
           }
         }
         if (!masuk) {
-          // Reset data inspeksi tapi gardu tetap tampil
+          // Gardu tetap muncul tapi data inspeksinya di-reset
           return Object.assign({}, r, {
-            tglUkur:'', jamUkur:'', petugas:'', prosen:'',
-            rTotal:'', sTotal:'', tTotal:'', nTotal:'',
-            thdR:'', thdS:'', thdT:'', hariSejak:'',
-            keterangan:'BELUM INSPEKSI'
+            tglUkur:    '', jamUkur:  '', petugas:  '', prosen: '',
+            rTotal:     '', sTotal:   '', tTotal:   '', nTotal: '',
+            thdR:       '', thdS:     '', thdT:     '', hariSejak: '',
+            keterangan: 'BELUM INSPEKSI'
           });
         }
         return r;
       });
     }
 
-    // Filter ULP
+    // ── Filter ULP (sisi klien — sebagai fallback / crosscheck) ──
+    // Jika server sudah filter, ini akan no-op; tetap aman.
     var rows = ulpFilter
       ? rowsPeriode.filter(function(r){ return (r.ulp||'').trim() === ulpFilter; })
       : rowsPeriode;
+
+    if (rows.length === 0) {
+      alert('⚠️ Tidak ada data untuk periode / ULP yang dipilih.');
+      return;
+    }
+
+    _setExportProgress(85, 'Menyusun file...', 'Membuat dokumen Excel/Print...');
 
     var periodeLabel = getPeriodeLabel(periode);
     if      (fmt === 'A') generateXLSX(rows, periodeLabel, ulpFilter);
