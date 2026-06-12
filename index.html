@@ -801,6 +801,10 @@ input[type=number]{-moz-appearance:textfield;}
   font-size:12px;color:#3D5580;font-weight:600;
   margin-bottom:5px;display:block;letter-spacing:.1px;
 }
+.login-label-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:5px;
+}
 .login-input-wrap{position:relative;display:flex;align-items:center;}
 .login-input-icon{
   position:absolute;left:12px;top:50%;transform:translateY(-50%);
@@ -821,7 +825,12 @@ input[type=number]{-moz-appearance:textfield;}
   background:#fff;
 }
 .login-input::placeholder{color:#A0ABBE;}
+.login-forgot{
+  font-size:11px;color:#1048A8;font-weight:600;cursor:pointer;
+  text-decoration:none;white-space:nowrap;
+}
 .login-btn{
+  margin-top:clamp(6px,1.5vh,10px);
   width:100%;padding:clamp(12px,2.8vh,15px);border:none;
   border-radius:10px;
   background:linear-gradient(135deg,#0A2D6B 0%,#1048A8 50%,#2E7CF6 100%);
@@ -851,6 +860,54 @@ input[type=number]{-moz-appearance:textfield;}
   background:none;border:none;cursor:pointer;padding:6px;
   color:#8499BB;font-size:16px;line-height:1;
   display:flex;align-items:center;
+}
+
+/* ══ DESKTOP LOGIN FIX ═══════════════════════════════════════ */
+@media (min-width: 769px) {
+  #login-screen {
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 40px 20px !important;
+  }
+  .login-card-outer {
+    width: 100%;
+    max-width: 420px;
+  }
+  .login-card {
+    padding: 32px 36px !important;
+  }
+  .login-card-title {
+    font-size: 22px !important;
+    margin-bottom: 22px !important;
+  }
+  .login-top-area {
+    margin-bottom: 28px !important;
+  }
+  .login-app-icon {
+    width: 110px !important;
+    height: 110px !important;
+  }
+  .login-title {
+    font-size: 22px !important;
+  }
+  .login-sub {
+    font-size: 13px !important;
+  }
+  .login-input {
+    font-size: 14px !important;
+    padding: 13px 14px 13px 42px !important;
+  }
+  .login-btn {
+    padding: 14px !important;
+    font-size: 15px !important;
+    margin-top: 8px !important;
+  }
+  .login-input-group {
+    margin-bottom: 14px !important;
+  }
+  .login-footer-bottom {
+    margin-top: 16px !important;
+  }
 }
 
 /* ══ USER BADGE DI HEADER ════════════════════════════════════ */
@@ -2272,6 +2329,16 @@ input[type=number]{-moz-appearance:textfield;}
     margin-top: 12px !important;
   }
 
+  /* ── 23. Login button margin setelah input terakhir ── */
+  .login-btn {
+    margin-top: 8px !important;
+  }
+
+  /* ── 24. Login screen terpusat jika konten pendek ── */
+  #login-screen {
+    justify-content: center !important;
+  }
+
 }
 </style>
 
@@ -2288,7 +2355,7 @@ input[type=number]{-moz-appearance:textfield;}
       <img src="icon-baru-192.png" alt="Manajemen Gardu">
     </div>
     <div class="login-title">Manajemen Gardu</div>
-    <div class="login-sub">PT. PLN UP3 Jayapura</div>
+    <div class="login-sub">PLN UP3 Jayapura</div>
   </div>
 
   <!-- Login Card -->
@@ -2304,7 +2371,7 @@ input[type=number]{-moz-appearance:textfield;}
 
       <!-- Username -->
       <div class="login-input-group">
-        <label class="login-label">Username</label>
+        <label class="login-label">Username / NIP</label>
         <div class="login-input-wrap">
           <span class="login-input-icon">👤</span>
           <input id="login-username" class="login-input" type="text"
@@ -2332,7 +2399,7 @@ input[type=number]{-moz-appearance:textfield;}
       </div>
 
       <!-- Submit Button -->
-      <button class="login-btn" id="btn-masuk" onclick="doLogin()" style="margin-top:clamp(8px,2vh,14px);">
+      <button class="login-btn" id="btn-masuk" onclick="doLogin()">
         <span id="login-btn-text">Masuk</span>
         <span id="login-btn-arrow"> →</span>
       </button>
@@ -4094,9 +4161,22 @@ function doLogout() {
   if (dtbSignout2) dtbSignout2.style.display = 'none';
   var dtbBar2 = document.getElementById('desktop-topbar-bar');
   if (dtbBar2) dtbBar2.style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
+  var ls = document.getElementById('login-screen');
+  if (ls) {
+    ls.style.display       = 'flex';
+    ls.style.visibility    = '';
+    ls.style.opacity       = '';
+    ls.style.pointerEvents = '';
+  }
+  document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.top = '';
   document.getElementById('login-username').value = '';
   document.getElementById('login-password').value = '';
+  var pwEl = document.getElementById('login-password');
+  if (pwEl) pwEl.type = 'password';
+  var eyeIcon = document.getElementById('pw-eye-icon');
+  if (eyeIcon) eyeIcon.textContent = '🙈';
   var le = document.getElementById('login-err');
   if (le) { le.classList.add('login-err-hidden'); le.style.display = 'none'; }
   }); // end bukaModalKonfirmasi callback
@@ -7742,7 +7822,7 @@ function _doGenerateXLSX(rows, periodeLabel, ulpFilter) {
   };
 
   var wb = new ExcelJS.Workbook();
-  wb.creator = 'PT. PLN UP3 Jayapura';
+  wb.creator = 'PLN UP3 Jayapura';
   wb.created = new Date();
 
   // ═══════════════════════════════════════════════════════════
@@ -8466,7 +8546,7 @@ function _doGenerateRekapStatusOperasi(rows, periodeLabel, ulpFilter) {
   });
 
   var wb = new ExcelJS.Workbook();
-  wb.creator = 'PT. PLN UP3 Jayapura';
+  wb.creator = 'PLN UP3 Jayapura';
   var ws = wb.addWorksheet('Rekap Status Operasi', {
     pageSetup: { paperSize:9, orientation:'landscape', fitToPage:true }
   });
@@ -8568,7 +8648,7 @@ function _doGenerateRekapStatusKepemilikan(rows, periodeLabel, ulpFilter) {
   });
 
   var wb = new ExcelJS.Workbook();
-  wb.creator = 'PT. PLN UP3 Jayapura';
+  wb.creator = 'PLN UP3 Jayapura';
   var ws = wb.addWorksheet('Rekap Status Kepemilikan', {
     pageSetup: { paperSize:9, orientation:'landscape', fitToPage:true }
   });
@@ -11185,7 +11265,7 @@ function exportPengukuranExcel() {
       var ulpKeys = Object.keys(ulpMap).sort();
 
       var wb = new ExcelJS.Workbook();
-      wb.creator = 'PT. PLN UP3 Jayapura';
+      wb.creator = 'PLN UP3 Jayapura';
       wb.created = now;
 
       // ─────────────────────────────────────────────────────────
@@ -11623,7 +11703,7 @@ function exportPemeliharaanExcel() {
       var jenisKeys = Object.keys(jenisMap).sort();
 
       var wb = new ExcelJS.Workbook();
-      wb.creator = 'PT. PLN UP3 Jayapura';
+      wb.creator = 'PLN UP3 Jayapura';
       wb.created = now;
 
       // ─────────────────────────────────────────────────────────
