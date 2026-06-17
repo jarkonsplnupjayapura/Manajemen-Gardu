@@ -9540,12 +9540,26 @@ function _doHapusGardu(noGardu, pin) {
 
   apiGet({ action: 'hapusGardu', token: s.token, pin: pin, noGardu: noGardu }, function(res) {
     if (hapusBtn) hapusBtn.disabled = false;
+    // Sembunyikan pesan loading
+    if (msgEl) msgEl.style.display = 'none';
     if (res.status === 'ok') {
-      document.getElementById('modal-edit-gardu').style.display = 'none';
-      muatDaftarGardu(true);
+      // Tutup modal edit gardu
+      var modalEdit = document.getElementById('modal-edit-gardu');
+      if (modalEdit) modalEdit.style.display = 'none';
+      // Refresh daftar gardu di background
+      if (typeof muatDaftarGardu === 'function') muatDaftarGardu(true);
+      // Notifikasi sukses — modal alert hijau
       showAlert('✅ Gardu ' + noGardu + ' berhasil dihapus.');
     } else {
-      if (msgEl) { msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B'; msgEl.textContent=userFriendlyError(res.message, 'Gagal menghapus gardu.'); }
+      // Tampilkan error di inline msg DAN modal alert agar tidak terlewat
+      var errMsg = userFriendlyError(res.message, 'Gagal menghapus gardu.');
+      if (msgEl) {
+        msgEl.style.display    = 'block';
+        msgEl.style.background = '#FEE2E2';
+        msgEl.style.color      = '#991B1B';
+        msgEl.textContent      = errMsg;
+      }
+      showAlert('❌ ' + errMsg);
     }
   });
 }
