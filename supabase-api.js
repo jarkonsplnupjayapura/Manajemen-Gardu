@@ -170,6 +170,7 @@ async function _dispatch(action, p, signal) {
     case 'setPin':           return _setPin(p, signal);
     case 'tambahGardu':      return _tambahGardu(p, signal);
     case 'editGardu':        return _editGardu(p, signal);
+    case 'hapusGardu':       return _hapusGardu(p, signal);
     case 'getDaftarUser':    return _getDaftarUser(p, signal);
     case 'hapusUser':        return _hapusUser(p, signal);
     case 'cariGardu':        return _cariGardu(p, signal);
@@ -748,7 +749,30 @@ async function _editGardu(p, signal) {
   return { status: 'ok', message: data.message };
 }
 
-// ── DAFTAR USER via RPC ──────────────────────────────────────
+// ── HAPUS GARDU via RPC ──────────────────────────────────────
+// DESTRUKTIF: menghapus gardu beserta seluruh riwayat inspeksinya.
+// Memerlukan PIN konfirmasi untuk cegah hapus tidak sengaja.
+// RPC fn_hapus_gardu harus memverifikasi: token valid, role superadmin,
+// PIN benar, gardu ada — baru kemudian hapus cascade.
+async function _hapusGardu(p, signal) {
+  if (!p.noGardu) return { status: 'error', message: 'Kode gardu tidak boleh kosong.' };
+  if (!p.pin)     return { status: 'error', message: 'PIN konfirmasi diperlukan untuk menghapus gardu.' };
+
+  var pinHash = await sha256(String(p.pin).trim());
+
+  var data = await rpcCall('fn_hapus_gardu', {
+    p_token:    p.token,
+    p_pin_hash: pinHash,
+    p_no_gardu: (p.noGardu || '').trim().toUpperCase()
+  }, signal);
+
+  if (!data || data.status !== 'ok')
+    return { status: 'error', message: (data && data.message) || 'Gagal menghapus gardu.' };
+
+  return { status: 'ok', message: data.message || 'Gardu berhasil dihapus.' };
+}
+
+
 async function _getDaftarUser(p, signal) {
   var data = await rpcCall('fn_get_daftar_user', { p_token: p.token }, signal);
 
