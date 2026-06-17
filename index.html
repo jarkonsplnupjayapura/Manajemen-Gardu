@@ -4595,9 +4595,12 @@ function simpanUser() {
   apiGet(params, function(res) {
     if (res.status === 'ok') {
       showMsg('User berhasil disimpan.', false);
-      setTimeout(function() { renderUserList(); tutupFormUser(); }, 1200);
+      renderUserList();
+      tutupFormUser();
+      showAlert('✅ User berhasil disimpan.');
     } else {
       showMsg(userFriendlyError(res.message, 'Gagal menyimpan user.'), true);
+      showAlert('❌ ' + userFriendlyError(res.message, 'Gagal menyimpan user.'));
     }
   });
 }
@@ -4610,8 +4613,12 @@ function hapusUser(username, nama) {
     function() {
       var s = getSession();
       apiGet({ action: 'hapusUser', token: s ? s.token : '', username: username }, function(res) {
-        if (res.status === 'ok') { renderUserList(); }
-        else { alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.')); }
+        if (res.status === 'ok') {
+          renderUserList();
+          showAlert('✅ Akun ' + label + ' berhasil dihapus.');
+        } else {
+          showAlert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
+        }
       });
     }
   );
@@ -4772,9 +4779,12 @@ function simpanUserULP() {
   apiGet(params, function(res) {
     if (res.status === 'ok') {
       showMsg('User berhasil disimpan!', false);
-      setTimeout(function() { renderUserListULP(); tutupFormUserULP(); }, 1200);
+      renderUserListULP();
+      tutupFormUserULP();
+      showAlert('✅ User berhasil disimpan.');
     } else {
       showMsg(userFriendlyError(res.message, 'Gagal menyimpan user.'), true);
+      showAlert('❌ ' + userFriendlyError(res.message, 'Gagal menyimpan user.'));
     }
   });
 }
@@ -4787,8 +4797,12 @@ function hapusUserULP(username, nama) {
     function() {
       var s = getSession();
       apiGet({ action: 'hapusUser', token: s ? s.token : '', username: username }, function(res) {
-        if (res.status === 'ok') { renderUserListULP(); }
-        else { alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.')); }
+        if (res.status === 'ok') {
+          renderUserListULP();
+          showAlert('✅ Akun ' + label + ' berhasil dihapus.');
+        } else {
+          showAlert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
+        }
       });
     }
   );
@@ -4869,9 +4883,11 @@ function submitResetPassword() {
   apiGet({ action: 'resetPassword', token: s ? s.token : '', username: _rpTargetUsername, passwordBaru: pw }, function(res) {
     if (res.status === 'ok') {
       showMsg('✅ Password "' + _rpTargetUsername + '" berhasil direset.', true);
-      setTimeout(tutupModalResetPassword, 1800);
+      tutupModalResetPassword();
+      showAlert('✅ Password "' + _rpTargetUsername + '" berhasil direset.');
     } else {
       showMsg('❌ ' + userFriendlyError(res.message, 'Gagal reset password.'), false);
+      showAlert('❌ ' + userFriendlyError(res.message, 'Gagal reset password.'));
     }
   });
 }
@@ -4886,10 +4902,10 @@ function resetPinULP(username) {
   if (!s) return;
   apiGet({ action: 'resetPin', token: s.token, username: username }, function(res) {
     if (res.status === 'ok') {
-      alert('✅ PIN "' + username + '" berhasil direset.');
       renderUserListULP();
+      showAlert('✅ PIN "' + username + '" berhasil direset.');
     } else {
-      alert('❌ ' + userFriendlyError(res.message, 'Gagal reset PIN.'));
+      showAlert('❌ ' + userFriendlyError(res.message, 'Gagal reset PIN.'));
     }
   });
     } // end konfirmasiAksi callback
@@ -4909,8 +4925,9 @@ function toggleAktifULP(username, aktifkan) {
   apiGet({ action: 'aktifkanUser', token: s.token, username: username, aktifkan: aktifkan }, function(res) {
     if (res.status === 'ok') {
       renderUserListULP();
+      showAlert('✅ Akun ' + username + ' berhasil ' + (aktifkan ? 'diaktifkan' : 'dinonaktifkan') + '.');
     } else {
-      alert('❌ ' + userFriendlyError(res.message, 'Gagal memproses aksi user.'));
+      showAlert('❌ ' + userFriendlyError(res.message, 'Gagal memproses aksi user.'));
     }
   });
     } // end konfirmasiAksi callback
@@ -6910,9 +6927,10 @@ function hapusInspeksiById(id, tglLabel) {
     if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
     apiGet({ action: 'hapusInspeksi', token: s.token, id: id }, function(res) {
       if (res.status !== 'ok') {
-        alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
+        showAlert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
         return;
       }
+      showAlert('✅ Data inspeksi berhasil dihapus.');
       // Ambil no_gardu dari topbar detail-view lalu reload
       var titleEl = document.getElementById('detail-view-title');
       var noGardu = titleEl ? titleEl.textContent.trim() : '';
@@ -7424,9 +7442,10 @@ function hapusInspeksiDariPengukuran(id, tglLabel) {
     if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
     apiGet({ action: 'hapusInspeksi', token: s.token, id: id }, function(res) {
       if (res.status !== 'ok') {
-        alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
+        showAlert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
         return;
       }
+      showAlert('✅ Data inspeksi berhasil dihapus.');
       _ukurSudahMuat = false;
       muatDataPengukuran(true);
     });
@@ -9339,10 +9358,13 @@ function submitTambahGardu() {
     }, function(res){
       msgEl.style.display='block';
       if (res.status==='ok'){
-        msgEl.style.background='#D1FAE5'; msgEl.style.color='#065F46'; msgEl.textContent=res.message;
-        setTimeout(function(){ document.getElementById('modal-tambah-gardu').style.display='none'; muatDaftarGardu(true); }, 1500);
+        msgEl.style.display='none';
+        document.getElementById('modal-tambah-gardu').style.display='none';
+        if (typeof muatDaftarGardu === 'function') muatDaftarGardu(true);
+        showAlert('✅ Gardu ' + noGardu + ' berhasil ditambahkan.');
       } else {
         msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B'; msgEl.textContent=userFriendlyError(res.message, 'Gagal menambahkan gardu.');
+        showAlert('❌ ' + userFriendlyError(res.message, 'Gagal menambahkan gardu.'));
       }
     });
   }
@@ -9491,10 +9513,13 @@ function submitEditGardu() {
     }, function(res){
       msgEl.style.display='block';
       if (res.status==='ok'){
-        msgEl.style.background='#D1FAE5'; msgEl.style.color='#065F46'; msgEl.textContent=res.message;
-        setTimeout(function(){ document.getElementById('modal-edit-gardu').style.display='none'; muatDaftarGardu(true); }, 1500);
+        msgEl.style.display='none';
+        document.getElementById('modal-edit-gardu').style.display='none';
+        if (typeof muatDaftarGardu === 'function') muatDaftarGardu(true);
+        showAlert('✅ Gardu berhasil diperbarui.');
       } else {
         msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B'; msgEl.textContent=userFriendlyError(res.message, 'Gagal mengedit gardu.');
+        showAlert('❌ ' + userFriendlyError(res.message, 'Gagal mengedit gardu.'));
       }
     });
   });
@@ -9540,26 +9565,12 @@ function _doHapusGardu(noGardu, pin) {
 
   apiGet({ action: 'hapusGardu', token: s.token, pin: pin, noGardu: noGardu }, function(res) {
     if (hapusBtn) hapusBtn.disabled = false;
-    // Sembunyikan pesan loading
-    if (msgEl) msgEl.style.display = 'none';
     if (res.status === 'ok') {
-      // Tutup modal edit gardu
-      var modalEdit = document.getElementById('modal-edit-gardu');
-      if (modalEdit) modalEdit.style.display = 'none';
-      // Refresh daftar gardu di background
-      if (typeof muatDaftarGardu === 'function') muatDaftarGardu(true);
-      // Notifikasi sukses — modal alert hijau
+      document.getElementById('modal-edit-gardu').style.display = 'none';
+      muatDaftarGardu(true);
       showAlert('✅ Gardu ' + noGardu + ' berhasil dihapus.');
     } else {
-      // Tampilkan error di inline msg DAN modal alert agar tidak terlewat
-      var errMsg = userFriendlyError(res.message, 'Gagal menghapus gardu.');
-      if (msgEl) {
-        msgEl.style.display    = 'block';
-        msgEl.style.background = '#FEE2E2';
-        msgEl.style.color      = '#991B1B';
-        msgEl.textContent      = errMsg;
-      }
-      showAlert('❌ ' + errMsg);
+      if (msgEl) { msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B'; msgEl.textContent=userFriendlyError(res.message, 'Gagal menghapus gardu.'); }
     }
   });
 }
@@ -10448,21 +10459,18 @@ async function pmSubmit() {
     msgEl.style.display = 'block';
 
     if (res.status === 'ok') {
-      msgEl.style.background = '#D1FAE5';
-      msgEl.style.color      = '#065F46';
-      msgEl.style.borderColor= '#A7F3D0';
-      msgEl.textContent = '✅ Data pemeliharaan berhasil disimpan!';
+      msgEl.style.display = 'none';
       // MED-11 FIX: reset dirty sebelum tutup agar tidak muncul konfirmasi
       _pmFormDirty = false;
-      setTimeout(function() {
-        tutupFormPemeliharaan();
-        muatDaftarPemeliharaan(true);
-      }, 1800);
+      tutupFormPemeliharaan();
+      if (typeof muatDaftarPemeliharaan === 'function') muatDaftarPemeliharaan(true);
+      showAlert('✅ Data pemeliharaan berhasil disimpan.');
     } else {
       msgEl.style.background = '#FEE2E2';
       msgEl.style.color      = '#991B1B';
       msgEl.style.borderColor= '#FECACA';
       msgEl.textContent = '❌ ' + userFriendlyError(res.message, 'Gagal menyimpan. Coba lagi.');
+      showAlert('❌ ' + userFriendlyError(res.message, 'Gagal menyimpan pemeliharaan.'));
     }
   });
 }
@@ -10719,9 +10727,10 @@ function hapusPemeliharaanById(id, noGardu) {
     if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
     apiGet({ action: 'hapusPemeliharaan', token: s.token, id: id }, function(res) {
       if (res.status !== 'ok') {
-        alert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
+        showAlert('❌ ' + userFriendlyError(res.message, 'Gagal menghapus data.'));
         return;
       }
+      showAlert('✅ Data pemeliharaan berhasil dihapus.');
       _pmSudahMuat = false;
       muatDaftarPemeliharaan(true);
     });
