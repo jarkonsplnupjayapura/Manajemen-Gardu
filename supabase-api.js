@@ -1062,6 +1062,7 @@ async function _tambahInspeksi(p, signal) {
     p_tpf_r:         _parseNumSafe(p.tpfR),
     p_tpf_s:         _parseNumSafe(p.tpfS),
     p_tpf_t:         _parseNumSafe(p.tpfT),
+    p_phase_sequence: p.phaseSequence || null,
     p_jurusan:       jurusanPayload
   }, signal);
 
@@ -1162,6 +1163,7 @@ async function _editInspeksi(p, signal) {
     p_tpf_r:         _parseNumSafe(p.tpfR),
     p_tpf_s:         _parseNumSafe(p.tpfS),
     p_tpf_t:         _parseNumSafe(p.tpfT),
+    p_phase_sequence: p.phaseSequence || null,
     p_jurusan:       jurusanPayload
   }, signal);
 
@@ -1293,7 +1295,8 @@ function _mapInspeksiRow(r) {
     'IPEAK-T':      r.ipeak_t    != null ? String(r.ipeak_t)    : '',
     'TPF-R':        r.tpf_r      != null ? String(r.tpf_r)      : '',
     'TPF-S':        r.tpf_s      != null ? String(r.tpf_s)      : '',
-    'TPF-T':        r.tpf_t      != null ? String(r.tpf_t)      : ''
+    'TPF-T':        r.tpf_t      != null ? String(r.tpf_t)      : '',
+    'PHASE_SEQUENCE': r.phase_sequence || ''
   };
 
   var jurusan = [];

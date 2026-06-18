@@ -2889,6 +2889,32 @@ input[type=number]{-moz-appearance:textfield;}
           </div>
         </div>
 
+        <!-- Urutan Fasa (Phase Sequence) -->
+        <div style="margin-top:var(--sp-sm);">
+          <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:var(--pln-biru-pale);border-radius:6px;display:flex;align-items:center;gap:6px;">
+            🔄 Urutan Fasa (Phase Sequence)
+          </div>
+          <div class="grid2">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Urutan Fasa</label>
+              <select class="form-select" id="fi-phase-sequence" onchange="fiUpdatePhaseSeqStatus()">
+                <option value="">— Tidak Diukur —</option>
+                <option value="RST">RST / Normal (Searah Jarum Jam ✅)</option>
+                <option value="SRT">SRT / Terbalik (Berlawanan Jarum Jam ⚠️)</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Status Urutan</label>
+              <div id="fi-phase-seq-status" style="padding:8px 10px;border-radius:var(--radius-xs);border:1.5px solid var(--pln-border);background:var(--pln-bg);font-size:var(--fs-xs);font-weight:600;min-height:38px;display:flex;align-items:center;color:var(--pln-text3);">
+                Pilih urutan fasa terlebih dahulu
+              </div>
+            </div>
+          </div>
+          <div id="fi-phase-seq-warn" style="display:none;margin-top:6px;padding:8px 10px;border-radius:var(--radius-xs);font-size:var(--fs-xs);font-weight:600;background:#FEF3C7;color:#92400E;border:1.5px solid #F59E0B;">
+            ⚠️ <strong>Urutan Fasa Terbalik!</strong> Dapat menyebabkan kerusakan pada motor listrik 3-fasa milik konsumen. Lakukan pengecekan dan perbaikan koneksi kabel fasa.
+          </div>
+        </div>
+
         <!-- Arus Total Fasa R S T N -->
         <div style="margin-top:var(--sp-sm);">
           <div class="form-label" style="margin-bottom:var(--sp-xs);">⚡ Arus Total (A)</div>
@@ -3726,6 +3752,28 @@ input[type=number]{-moz-appearance:textfield;}
           <option value="3">3 Fasa</option>
         </select>
       </div>
+    </div>
+
+    <!-- Urutan Fasa (Phase Sequence) -->
+    <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:var(--pln-biru-pale);border-radius:6px;">🔄 Urutan Fasa (Phase Sequence)</div>
+    <div class="grid2" style="margin-bottom:var(--sp-md);">
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Urutan Fasa</label>
+        <select id="ei-phase-sequence" class="form-select" onchange="eiUpdatePhaseSeqStatus()">
+          <option value="">— Tidak Diukur —</option>
+          <option value="RST">RST / Normal (Searah Jarum Jam ✅)</option>
+          <option value="SRT">SRT / Terbalik (Berlawanan Jarum Jam ⚠️)</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Status Urutan</label>
+        <div id="ei-phase-seq-status" style="padding:8px 10px;border-radius:var(--radius-xs);border:1.5px solid var(--pln-border);background:var(--pln-bg);font-size:var(--fs-xs);font-weight:600;min-height:38px;display:flex;align-items:center;color:var(--pln-text3);">
+          Pilih urutan fasa terlebih dahulu
+        </div>
+      </div>
+    </div>
+    <div id="ei-phase-seq-warn" style="display:none;margin-bottom:var(--sp-md);padding:8px 10px;border-radius:var(--radius-xs);font-size:var(--fs-xs);font-weight:600;background:#FEF3C7;color:#92400E;border:1.5px solid #F59E0B;">
+      ⚠️ <strong>Urutan Fasa Terbalik!</strong> Dapat menyebabkan kerusakan pada motor listrik 3-fasa milik konsumen. Lakukan pengecekan dan perbaikan koneksi kabel fasa.
     </div>
 
     <!-- Daya -->
@@ -5766,6 +5814,25 @@ function renderDetailGardu(g, riwayat){
       html += ukurCell('TPF-T', tpfT, '');
       html += '</div>';
 
+      // Phase Sequence display
+      var phaseSeq = r['PHASE_SEQUENCE'] || '';
+      if (phaseSeq) {
+        var psIsNormal = phaseSeq === 'RST';
+        var psBg    = psIsNormal ? '#D1FAE5' : '#FEF3C7';
+        var psColor = psIsNormal ? '#065F46' : '#92400E';
+        var psBorder= psIsNormal ? '#10B981' : '#F59E0B';
+        var psLabel = psIsNormal
+          ? '✅ RST — Normal (Searah Jarum Jam / Clockwise)'
+          : '⚠️ SRT — Terbalik! (Berlawanan Jarum Jam / Counter-Clockwise)';
+        html += '<div class="ukur-section-title">🔄 Urutan Fasa (Phase Sequence)</div>';
+        html += '<div style="padding:10px 12px;border-radius:6px;background:'+psBg+';color:'+psColor+';border:1.5px solid '+psBorder+';font-size:var(--fs-xs);font-weight:700;margin-top:6px;">';
+        html += psLabel;
+        if (!psIsNormal) {
+          html += '<div style="margin-top:4px;font-weight:500;font-size:var(--fs-xs);">Perlu tindak lanjut: periksa dan perbaiki koneksi kabel fasa pada trafo atau panel PHB-TR.</div>';
+        }
+        html += '</div>';
+      }
+
       var jurDef = [
         { n:1, jur:'JURUSAN 1', titik:'TITIK UKUR JUR 1', r:'JUR1_R TOTAL', s:'JUR1_S TOTAL', t:'JUR1_T TOTAL', nt:'JUR1_N TOTAL', rn:'JUR1_R - N', sn:'JUR1_S - N', tn:'JUR1_T - N', thdR:'JUR1_THD-R', thdS:'JUR1_THD-S', thdT:'JUR1_THD-T', iR:'JUR1_IPEAK-R', iS:'JUR1_IPEAK-S', iT:'JUR1_IPEAK-T', tR:'JUR1_TPF-R', tS:'JUR1_TPF-S', tT:'JUR1_TPF-T' },
         { n:2, jur:'JURUSAN 2', titik:'TITIK UKUR JUR 2', r:'JUR2_R TOTAL', s:'JUR2_S TOTAL', t:'JUR2_T TOTAL', nt:'JUR2_N TOTAL', rn:'JUR2_R - N', sn:'JUR2_S - N', tn:'JUR2_T - N', thdR:'JUR2_THD-R', thdS:'JUR2_THD-S', thdT:'JUR2_THD-T', iR:'JUR2_IPEAK-R', iS:'JUR2_IPEAK-S', iT:'JUR2_IPEAK-T', tR:'JUR2_TPF-R', tS:'JUR2_TPF-S', tT:'JUR2_TPF-T' },
@@ -6724,6 +6791,61 @@ function fiGetJurusanData() {
 }
 
 // ── Validasi form sebelum submit ──────────────────────────────
+// ── Phase Sequence Helper Functions ──────────────────────────
+function fiUpdatePhaseSeqStatus() {
+  var sel = document.getElementById('fi-phase-sequence');
+  var statusEl = document.getElementById('fi-phase-seq-status');
+  var warnEl = document.getElementById('fi-phase-seq-warn');
+  if (!sel || !statusEl || !warnEl) return;
+  var val = sel.value;
+  if (!val) {
+    statusEl.style.background = 'var(--pln-bg)';
+    statusEl.style.color = 'var(--pln-text3)';
+    statusEl.style.borderColor = 'var(--pln-border)';
+    statusEl.textContent = 'Pilih urutan fasa terlebih dahulu';
+    warnEl.style.display = 'none';
+  } else if (val === 'RST') {
+    statusEl.style.background = '#D1FAE5';
+    statusEl.style.color = '#065F46';
+    statusEl.style.borderColor = '#10B981';
+    statusEl.textContent = '✅ RST — Normal (Searah Jarum Jam / Clockwise)';
+    warnEl.style.display = 'none';
+  } else if (val === 'SRT') {
+    statusEl.style.background = '#FEF3C7';
+    statusEl.style.color = '#92400E';
+    statusEl.style.borderColor = '#F59E0B';
+    statusEl.textContent = '⚠️ SRT — Terbalik! (Berlawanan Jarum Jam / Counter-Clockwise)';
+    warnEl.style.display = 'block';
+  }
+}
+
+function eiUpdatePhaseSeqStatus() {
+  var sel = document.getElementById('ei-phase-sequence');
+  var statusEl = document.getElementById('ei-phase-seq-status');
+  var warnEl = document.getElementById('ei-phase-seq-warn');
+  if (!sel || !statusEl || !warnEl) return;
+  var val = sel.value;
+  if (!val) {
+    statusEl.style.background = 'var(--pln-bg)';
+    statusEl.style.color = 'var(--pln-text3)';
+    statusEl.style.borderColor = 'var(--pln-border)';
+    statusEl.textContent = 'Pilih urutan fasa terlebih dahulu';
+    warnEl.style.display = 'none';
+  } else if (val === 'RST') {
+    statusEl.style.background = '#D1FAE5';
+    statusEl.style.color = '#065F46';
+    statusEl.style.borderColor = '#10B981';
+    statusEl.textContent = '✅ RST — Normal (Searah Jarum Jam / Clockwise)';
+    warnEl.style.display = 'none';
+  } else if (val === 'SRT') {
+    statusEl.style.background = '#FEF3C7';
+    statusEl.style.color = '#92400E';
+    statusEl.style.borderColor = '#F59E0B';
+    statusEl.textContent = '⚠️ SRT — Terbalik! (Berlawanan Jarum Jam / Counter-Clockwise)';
+    warnEl.style.display = 'block';
+  }
+}
+
 function fiValidate() {
   var errs = [];
   if (!document.getElementById('fi-tgl').value) errs.push('Tanggal wajib diisi.');
@@ -6873,10 +6995,11 @@ function submitFormInspeksi() {
     ipeakR:      getV('fi-ipeak-r'),
     ipeakS:      getV('fi-ipeak-s'),
     ipeakT:      getV('fi-ipeak-t'),
-    tpfR:        getV('fi-tpf-r'),
-    tpfS:        getV('fi-tpf-s'),
-    tpfT:        getV('fi-tpf-t'),
-    jurusan:     jurusan.length ? JSON.stringify(jurusan) : null
+    tpfR:          getV('fi-tpf-r'),
+    tpfS:          getV('fi-tpf-s'),
+    tpfT:          getV('fi-tpf-t'),
+    phaseSequence: (function(){ var el=document.getElementById('fi-phase-sequence'); return el && el.value ? el.value : null; })(),
+    jurusan:       jurusan.length ? JSON.stringify(jurusan) : null
   };
 
   apiGet(params, function(res) {
@@ -6983,6 +7106,13 @@ function bukaEditInspeksi(id, r) {
   document.getElementById('ei-jam').value     = r['JAM UKUR'] ? String(r['JAM UKUR']).slice(0,5) : '';
   document.getElementById('ei-petugas').value = r['PETUGAS'] || '';
   document.getElementById('ei-fasa').value    = r['FASA'] || '';
+
+  // Phase Sequence
+  var psEl = document.getElementById('ei-phase-sequence');
+  if (psEl) {
+    psEl.value = r['PHASE_SEQUENCE'] || '';
+    eiUpdatePhaseSeqStatus();
+  }
 
   // Daya
   document.getElementById('ei-daya').value        = r['DAYA'] || '';
@@ -7368,6 +7498,7 @@ function simpanEditInspeksi() {
     tpfR:         gv('ei-tpfr'),
     tpfS:         gv('ei-tpfs'),
     tpfT:         gv('ei-tpft'),
+    phaseSequence: gv('ei-phase-sequence'),
     jurusan:      eiGetJurusanPayload()
   }, function(res) {
     btn.disabled = false; btn.textContent = '💾 Simpan Perubahan';
@@ -11431,7 +11562,7 @@ function exportPengukuranExcel() {
         ws2.columns = baseCols.concat(jurColDefs);
       })();
 
-      var _totalCols2 = 32 + 6 * 22;
+      var _totalCols2 = 33 + 6 * 22;
       function _colLetter(n) { var s=''; while(n>0){n--;s=String.fromCharCode(65+n%26)+s;n=Math.floor(n/26);} return s; }
       var _lastCol2 = _colLetter(_totalCols2);
 
@@ -11456,7 +11587,8 @@ function exportPengukuranExcel() {
         'VR-S\n(V)','VS-T\n(V)','VR-T\n(V)',
         'THD-R\n(%)','THD-S\n(%)','THD-T\n(%)',
         'IPEAK\n-R','IPEAK\n-S','IPEAK\n-T',
-        'TPF-R','TPF-S','TPF-T'
+        'TPF-R','TPF-S','TPF-T',
+        'URUTAN\nFASA'
       ];
       for (var _jhi=0; _jhi<6; _jhi++) {
         var _jn = _jhi+1;
@@ -11513,7 +11645,8 @@ function exportPengukuranExcel() {
           r['R - S']||'', r['S - T']||'', r['R - T']||'',
           r['THD-R']||'', r['THD-S']||'', r['THD-T']||'',
           r['IPEAK-R']||r['IPEAK_R']||'', r['IPEAK-S']||r['IPEAK_S']||'', r['IPEAK-T']||r['IPEAK_T']||'',
-          r['TPF-R']||'', r['TPF-S']||'', r['TPF-T']||''
+          r['TPF-R']||'', r['TPF-S']||'', r['TPF-T']||'',
+          r['PHASE_SEQUENCE']||''
         ];
         for (var _ji3=1; _ji3<=6; _ji3++) {
           vals = vals.concat([
