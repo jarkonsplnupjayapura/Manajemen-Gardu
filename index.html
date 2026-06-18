@@ -2916,6 +2916,11 @@ input[type=number]{-moz-appearance:textfield;}
         </div>
 
         <!-- Arus Total Fasa R S T N -->
+        <div id="fi-pengukuran-section" style="opacity:0.35;pointer-events:none;user-select:none;transition:opacity .3s;">
+        <!-- Overlay peringatan saat belum pilih urutan fasa -->
+        <div id="fi-lock-overlay" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--radius-xs);background:#EFF6FF;border:2px dashed var(--pln-biru-muda);color:var(--pln-biru2);font-size:var(--fs-xs);font-weight:700;margin-bottom:var(--sp-sm);">
+          🔒 Pilih <strong>Urutan Fasa</strong> di atas terlebih dahulu untuk mengisi data pengukuran.
+        </div>
         <div style="margin-top:var(--sp-sm);">
           <div class="form-label" style="margin-bottom:var(--sp-xs);">⚡ Arus Total (A)</div>
           <div class="grid2">
@@ -3066,7 +3071,8 @@ input[type=number]{-moz-appearance:textfield;}
             </div>
           </div>
         </div>
-      </div>
+      </div><!-- /fi-pengukuran-section -->
+      </div><!-- /card pengukuran trafo -->
 
       <!-- 4. Jurusan (dynamic, 1–6) -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin:var(--sp-md) 0 var(--sp-sm);">
@@ -6796,6 +6802,8 @@ function fiUpdatePhaseSeqStatus() {
   var sel = document.getElementById('fi-phase-sequence');
   var statusEl = document.getElementById('fi-phase-seq-status');
   var warnEl = document.getElementById('fi-phase-seq-warn');
+  var sectionEl = document.getElementById('fi-pengukuran-section');
+  var overlayEl = document.getElementById('fi-lock-overlay');
   if (!sel || !statusEl || !warnEl) return;
   var val = sel.value;
   if (!val) {
@@ -6804,18 +6812,27 @@ function fiUpdatePhaseSeqStatus() {
     statusEl.style.borderColor = 'var(--pln-border)';
     statusEl.textContent = 'Pilih urutan fasa terlebih dahulu';
     warnEl.style.display = 'none';
+    // LOCK section pengukuran
+    if (sectionEl) { sectionEl.style.opacity = '0.35'; sectionEl.style.pointerEvents = 'none'; sectionEl.style.userSelect = 'none'; }
+    if (overlayEl) overlayEl.style.display = 'flex';
   } else if (val === 'RST') {
     statusEl.style.background = '#D1FAE5';
     statusEl.style.color = '#065F46';
     statusEl.style.borderColor = '#10B981';
     statusEl.textContent = '✅ RST — Normal (Searah Jarum Jam / Clockwise)';
     warnEl.style.display = 'none';
+    // UNLOCK section pengukuran
+    if (sectionEl) { sectionEl.style.opacity = '1'; sectionEl.style.pointerEvents = ''; sectionEl.style.userSelect = ''; }
+    if (overlayEl) overlayEl.style.display = 'none';
   } else if (val === 'SRT') {
     statusEl.style.background = '#FEF3C7';
     statusEl.style.color = '#92400E';
     statusEl.style.borderColor = '#F59E0B';
     statusEl.textContent = '⚠️ SRT — Terbalik! (Berlawanan Jarum Jam / Counter-Clockwise)';
     warnEl.style.display = 'block';
+    // UNLOCK section pengukuran (tetap bisa isi meski terbalik)
+    if (sectionEl) { sectionEl.style.opacity = '1'; sectionEl.style.pointerEvents = ''; sectionEl.style.userSelect = ''; }
+    if (overlayEl) overlayEl.style.display = 'none';
   }
 }
 
@@ -6864,6 +6881,8 @@ function fiValidate() {
 
   if (!document.getElementById('fi-jam').value) errs.push('Jam ukur wajib diisi.');
   if (!document.getElementById('fi-petugas').value.trim()) errs.push('Nama petugas wajib diisi.');
+  var psEl = document.getElementById('fi-phase-sequence');
+  if (!psEl || !psEl.value) errs.push('Urutan Fasa (Phase Sequence) wajib dipilih sebelum mengisi data pengukuran.');
   var rA = parseFloat(document.getElementById('fi-r-total').value);
   var sA = parseFloat(document.getElementById('fi-s-total').value);
   var tA = parseFloat(document.getElementById('fi-t-total').value);
