@@ -2782,39 +2782,6 @@ input[type=number]{-moz-appearance:textfield;}
         </div>
       </div>
 
-      <div class="sec">📝 Catatan / Temuan Pekerjaan</div>
-      <div class="card">
-        <div class="form-group" style="margin-bottom:0;">
-          <label class="form-label">Catatan <span class="req">*</span></label>
-          <textarea
-            class="form-input"
-            id="pm-catatan"
-            rows="4"
-            placeholder="Tuliskan temuan, kondisi gardu, hasil pekerjaan, atau catatan penting lainnya..."
-            style="resize:vertical;min-height:96px;font-family:inherit;line-height:1.5;"
-          ></textarea>
-        </div>
-      </div>
-
-      <div class="sec">📸 Foto Dokumentasi</div>
-      <div class="card">
-        <div class="form-group" style="margin-bottom:0;">
-          <label class="form-label">Foto <span class="req">*</span> <span style="font-weight:400;color:var(--pln-text3);font-size:var(--fs-xs);">(maks. 5 MB/foto, JPG/PNG/WEBP)</span></label>
-
-          <div id="pm-foto-preview" style="display:none;flex-wrap:wrap;gap:8px;margin-bottom:var(--sp-sm);"></div>
-
-          <input type="file" id="pm-foto-input" accept="image/jpeg,image/jpg,image/png,image/webp,image/heic" multiple style="display:none;" onchange="pmOnFotoSelected(this)">
-          <button type="button" onclick="document.getElementById('pm-foto-input').click()"
-            style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:var(--sp-sm) var(--sp-md);border:2px dashed var(--pln-border);border-radius:var(--radius-sm);background:var(--pln-bg);color:var(--pln-biru2);font-size:var(--fs-sm);font-weight:600;cursor:pointer;transition:border-color .15s,background .15s;"
-            id="pm-foto-btn"
-            onmouseover="this.style.borderColor='var(--pln-biru2)';this.style.background='#EEF4FF';"
-            onmouseout="this.style.borderColor='var(--pln-border)';this.style.background='var(--pln-bg)';">
-            📷 Pilih Foto
-          </button>
-          <div id="pm-foto-count" style="margin-top:6px;font-size:var(--fs-xs);color:var(--pln-text3);">Belum ada foto dipilih.</div>
-        </div>
-      </div>
-
       <div id="pm-submit-msg" style="display:none;margin-bottom:var(--sp-sm);padding:var(--sp-sm) var(--sp-md);border-radius:var(--radius-sm);font-size:var(--fs-sm);font-weight:600;border:1px solid;"></div>
 
     </div><!-- /padding body -->
@@ -2956,7 +2923,7 @@ input[type=number]{-moz-appearance:textfield;}
           </div>
 
           <div id="fi-phase-seq-warn" style="display:none;margin-top:6px;padding:8px 10px;border-radius:var(--radius-xs);font-size:var(--fs-xs);font-weight:600;background:#FEF3C7;color:#92400E;border:1.5px solid #F59E0B;">
-            ⚠️ <strong>Urutan Fasa Terbalik!>
+            ⚠️ <strong>Urutan Fasa Terbalik!</strong>
           </div>
         </div>
 
@@ -3836,7 +3803,8 @@ input[type=number]{-moz-appearance:textfield;}
     </div>
 
     <div id="ei-phase-seq-warn" style="display:none;margin-bottom:var(--sp-md);padding:8px 10px;border-radius:var(--radius-xs);font-size:var(--fs-xs);font-weight:600;background:#FEF3C7;color:#92400E;border:1.5px solid #F59E0B;">
-      ⚠️ <strong>Urutan Fasa Terbalik!
+      ⚠️ <strong>Urutan Fasa Terbalik!</strong>
+    </div>
 
     <!-- Daya -->
     <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:var(--pln-biru-pale);border-radius:6px;">🔋 Daya</div>
@@ -3981,23 +3949,6 @@ input[type=number]{-moz-appearance:textfield;}
       <label class="form-label">📝 Uraian Jenis Pekerjaan</label>
       <input type="text" id="ep-jenis-lainnya" class="form-input" placeholder="Tuliskan jenis pekerjaan...">
     </div>
-    <div class="form-group">
-      <label class="form-label">📝 Catatan / Temuan <span class="req">*</span></label>
-      <textarea id="ep-catatan" class="form-input" rows="3" placeholder="Temuan, kondisi gardu, hasil pekerjaan..." style="resize:vertical;min-height:72px;font-family:inherit;line-height:1.5;"></textarea>
-    </div>
-    <div class="form-group" style="margin-bottom:0;">
-      <label class="form-label">📸 Foto Dokumentasi <span style="font-weight:400;color:var(--pln-text3);font-size:var(--fs-xs);">(maks. 5 MB/foto)</span></label>
-      <div id="ep-foto-existing" style="display:none;flex-wrap:wrap;gap:8px;margin-bottom:8px;"></div>
-      <div id="ep-foto-preview" style="display:none;flex-wrap:wrap;gap:8px;margin-bottom:8px;"></div>
-      <input type="file" id="ep-foto-input" accept="image/jpeg,image/jpg,image/png,image/webp,image/heic" multiple style="display:none;" onchange="epOnFotoSelected(this)">
-      <button type="button" onclick="document.getElementById('ep-foto-input').click()"
-        style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:8px 12px;border:2px dashed var(--pln-border);border-radius:var(--radius-sm);background:var(--pln-bg);color:var(--pln-biru2);font-size:var(--fs-sm);font-weight:600;cursor:pointer;"
-        id="ep-foto-btn">
-        📷 Tambah Foto Baru
-      </button>
-      <div id="ep-foto-count" style="margin-top:6px;font-size:var(--fs-xs);color:var(--pln-text3);"></div>
-    </div>
-    <div style="height:12px;"></div>
     <div id="edit-pm-err" style="display:none;background:var(--pln-red-pale);color:var(--pln-red);border-radius:var(--radius-xs);padding:8px 12px;font-size:var(--fs-xs);margin-bottom:8px;"></div>
     <div id="edit-pm-ok" style="display:none;background:var(--pln-green-pale);color:var(--pln-green);border-radius:var(--radius-xs);padding:8px 12px;font-size:var(--fs-xs);margin-bottom:8px;"></div>
     <div class="btn-row">
@@ -7824,20 +7775,6 @@ function bukaEditPemeliharaan(id, d) {
   }
   document.getElementById('edit-pm-err').style.display = 'none';
   document.getElementById('edit-pm-ok').style.display = 'none';
-
-  // Catatan
-  var epCatatanEl = document.getElementById('ep-catatan');
-  if (epCatatanEl) epCatatanEl.value = d.catatan || '';
-
-  // Foto existing dari database
-  _epFotoExisting = Array.isArray(d.foto_urls) ? d.foto_urls.slice() :
-    (d.foto_urls && typeof d.foto_urls === 'string'
-      ? JSON.parse(d.foto_urls)
-      : []);
-  _epFotoNew = [];
-  epRenderFotoExisting();
-  epRenderFotoPreview();
-
   document.getElementById('modal-edit-pemeliharaan').style.display = 'flex';
 }
 
@@ -7875,7 +7812,6 @@ function simpanEditPemeliharaan() {
   var jenis = jenisSel === 'Lainnya'
     ? document.getElementById('ep-jenis-lainnya').value.trim()
     : jenisSel;
-  var catatan = (document.getElementById('ep-catatan').value || '').trim();
   var errEl = document.getElementById('edit-pm-err');
   var okEl = document.getElementById('edit-pm-ok');
   errEl.style.display = 'none'; okEl.style.display = 'none';
@@ -7888,155 +7824,26 @@ function simpanEditPemeliharaan() {
   if (_epTglD > _epToday)        { errEl.textContent = '⚠️ Tanggal tidak boleh melebihi hari ini.'; errEl.style.display = 'block'; return; }
   if (_epTglD < _epMinD)         { errEl.textContent = '⚠️ Tanggal terlalu lama (lebih dari 5 tahun ke belakang).'; errEl.style.display = 'block'; return; }
   if (!petugas) { errEl.textContent = '⚠️ Nama petugas wajib diisi.'; errEl.style.display = 'block'; return; }
-  if (!jenis)   { errEl.textContent = '⚠️ Jenis pekerjaan wajib diisi.'; errEl.style.display = 'block'; return; }
-  if (!catatan) { errEl.textContent = '⚠️ Catatan / Temuan wajib diisi.'; errEl.style.display = 'block'; return; }
-  // Cek total foto (existing yang tersisa + baru) minimal 1
-  var totalFoto = (_epFotoExisting ? _epFotoExisting.length : 0) + (_epFotoNew ? _epFotoNew.length : 0);
-  if (totalFoto < 1) { errEl.textContent = '⚠️ Minimal 1 foto dokumentasi wajib ada.'; errEl.style.display = 'block'; return; }
-
+  if (!jenis) { errEl.textContent = '⚠️ Jenis pekerjaan wajib diisi.'; errEl.style.display = 'block'; return; }
   var btn = document.getElementById('btn-simpan-edit-pm');
-  btn.disabled = true; btn.textContent = '⏳ Mengupload...';
-
-  // Upload foto baru, lalu gabungkan dengan URL existing
-  (async function() {
-    var uploadedUrls = (_epFotoExisting || []).slice();
-    try {
-      for (var fi = 0; fi < (_epFotoNew || []).length; fi++) {
-        btn.textContent = '⏳ Upload foto ' + (fi+1) + '/' + _epFotoNew.length + '...';
-        var uploadRes = await uploadFotoPemeliharaan(_epFotoNew[fi]);
-        if (uploadRes.status !== 'ok') {
-          errEl.textContent = '❌ Gagal upload foto ' + (fi+1) + ': ' + uploadRes.message;
-          errEl.style.display = 'block';
-          btn.disabled = false; btn.textContent = '💾 Simpan Perubahan';
-          return;
-        }
-        uploadedUrls.push(uploadRes.url);
-      }
-    } catch (err) {
-      errEl.textContent = '❌ Upload gagal: ' + (err.message || 'Error tidak diketahui');
-      errEl.style.display = 'block';
-      btn.disabled = false; btn.textContent = '💾 Simpan Perubahan';
-      return;
+  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+  apiGet({
+    action: 'editPemeliharaan', token: s.token, id: id,
+    tanggal: tanggal, petugas: petugas, kategori: kategori, jenis: jenis
+  }, function(res) {
+    btn.disabled = false; btn.textContent = '💾 Simpan Perubahan';
+    if (res.status !== 'ok') {
+      errEl.textContent = '❌ ' + userFriendlyError(res.message, 'Gagal menyimpan.');
+      errEl.style.display = 'block'; return;
     }
-
-    btn.textContent = '⏳ Menyimpan...';
-    apiGet({
-      action: 'editPemeliharaan', token: s.token, id: id,
-      tanggal: tanggal, petugas: petugas, kategori: kategori, jenis: jenis,
-      catatan: catatan, fotoUrls: uploadedUrls
-    }, function(res) {
-      btn.disabled = false; btn.textContent = '💾 Simpan Perubahan';
-      if (res.status !== 'ok') {
-        errEl.textContent = '❌ ' + userFriendlyError(res.message, 'Gagal menyimpan.');
-        errEl.style.display = 'block'; return;
-      }
-      okEl.textContent = '✅ Data pemeliharaan berhasil diperbarui!';
-      okEl.style.display = 'block';
-      setTimeout(function() {
-        document.getElementById('modal-edit-pemeliharaan').style.display = 'none';
-        _pmSudahMuat = false;
-        muatDaftarPemeliharaan(true);
-      }, 1200);
-    });
-  })();
-}
-
-// ── State foto untuk modal edit pemeliharaan ───────────────────
-var _epFotoExisting = []; // URL yang sudah tersimpan di DB (JSONB)
-var _epFotoNew      = []; // File object baru dari user
-
-function epOnFotoSelected(input) {
-  var files = Array.from(input.files || []);
-  if (!files.length) return;
-  var errors = [];
-  files.forEach(function(f) {
-    if (f.size > PM_FOTO_MAX_SIZE_MB * 1024 * 1024) {
-      errors.push(f.name + ' melebihi ' + PM_FOTO_MAX_SIZE_MB + ' MB');
-      return;
-    }
-    var totalNow = (_epFotoExisting.length) + (_epFotoNew.length);
-    if (totalNow >= PM_FOTO_MAX_COUNT) {
-      errors.push('Maksimal ' + PM_FOTO_MAX_COUNT + ' foto per record');
-      return;
-    }
-    _epFotoNew.push(f);
+    okEl.textContent = '✅ Data pemeliharaan berhasil diperbarui!';
+    okEl.style.display = 'block';
+    setTimeout(function() {
+      document.getElementById('modal-edit-pemeliharaan').style.display = 'none';
+      _pmSudahMuat = false;
+      muatDaftarPemeliharaan(true);
+    }, 1200);
   });
-  input.value = '';
-  if (errors.length) {
-    var errEl = document.getElementById('edit-pm-err');
-    if (errEl) { errEl.textContent = '⚠️ ' + errors.join('; '); errEl.style.display = 'block'; }
-  }
-  epRenderFotoPreview();
-  epUpdateFotoCount();
-}
-
-function epRenderFotoExisting() {
-  var wrap = document.getElementById('ep-foto-existing');
-  if (!wrap) return;
-  wrap.innerHTML = '';
-  if (!_epFotoExisting || !_epFotoExisting.length) { wrap.style.display = 'none'; return; }
-  wrap.style.display = 'flex';
-  _epFotoExisting.forEach(function(url, idx) {
-    var thumb = document.createElement('div');
-    thumb.style.cssText = 'position:relative;width:72px;height:72px;border-radius:var(--radius-xs);overflow:hidden;border:1px solid var(--pln-border);flex-shrink:0;';
-    var img = document.createElement('img');
-    img.src = url;
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-    img.loading = 'lazy';
-    var del = document.createElement('button');
-    del.type = 'button'; del.innerHTML = '✕'; del.title = 'Hapus foto ini';
-    del.style.cssText = 'position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;';
-    del.onclick = (function(i) {
-      return function() {
-        _epFotoExisting.splice(i, 1);
-        epRenderFotoExisting();
-        epUpdateFotoCount();
-      };
-    })(idx);
-    thumb.appendChild(img); thumb.appendChild(del);
-    wrap.appendChild(thumb);
-  });
-}
-
-function epRenderFotoPreview() {
-  var wrap = document.getElementById('ep-foto-preview');
-  if (!wrap) return;
-  wrap.innerHTML = '';
-  if (!_epFotoNew || !_epFotoNew.length) { wrap.style.display = 'none'; epUpdateFotoCount(); return; }
-  wrap.style.display = 'flex';
-  _epFotoNew.forEach(function(file, idx) {
-    var thumb = document.createElement('div');
-    thumb.style.cssText = 'position:relative;width:72px;height:72px;border-radius:var(--radius-xs);overflow:hidden;border:2px solid var(--pln-biru2);flex-shrink:0;';
-    var img = document.createElement('img');
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-    img.src = URL.createObjectURL(file);
-    img.onload = function() { URL.revokeObjectURL(this.src); };
-    var del = document.createElement('button');
-    del.type = 'button'; del.innerHTML = '✕'; del.title = 'Hapus foto baru ini';
-    del.style.cssText = 'position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;';
-    del.onclick = (function(i) {
-      return function() {
-        _epFotoNew.splice(i, 1);
-        epRenderFotoPreview();
-      };
-    })(idx);
-    thumb.appendChild(img); thumb.appendChild(del);
-    wrap.appendChild(thumb);
-  });
-  epUpdateFotoCount();
-}
-
-function epUpdateFotoCount() {
-  var el = document.getElementById('ep-foto-count');
-  if (!el) return;
-  var totalEx  = _epFotoExisting ? _epFotoExisting.length : 0;
-  var totalNew = _epFotoNew ? _epFotoNew.length : 0;
-  var total    = totalEx + totalNew;
-  if (total === 0) { el.textContent = 'Belum ada foto.'; return; }
-  var parts = [];
-  if (totalEx)  parts.push(totalEx  + ' tersimpan');
-  if (totalNew) parts.push(totalNew + ' baru');
-  el.textContent = total + ' foto (' + parts.join(', ') + ')';
 }
 
 
@@ -10726,83 +10533,6 @@ var PM_JENIS = {
   'NON PLN': ['Pemeliharaan Rutin Berkala','Pembersihan Panel & Trafo','Pengencangan Sambungan','Pengecekan Proteksi','Perbaikan Kabel','Penggantian Komponen','Overhaul Trafo','Penggantian Minyak Trafo','Inspeksi Visual','Perbaikan Darurat','Pelayanan Pelanggan PLN']
 };
 
-// ── State foto untuk form pemeliharaan ─────────────────────────
-var _pmFotoFiles = []; // Array of File objects (belum diupload)
-var PM_FOTO_MAX_SIZE_MB = 5;
-var PM_FOTO_MAX_COUNT   = 10; // batas wajar per record
-
-function pmOnFotoSelected(input) {
-  var files = Array.from(input.files || []);
-  if (!files.length) return;
-
-  var errors = [];
-  files.forEach(function(f) {
-    if (f.size > PM_FOTO_MAX_SIZE_MB * 1024 * 1024) {
-      errors.push(f.name + ' melebihi ' + PM_FOTO_MAX_SIZE_MB + ' MB');
-      return;
-    }
-    if (_pmFotoFiles.length >= PM_FOTO_MAX_COUNT) {
-      errors.push('Maksimal ' + PM_FOTO_MAX_COUNT + ' foto per record');
-      return;
-    }
-    _pmFotoFiles.push(f);
-  });
-
-  input.value = '';
-
-  if (errors.length) {
-    pmShowErr('⚠️ ' + errors.join('; '));
-  }
-
-  pmRenderFotoPreview();
-  _pmMarkDirty();
-}
-
-function pmRenderFotoPreview() {
-  var wrap  = document.getElementById('pm-foto-preview');
-  var count = document.getElementById('pm-foto-count');
-  if (!wrap) return;
-
-  wrap.innerHTML = '';
-
-  if (_pmFotoFiles.length === 0) {
-    wrap.style.display = 'none';
-    if (count) count.textContent = 'Belum ada foto dipilih.';
-    return;
-  }
-
-  wrap.style.display = 'flex';
-
-  _pmFotoFiles.forEach(function(file, idx) {
-    var thumb = document.createElement('div');
-    thumb.style.cssText = 'position:relative;width:72px;height:72px;border-radius:var(--radius-xs);overflow:hidden;border:1px solid var(--pln-border);flex-shrink:0;';
-
-    var img = document.createElement('img');
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-    img.src = URL.createObjectURL(file);
-    img.onload = function() { URL.revokeObjectURL(this.src); };
-
-    var del = document.createElement('button');
-    del.type = 'button';
-    del.innerHTML = '✕';
-    del.title = 'Hapus foto ini';
-    del.style.cssText = 'position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;';
-    del.onclick = (function(i) {
-      return function() {
-        _pmFotoFiles.splice(i, 1);
-        pmRenderFotoPreview();
-        _pmMarkDirty();
-      };
-    })(idx);
-
-    thumb.appendChild(img);
-    thumb.appendChild(del);
-    wrap.appendChild(thumb);
-  });
-
-  if (count) count.textContent = _pmFotoFiles.length + ' foto dipilih.';
-}
-
 // Auto-fill ULP & UNIT dari garduIndex saat user mengetik no. gardu manual
 function pmOnGarduInput(val) {
   if (!val || val.length < 3) return;
@@ -10930,14 +10660,6 @@ function pmResetForm() {
   if (el) el.selectedIndex = 0;
   el = document.getElementById('pm-jenis');
   if (el) { el.innerHTML = '<option value="">— Pilih Unit Terlebih Dahulu —</option>'; }
-  // Reset catatan
-  el = document.getElementById('pm-catatan');
-  if (el) el.value = '';
-  // Reset foto
-  _pmFotoFiles = [];
-  pmRenderFotoPreview();
-  el = document.getElementById('pm-foto-input');
-  if (el) el.value = '';
   var gi = document.getElementById('pm-gardu-info');
   if (gi) gi.style.display = 'none';
   var msg = document.getElementById('pm-submit-msg');
@@ -10980,7 +10702,6 @@ async function pmSubmit() {
   var petugas  = (document.getElementById('pm-petugas').value  || '').trim();
   var kategori = (document.getElementById('pm-kategori').value || '').trim();
   var jenis    = (document.getElementById('pm-jenis').value    || '').trim();
-  var catatan  = (document.getElementById('pm-catatan').value  || '').trim();
 
   if (!noGardu)  { pmShowErr('No. Gardu wajib diisi.');        return; }
   if (!ulp)      { pmShowErr('ULP wajib diisi.');       return; }
@@ -10995,37 +10716,11 @@ async function pmSubmit() {
   if (!petugas)  { pmShowErr('Nama Petugas wajib diisi.');     return; }
   if (!kategori) { pmShowErr('Unit (PLN/NON PLN) wajib dipilih.');       return; }
   if (!jenis)    { pmShowErr('Jenis Pekerjaan wajib dipilih.'); return; }
-  if (!catatan)  { pmShowErr('Catatan / Temuan Pekerjaan wajib diisi.'); return; }
-  if (_pmFotoFiles.length === 0) { pmShowErr('Minimal 1 foto dokumentasi wajib dilampirkan.'); return; }
 
   var savingEl = document.getElementById('pm-saving-indicator');
   var btn      = document.getElementById('pm-btn-simpan');
-  if (savingEl) { savingEl.style.display = ''; savingEl.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;border-top-color:#fff;display:inline-block;vertical-align:middle;margin-right:4px;"></div>Mengupload foto...'; }
-  if (btn)      { btn.disabled = true; btn.textContent = '⏳ Mengupload...'; }
-
-  // ── Upload semua foto ke Supabase Storage ──────────────────
-  var uploadedUrls = [];
-  try {
-    for (var fi = 0; fi < _pmFotoFiles.length; fi++) {
-      var uploadRes = await uploadFotoPemeliharaan(_pmFotoFiles[fi]);
-      if (uploadRes.status !== 'ok') {
-        if (savingEl) savingEl.style.display = 'none';
-        if (btn)      { btn.disabled = false; btn.textContent = '💾 Simpan Data'; }
-        pmShowErr('Gagal upload foto ' + (fi + 1) + ': ' + uploadRes.message);
-        return;
-      }
-      uploadedUrls.push(uploadRes.url);
-      if (savingEl) savingEl.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;border-top-color:#fff;display:inline-block;vertical-align:middle;margin-right:4px;"></div>Upload foto ' + (fi+1) + '/' + _pmFotoFiles.length + '...';
-    }
-  } catch (uploadErr) {
-    if (savingEl) savingEl.style.display = 'none';
-    if (btn)      { btn.disabled = false; btn.textContent = '💾 Simpan Data'; }
-    pmShowErr('Upload foto gagal: ' + (uploadErr.message || 'Error tidak diketahui'));
-    return;
-  }
-
-  if (savingEl) savingEl.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;border-top-color:#fff;display:inline-block;vertical-align:middle;margin-right:4px;"></div>Menyimpan...';
-  if (btn)      btn.textContent = '⏳ Menyimpan...';
+  if (savingEl) savingEl.style.display = '';
+  if (btn)      { btn.disabled = true; btn.textContent = '⏳ Menyimpan...'; }
 
   var params = {
     action:    'tambahPemeliharaan',
@@ -11035,9 +10730,7 @@ async function pmSubmit() {
     tanggal:   tanggal,
     petugas:   petugas,
     kategori:  kategori,
-    jenis:     jenis,
-    catatan:   catatan,
-    fotoUrls:  uploadedUrls
+    jenis:     jenis
   };
 
   apiGet(params, function(res) {
@@ -11075,45 +10768,6 @@ function pmShowErr(msg) {
   el.innerHTML = '<span class="alert-icon">⚠️</span><span class="alert-text">' + esc(msg) + '</span>';
   document.body.appendChild(el);
   setTimeout(function(){ if(el.parentNode) el.remove(); }, 2500);
-}
-
-// ── Lightbox viewer foto pemeliharaan ─────────────────────────
-function pmLihatFoto(url) {
-  var existing = document.getElementById('pm-foto-lightbox');
-  if (existing) existing.remove();
-  var overlay = document.createElement('div');
-  overlay.id = 'pm-foto-lightbox';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
-  overlay.onclick = function() { overlay.remove(); };
-
-  var img = document.createElement('img');
-  img.src = url;
-  img.style.cssText = 'max-width:94vw;max-height:88vh;border-radius:6px;box-shadow:0 4px 32px rgba(0,0,0,.5);object-fit:contain;cursor:default;';
-  img.onclick = function(e) { e.stopPropagation(); };
-
-  var closeBtn = document.createElement('button');
-  closeBtn.innerHTML = '✕';
-  closeBtn.title = 'Tutup';
-  closeBtn.style.cssText = 'position:absolute;top:16px;right:20px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:22px;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;';
-  closeBtn.onclick = function() { overlay.remove(); };
-
-  var downloadBtn = document.createElement('a');
-  downloadBtn.href = url;
-  downloadBtn.download = '';
-  downloadBtn.target = '_blank';
-  downloadBtn.innerHTML = '⬇ Unduh';
-  downloadBtn.style.cssText = 'position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:var(--pln-biru2);color:#fff;padding:8px 20px;border-radius:20px;font-size:13px;font-weight:700;text-decoration:none;';
-  downloadBtn.onclick = function(e) { e.stopPropagation(); };
-
-  overlay.appendChild(img);
-  overlay.appendChild(closeBtn);
-  overlay.appendChild(downloadBtn);
-  document.body.appendChild(overlay);
-
-  var escHandler = function(e) {
-    if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escHandler); }
-  };
-  document.addEventListener('keydown', escHandler);
 }
 
 // ── Muat daftar pemeliharaan ────────────────────────────────────
@@ -11278,10 +10932,7 @@ function renderDaftarPemeliharaan() {
           + '<div><div class="lbl">Jenis</div><div class="val-sm">' + esc(d.jenis||'—') + '</div></div>'
           + '<div><div class="lbl">Petugas</div><div class="val-sm">' + esc(d.petugas||'—') + '</div></div>'
           + '<div><div class="lbl">Unit</div><div class="val-sm">' + esc(d.ulp||'—') + '</div></div>'
-        + '</div>'
-        + (d.catatan ? '<div style="margin-top:8px;padding:6px 8px;background:var(--pln-bg);border-radius:var(--radius-xs);border-left:3px solid var(--pln-biru2);font-size:var(--fs-xs);color:var(--pln-text2);line-height:1.5;word-break:break-word;">📝 ' + esc(d.catatan) + '</div>' : '')
-        + (d.foto_urls && (Array.isArray(d.foto_urls) ? d.foto_urls : []).length > 0 ? '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">' + (Array.isArray(d.foto_urls) ? d.foto_urls : []).map(function(url){ return '<img src="' + url + '" loading="lazy" style="width:56px;height:56px;object-fit:cover;border-radius:4px;border:1px solid var(--pln-border);cursor:pointer;" onclick="pmLihatFoto(\'' + url + '\')" title="Lihat foto">'; }).join('') + '</div>' : '')
-        + '</div></div>';
+        + '</div></div></div>';
     });
   } else {
     // ── Desktop table view ──
@@ -11289,7 +10940,7 @@ function renderDaftarPemeliharaan() {
     html += '<div style="overflow-x:auto;">';
     html += '<table style="width:100%;border-collapse:collapse;font-size:var(--fs-xs);">';
     html += '<thead><tr style="background:var(--pln-biru);color:#fff;">';
-    var headers = ['NO','NO GARDU','ULP','TANGGAL','PETUGAS','UNIT','JENIS PEKERJAAN','CATATAN','FOTO'];
+    var headers = ['NO','NO GARDU','ULP','TANGGAL','PETUGAS','UNIT','JENIS PEKERJAAN'];
     if (_anyEditPm || _anyDeletePm) headers.push('AKSI');
     headers.forEach(function(h) {
       html += '<th style="padding:10px 12px;text-align:left;white-space:nowrap;font-weight:700;font-size:11px;letter-spacing:.3px;">'+h+'</th>';
@@ -11311,13 +10962,6 @@ function renderDaftarPemeliharaan() {
       html += '<td style="padding:9px 12px;">'+esc(d.petugas||'—')+'</td>';
       html += '<td style="padding:9px 12px;">'+esc(d.kategori||'—')+'</td>';
       html += '<td style="padding:9px 12px;">'+esc(d.jenis||'—')+'</td>';
-      html += '<td style="padding:9px 12px;max-width:200px;word-break:break-word;line-height:1.4;">'+esc(d.catatan||'—')+'</td>';
-      var _fotoArr = Array.isArray(d.foto_urls) ? d.foto_urls : [];
-      html += '<td style="padding:9px 12px;">'
-        + (_fotoArr.length ? '<div style="display:flex;flex-wrap:wrap;gap:3px;">'
-            + _fotoArr.map(function(u){ return '<img src="'+u+'" loading="lazy" style="width:36px;height:36px;object-fit:cover;border-radius:3px;border:1px solid var(--pln-border);cursor:pointer;" onclick="pmLihatFoto(\'' + u + '\')" title="Lihat foto">'; }).join('')
-            + '</div>' : '<span style="color:var(--pln-text3);">—</span>')
-        + '</td>';
       if (_anyEditPm || _anyDeletePm) {
         html += '<td style="padding:9px 12px;">';
         if (d.id != null) {
@@ -12484,22 +12128,22 @@ function exportPemeliharaanExcel() {
         views: [{ state:'frozen', ySplit:4 }]
       });
       ws2.columns = [
-        {width:5},{width:18},{width:13},{width:15},{width:26},{width:18},{width:40},{width:50},{width:60}
+        {width:5},{width:18},{width:13},{width:15},{width:26},{width:18},{width:50}
       ];
 
-      ws2.mergeCells('A1:I1');
+      ws2.mergeCells('A1:G1');
       ws2.getCell('A1').value = 'PT. PLN (PERSERO) UP3 JAYAPURA — DATA LENGKAP PEMELIHARAAN GARDU';
       ws2.getCell('A1').style = { font:{bold:true,size:13,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnBlue}}, alignment:{horizontal:'center',vertical:'middle'} };
       ws2.getRow(1).height = 26;
 
-      ws2.mergeCells('A2:I2');
+      ws2.mergeCells('A2:G2');
       ws2.getCell('A2').value = 'Periode: '+periodeStr+' | ULP: '+ulpLabel+' | Dicetak: '+tglCetak;
       ws2.getCell('A2').style = { font:{size:9,color:{argb:C.grayTxt},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnGold}}, alignment:{horizontal:'center',vertical:'middle'} };
       ws2.getRow(2).height = 16;
 
       ws2.getRow(3).height = 6;
 
-      var pmHdrs = ['NO','ULP','TANGGAL','NO GARDU','NAMA PETUGAS','UNIT\n(PLN/NON PLN)','JENIS PEKERJAAN','CATATAN / TEMUAN','FOTO DOKUMENTASI\n(URL)'];
+      var pmHdrs = ['NO','ULP','TANGGAL','NO GARDU','NAMA PETUGAS','UNIT\n(PLN/NON PLN)','JENIS PEKERJAAN'];
       var rPmHdr = ws2.getRow(4); rPmHdr.height = 36;
       pmHdrs.forEach(function(h,i){
         var cell = rPmHdr.getCell(i+1); cell.value = h;
@@ -12511,7 +12155,6 @@ function exportPemeliharaanExcel() {
         var rRow = ws2.getRow(rNum); rRow.height = 16;
         var isAlt = idx%2===1;
         var bg = isAlt ? C.altRow : C.white;
-        var fotoArr = Array.isArray(d.foto_urls) ? d.foto_urls : [];
         var vals = [
           idx+1,
           d.ulp       || 'UP3 JAYAPURA',
@@ -12519,16 +12162,14 @@ function exportPemeliharaanExcel() {
           d.no_gardu  || '',
           d.petugas   || '',
           d.kategori  || '',
-          d.jenis     || '',
-          d.catatan   || '',
-          fotoArr.join('\n')
+          d.jenis     || ''
         ];
         vals.forEach(function(v,ci){
           var cell = rRow.getCell(ci+1); cell.value = v;
           cell.style = {
             font:      { size:10, name:'Calibri', bold:ci===3 },
             fill:      { type:'pattern', pattern:'solid', fgColor:{argb:bg} },
-            alignment: { horizontal:ci===0?'center':ci===2?'center':ci===5?'center':'left', vertical:'middle', wrapText:(ci===6||ci===7||ci===8) },
+            alignment: { horizontal:ci===0?'center':ci===2?'center':ci===5?'center':'left', vertical:'middle', wrapText:ci===6 },
             border:    { top:{style:'thin',color:{argb:C.border}}, bottom:{style:'thin',color:{argb:C.border}}, left:{style:'thin',color:{argb:C.border}}, right:{style:'thin',color:{argb:C.border}} }
           };
         });
@@ -12537,7 +12178,7 @@ function exportPemeliharaanExcel() {
       // Baris total
       var totRowPm = ws2.getRow(5+data.length); totRowPm.height=16;
       var totCellPm = totRowPm.getCell(1);
-      ws2.mergeCells(5+data.length,1,5+data.length,9);
+      ws2.mergeCells(5+data.length,1,5+data.length,7);
       totCellPm.value = 'TOTAL: '+data.length+' data';
       totCellPm.style = { font:{bold:true,size:10,color:{argb:C.plnBlue},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.subHdrBg}}, alignment:{horizontal:'left',vertical:'middle'} };
 
