@@ -1354,13 +1354,15 @@ function _mapInspeksiRow(r) {
 // ── TAMBAH PEMELIHARAAN via RPC ───────────────────────────────
 async function _tambahPemeliharaan(p, signal) {
   var data = await rpcCall('fn_tambah_pemeliharaan', {
-    p_token:    p.token,
-    p_no_gardu: (p.noGardu || '').trim().toUpperCase(),
-    p_ulp:      p.ulp      || null,
-    p_tanggal:  p.tanggal  || null,
-    p_petugas:  p.petugas  || null,
-    p_kategori: p.kategori || null,
-    p_jenis:    p.jenis    || null
+    p_token:     p.token,
+    p_no_gardu:  (p.noGardu || '').trim().toUpperCase(),
+    p_ulp:       p.ulp      || null,
+    p_tanggal:   p.tanggal  || null,
+    p_petugas:   p.petugas  || null,
+    p_kategori:  p.kategori || null,
+    p_jenis:     p.jenis    || null,
+    p_catatan:   p.catatan  || '',
+    p_foto_urls: Array.isArray(p.fotoUrls) ? p.fotoUrls : []
   }, signal);
 
   if (!data || data.status !== 'ok')
@@ -1375,6 +1377,7 @@ async function _getDaftarPemeliharaan(p, signal) {
   // berdasarkan role user (superadmin lihat semua, selain itu hanya ULP sendiri).
   // Filter tambahan (kategori, ulp) dilakukan di sisi klien setelah data diterima.
   // p_status TIDAK dikirim karena kolom status tidak ada di tabel pemeliharaan.
+  // catatan & foto_urls otomatis ikut di response RPC (sudah ditambahkan di fn_get_pemeliharaan).
   var rpcParams = {
     p_token:     p.token,
     p_no_gardu:  p.noGardu  ? (p.noGardu || '').trim().toUpperCase() : null,
@@ -1405,21 +1408,70 @@ async function _hapusPemeliharaan(p, signal) {
 }
 
 // ── EDIT PEMELIHARAAN via RPC ─────────────────────────────────
+// CATATAN: fn_edit_pemeliharaan TIDAK menerima p_ulp (ULP tidak bisa diedit,
+// sesuai signature SQL final). Jangan kirim p_ulp ke RPC ini.
+// p_catatan & p_foto_urls wajib diisi (validasi server-side menolak jika kosong).
 async function _editPemeliharaan(p, signal) {
   var data = await rpcCall('fn_edit_pemeliharaan', {
-    p_token:    p.token,
-    p_id:       parseInt(p.id),
-    p_ulp:      p.ulp      || null,
-    p_tanggal:  p.tanggal  || null,
-    p_petugas:  p.petugas  || null,
-    p_kategori: p.kategori || null,
-    p_jenis:    p.jenis    || null
+    p_token:     p.token,
+    p_id:        parseInt(p.id),
+    p_tanggal:   p.tanggal  || null,
+    p_petugas:   p.petugas  || null,
+    p_kategori:  p.kategori || null,
+    p_jenis:     p.jenis    || null,
+    p_catatan:   p.catatan  || '',
+    p_foto_urls: Array.isArray(p.fotoUrls) ? p.fotoUrls : []
   }, signal);
 
   if (!data || data.status !== 'ok')
     return { status: 'error', message: (data && data.message) || 'Gagal mengedit data pemeliharaan.' };
 
   return { status: 'ok', message: data.message };
+}
+
+// ── UPLOAD FOTO PEMELIHARAAN ke Supabase Storage ─────────────
+// Mengembalikan { status:'ok', url:'...', path:'...' } atau { status:'error', message:'...' }
+async function _uploadFotoPemeliharaan(file, signal) {
+  var ext  = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  var rand = Math.random().toString(36).slice(2, 8);
+  var ts   = Date.now();
+  var path = 'foto/' + ts + '_' + rand + '.' + ext;
+
+  var res = await fetch(SUPABASE_URL + '/storage/v1/object/pemeliharaan-foto/' + path, {
+    method:  'POST',
+    headers: {
+      'apikey':        SUPABASE_ANON,
+      'Authorization': 'Bearer ' + SUPABASE_ANON,
+      'Content-Type':  file.type || 'image/jpeg',
+      'x-upsert':      'false'
+    },
+    body:   file,
+    signal: signal
+  });
+
+  if (!res.ok) {
+    var errTxt = await res.text().catch(function() { return String(res.status); });
+    return { status: 'error', message: 'Gagal upload foto: ' + errTxt };
+  }
+
+  var publicUrl = SUPABASE_URL + '/storage/v1/object/public/pemeliharaan-foto/' + path;
+  return { status: 'ok', url: publicUrl, path: path };
+}
+
+// ── HAPUS FOTO PEMELIHARAAN dari Supabase Storage ─────────────
+// path = bagian setelah bucket, contoh: "foto/1234_abc.jpg"
+async function _hapusFotoPemeliharaan(path, signal) {
+  var res = await fetch(SUPABASE_URL + '/storage/v1/object/pemeliharaan-foto/' + path, {
+    method:  'DELETE',
+    headers: {
+      'apikey':        SUPABASE_ANON,
+      'Authorization': 'Bearer ' + SUPABASE_ANON
+    },
+    signal: signal
+  });
+  return res.ok
+    ? { status: 'ok' }
+    : { status: 'error', message: 'Gagal hapus foto (status ' + res.status + ')' };
 }
 
 // ── Override apiGet global ────────────────────────────────────
@@ -1431,4 +1483,6 @@ window.apiGet = function(params, cb) {
 };
 
 window._sbApiReady = true;
+window.uploadFotoPemeliharaan = _uploadFotoPemeliharaan;
+window.hapusFotoPemeliharaan  = _hapusFotoPemeliharaan;
 console.log('[Supabase API v8] Layer aktif. URL:', SUPABASE_URL);
