@@ -3345,7 +3345,7 @@ input[type=number]{-moz-appearance:textfield;}
       <button class="btn btn-outline" id="apbtn-user"     onclick="tutupPanelAdmin();bukaModalUser()">👥 Kelola User</button>
       <button class="btn btn-outline" id="apbtn-usulp"    onclick="tutupPanelAdmin();bukaModalUserULP()" style="display:none;">👥 Kelola User ULP Saya</button>
       <button class="btn btn-outline" id="apbtn-pin"      onclick="tutupPanelAdmin();bukaModalSetPin()">🔑 Set / Ganti PIN User</button>
-      <button class="btn btn-outline" id="apbtn-import"   onclick="tutupPanelAdmin();bukaModalCsvImport()">📥 Import Bulk Inspeksi</button>
+      <button class="btn btn-outline" id="apbtn-import"   onclick="tutupPanelAdmin();bukaModalCsvImport()">📥 Import Inspeksi</button>
       <button class="btn btn-red"     id="apbtn-logout"   onclick="doLogout()">🚪 Logout</button>
     </div>
   </div>
@@ -4526,7 +4526,7 @@ function _tampilkanPanelAdmin(s) {
     importBtn = document.createElement('button');
     importBtn.id        = 'apbtn-import';
     importBtn.className = 'btn btn-outline';
-    importBtn.textContent = '📥 Import Bulk Inspeksi';
+    importBtn.textContent = '📥 Import Inspeksi';
     importBtn.onclick = function() {
       var ap = document.getElementById('modal-admin-panel');
       if (ap) ap.style.display = 'none';
@@ -12622,7 +12622,7 @@ if ('serviceWorker' in navigator) {
 </script>
 
 <!-- ============================================================
-     MODAL: Import Bulk Inspeksi (Superadmin Only)
+     MODAL: Import Inspeksi (Superadmin Only)
      ============================================================ -->
 <div id="modal-csv-import" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(10,45,107,.55);backdrop-filter:blur(6px);flex-direction:column;align-items:center;justify-content:center;overflow:hidden;">
   <!-- Modal sheet -->
@@ -12632,7 +12632,7 @@ if ('serviceWorker' in navigator) {
     <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
       <div style="background:rgba(255,255,255,.18);border-radius:10px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;letter-spacing:-.5px;flex-shrink:0;">PLN</div>
       <div style="min-width:0;">
-        <div style="font-size:15px;font-weight:700;color:#fff;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Import Bulk Inspeksi</div>
+        <div style="font-size:15px;font-weight:700;color:#fff;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Import Inspeksi</div>
         <div style="font-size:11px;color:rgba(255,255,255,.55);letter-spacing:.3px;text-transform:uppercase;font-weight:500;">UP3 Jayapura · CSV / XLS / XLSX · Superadmin Only</div>
       </div>
     </div>
@@ -12812,7 +12812,7 @@ if ('serviceWorker' in navigator) {
 <script id="ci-import-script">
 
 // ============================================================
-//  Import Bulk Inspeksi — integrated into PLN Manajemen Gardu
+//  Import Inspeksi — integrated into PLN Manajemen Gardu
 //  Superadmin only
 // ============================================================
 (function() {
