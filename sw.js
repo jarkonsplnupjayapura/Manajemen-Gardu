@@ -1,36 +1,115 @@
 // ============================================================
-//  sw.js — Service Worker minimal
+//  sw.js — Service Worker OFFLINE-FIRST + Background Sync
 //  PLN UP3 Jayapura — Monitoring Gardu
 //
-//  Tujuan: HANYA Background Sync — kirim ulang data yang antri
-//  saat jaringan petugas terputus, tanpa cache aset apapun.
+//  Tujuan:
+//  1) App-shell (index.html, manifest.json, supabase-api.js, icon)
+//     bisa dibuka TANPA internet (offline-first), dengan strategi
+//     "Network First, fallback ke Cache" → saat online tetap ambil
+//     versi terbaru dari server, saat offline langsung disajikan
+//     dari cache.
+//  2) Background Sync tetap seperti semula → kirim ulang data
+//     antrian IndexedDB begitu jaringan kembali online.
 //
-//  Keunggulan pendekatan minimal ini:
-//  - Tidak ada masalah cache lama saat deploy baru → tidak perlu
-//    bump versi, tidak perlu hapus cache browser manual
-//  - Browser selalu ambil index.html, JS, CSS langsung dari server
-//  - SW hanya aktif saat ada data di antrian IndexedDB yang perlu
-//    dikirim ulang ke server
+//  Anti stale-cache saat deploy:
+//  - Nama cache disisipi BUILD_TIME (di-inject otomatis oleh
+//    GitHub Actions saat deploy) → setiap deploy = nama cache baru.
+//  - Saat 'activate', SEMUA cache lama (nama berbeda) dihapus.
+//  - Karena strategi fetch adalah Network-First, selama user online
+//    dia SELALU dapat versi terbaru dari server (cache cuma dipakai
+//    saat network gagal / offline). Jadi tidak perlu hapus cache
+//    manual & tidak akan "tersangkut" versi lama saat ada koneksi.
 //
 //  BUILD_TIME di-inject otomatis oleh GitHub Actions saat deploy.
-//  Tujuannya: setiap deploy SW dianggap "file baru" oleh browser
-//  sehingga SW langsung diinstall ulang tanpa perlu hapus cache.
 // ============================================================
 
 var SW_VERSION  = 'gardu-pln-v{{BUILD_TIME}}'; // di-replace otomatis saat deploy
+var CACHE_NAME  = 'gardu-pln-shell-{{BUILD_TIME}}';
 var DB_NAME     = 'gardu-pln-db';
 var DB_VERSION  = 1;
 var QUEUE_STORE = 'gardu-sync-queue';
 var SYNC_TAG    = 'sync-inspeksi';
 
-// ── INSTALL & ACTIVATE ───────────────────────────────────────
-// Tidak cache apapun — browser handle semua aset seperti biasa
-self.addEventListener('install',  function() { self.skipWaiting(); });
-self.addEventListener('activate', function(e) { e.waitUntil(self.clients.claim()); });
+// Aset app-shell yang di-precache supaya app bisa dibuka offline.
+// Hanya aset statis milik app sendiri — TIDAK termasuk request ke
+// Supabase (beda origin, selalu harus fresh dari network).
+var APP_SHELL = [
+  './',
+  './index.html',
+  './manifest.json',
+  './supabase-api.js',
+  './icon-baru-192.png',
+  './icon-baru-512.png'
+];
 
-// ── Tidak ada fetch handler ───────────────────────────────────
-// Browser ambil semua file langsung dari server.
-// Tidak ada cache → tidak ada masalah versi lama tersangkut.
+// ── INSTALL ───────────────────────────────────────────────────
+// Precache app-shell. Kalau salah satu aset gagal (mis. icon
+// belum ada di server), jangan sampai install gagal total →
+// cache satu-satu dan skip yang error.
+self.addEventListener('install', function(event) {
+  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(function(cache) {
+      return Promise.all(
+        APP_SHELL.map(function(url) {
+          return cache.add(url).catch(function(err) {
+            console.warn('[SW] Gagal precache:', url, err);
+          });
+        })
+      );
+    })
+  );
+});
+
+// ── ACTIVATE ──────────────────────────────────────────────────
+// Hapus semua cache lama (dari deploy sebelumnya) supaya storage
+// tidak menumpuk dan tidak ada risiko file usang tersajikan.
+self.addEventListener('activate', function(event) {
+  event.waitUntil(
+    caches.keys().then(function(keys) {
+      return Promise.all(
+        keys.filter(function(key) { return key !== CACHE_NAME; })
+            .map(function(key) { return caches.delete(key); })
+      );
+    }).then(function() { return self.clients.claim(); })
+  );
+});
+
+// ── FETCH: Network-First, fallback ke Cache ──────────────────
+// Hanya menangani GET request ke origin sendiri (app-shell).
+// Request ke Supabase / domain lain (beda origin) dibiarkan lewat
+// apa adanya, TIDAK pernah di-intercept atau di-cache di sini.
+self.addEventListener('fetch', function(event) {
+  var req = event.request;
+
+  if (req.method !== 'GET') return;              // POST/PUT dll → biarkan
+  if (new URL(req.url).origin !== location.origin) return; // beda origin → biarkan (Supabase, dsb.)
+
+  event.respondWith(
+    fetch(req)
+      .then(function(res) {
+        // Sukses online → update cache dengan versi terbaru sekaligus
+        if (res && res.ok) {
+          var resClone = res.clone();
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(req, resClone);
+          });
+        }
+        return res;
+      })
+      .catch(function() {
+        // Offline / network gagal → sajikan dari cache
+        return caches.match(req).then(function(cached) {
+          if (cached) return cached;
+          // Fallback terakhir untuk navigasi: index.html dari cache
+          if (req.mode === 'navigate') {
+            return caches.match('./index.html');
+          }
+          return Promise.reject('offline dan tidak ada di cache: ' + req.url);
+        });
+      })
+  );
+});
 
 // ── BACKGROUND SYNC ──────────────────────────────────────────
 // Dipicu oleh browser saat jaringan kembali online,
@@ -125,4 +204,4 @@ self.addEventListener('message', function(event) {
   }
 });
 
-console.log('[SW minimal] Aktif — versi ' + SW_VERSION + ' — hanya Background Sync, tidak ada caching aset.');
+console.log('[SW] Aktif — versi ' + SW_VERSION + ' — offline-first app-shell + Background Sync.');

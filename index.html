@@ -12451,10 +12451,13 @@ function konfirmasiAksi(pesan, judul, labelAksi, callback) {
 <script src="supabase-api.js"></script>
 
 <!-- ============================================================
-     Registrasi Service Worker MINIMAL — hanya Background Sync
-     Tidak ada caching aset. Browser ambil semua file dari server
-     seperti biasa → tidak ada masalah cache lama saat deploy baru.
-     SW hanya bertugas kirim ulang data antrian saat jaringan kembali.
+     Registrasi Service Worker — OFFLINE-FIRST + Background Sync
+     App-shell (halaman ini, manifest, supabase-api.js, icon) kini
+     bisa dibuka tanpa internet. Saat online, SW tetap ambil versi
+     terbaru dari server (network-first) sehingga deploy baru selalu
+     langsung terpakai; saat offline, SW menyajikan dari cache.
+     SW juga tetap bertugas kirim ulang data antrian saat jaringan
+     kembali online (Background Sync, tidak berubah).
      ============================================================ -->
 <script>
 if ('serviceWorker' in navigator) {
