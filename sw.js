@@ -23,8 +23,8 @@
 //  BUILD_TIME di-inject otomatis oleh GitHub Actions saat deploy.
 // ============================================================
 
-var SW_VERSION  = 'gardu-pln-v{{BUILD_TIME}}'; // di-replace otomatis saat deploy
-var CACHE_NAME  = 'gardu-pln-shell-{{BUILD_TIME}}';
+var SW_VERSION  = 'gardu-pln-v1783299275'; // di-replace otomatis saat deploy
+var CACHE_NAME  = 'gardu-pln-shell-1783299275';
 var DB_NAME     = 'gardu-pln-db';
 var DB_VERSION  = 1;
 var QUEUE_STORE = 'gardu-sync-queue';
@@ -52,9 +52,19 @@ self.addEventListener('install', function(event) {
     caches.open(CACHE_NAME).then(function(cache) {
       return Promise.all(
         APP_SHELL.map(function(url) {
-          return cache.add(url).catch(function(err) {
-            console.warn('[SW] Gagal precache:', url, err);
-          });
+          // PENTING: cache:'reload' memaksa browser mengambil byte terbaru
+          // dari server saat precache, bukan dari HTTP disk cache miliknya
+          // sendiri. Tanpa ini, precache saat install bisa saja "mengunci"
+          // versi lama app-shell yang kebetulan masih tersimpan di HTTP
+          // cache browser (mis. karena header Cache-Control dari GitHub
+          // Pages), sehingga deploy baru terasa butuh clear cache manual.
+          return fetch(url, { cache: 'reload' })
+            .then(function(res) {
+              if (res && res.ok) return cache.put(url, res);
+            })
+            .catch(function(err) {
+              console.warn('[SW] Gagal precache:', url, err);
+            });
         })
       );
     })
@@ -86,7 +96,14 @@ self.addEventListener('fetch', function(event) {
   if (new URL(req.url).origin !== location.origin) return; // beda origin → biarkan (Supabase, dsb.)
 
   event.respondWith(
-    fetch(req)
+    // cache:'no-store' → jangan pernah pakai HTTP disk cache browser untuk
+    // request app-shell ini. Ini bagian krusial dari "network-first sungguhan":
+    // tanpa opsi ini, browser bisa saja diam-diam menjawab fetch() dari HTTP
+    // cache-nya sendiri (mengikuti header Cache-Control server) walau kode di
+    // sini niatnya selalu ke jaringan — efeknya sama seperti stale cache,
+    // padahal Cache Storage SW sudah benar. Dengan no-store, setiap deploy
+    // baru otomatis langsung terlihat begitu online, tanpa perlu hapus cache.
+    fetch(req, { cache: 'no-store' })
       .then(function(res) {
         // Sukses online → update cache dengan versi terbaru sekaligus
         if (res && res.ok) {
@@ -201,6 +218,12 @@ self.addEventListener('message', function(event) {
   // Trigger kirim antrian manual (mis. user tekan tombol "Kirim Ulang")
   if (event.data.type === 'SYNC_NOW') {
     kirimAntrianInspeksi();
+  }
+  // Jaga-jaga: skipWaiting() sudah dipanggil otomatis di 'install' di atas,
+  // tapi pesan ini tetap ditangani untuk defense-in-depth kalau suatu saat
+  // perilaku itu diubah atau ada race condition SW yang masih 'waiting'.
+  if (event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
   }
 });
 

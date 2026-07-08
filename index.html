@@ -5347,6 +5347,11 @@ function muatDaftarGardu(force, ulpFilter){
     // → loop retry tak terbatas → memory leak.
     // Cukup reset flag; peta akan di-init saat user membuka tab Peta.
     _petaSudahMuat = false;
+    // FIX: Tab Rekap & Statistik (Total Gardu, total MVA, dll) juga harus
+    // dianggap basi setiap kali daftar gardu berubah (tambah/edit/hapus gardu),
+    // supaya saat user membuka tab Rekap lagi, data diambil ulang dari server
+    // alih-alih menampilkan angka lama dari load pertama sesi ini.
+    rekapSudahMuat = false;
   });
 }
 
@@ -5579,18 +5584,48 @@ function renderDetailGardu(g, riwayat){
   html += '</div>';
 
   // ── GPS Mini Map ──
+  // CATATAN PERBAIKAN: iframe Google Maps (maps.google.com/maps?...&output=embed)
+  // kerap "nyangkut" loading tanpa pernah render di webview Capacitor/Android
+  // (User-Agent Android WebView sering ditolak/timeout oleh Google Maps embed
+  // tanpa API key). Diganti ke OpenStreetMap embed (openstreetmap.org/export/embed.html)
+  // yang tidak butuh API key dan andal di semua webview. Ditambah spinner + fallback
+  // onerror/timeout agar jika satu penyedia gagal, tetap ada tombol "Buka di peta".
   if (hasGps) {
-    var embedUrl = 'https://maps.google.com/maps?q='+lat+','+lon+'&z=17&output=embed';
-    html += '<div class="gps-map-wrap" style="cursor:pointer;position:relative;margin-bottom:var(--sp-sm);" onclick="window.open(\''+mapsUrl+'\',\'_blank\',\'noopener\')">';
-    html += '<div style="width:100%;height:clamp(140px,35vw,180px);background:linear-gradient(135deg,#e8edf2,#d5dce8);display:flex;align-items:center;justify-content:center;position:relative;">';
-    html += '<span style="font-size:28px;opacity:.35;">🗺️</span>';
-    html += '<iframe src="'+embedUrl+'" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Lokasi Gardu" style="position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none;"></iframe>';
+    var mapWrapId = 'gpsmap-' + Math.random().toString(36).slice(2, 9);
+    var bboxDelta = 0.003; // ~300m, cukup untuk konteks lokasi gardu
+    var osmBbox = (lon - bboxDelta) + '%2C' + (lat - bboxDelta) + '%2C' + (lon + bboxDelta) + '%2C' + (lat + bboxDelta);
+    var osmEmbedUrl = 'https://www.openstreetmap.org/export/embed.html?bbox=' + osmBbox + '&layer=mapnik&marker=' + lat + '%2C' + lon;
+    var gmapsEmbedUrl = 'https://maps.google.com/maps?q=' + lat + ',' + lon + '&z=17&output=embed';
+    html += '<div class="gps-map-wrap" id="'+mapWrapId+'" style="cursor:pointer;position:relative;margin-bottom:var(--sp-sm);" onclick="window.open(\''+mapsUrl+'\',\'_blank\',\'noopener\')">';
+    html += '<div style="width:100%;height:clamp(140px,35vw,180px);background:linear-gradient(135deg,#e8edf2,#d5dce8);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;">';
+    html += '<div class="gps-map-loading" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#e8edf2,#d5dce8);z-index:1;">';
+    html += '<div style="width:22px;height:22px;border:3px solid rgba(16,72,168,.25);border-top-color:var(--pln-biru2);border-radius:50%;animation:spin .8s linear infinite;"></div>';
+    html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);">Memuat peta…</span>';
+    html += '</div>';
+    html += '<iframe src="'+osmEmbedUrl+'" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Lokasi Gardu" ' +
+      'style="position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none;background:transparent;" ' +
+      'onload="var w=document.getElementById(\''+mapWrapId+'\');if(w){var l=w.querySelector(\'.gps-map-loading\');if(l)l.style.display=\'none\';}" ' +
+      'onerror="var w=document.getElementById(\''+mapWrapId+'\');if(w){var f=w.querySelector(\'.gps-map-fallback\');var l=w.querySelector(\'.gps-map-loading\');if(l)l.style.display=\'none\';if(f)f.style.display=\'flex\';}"></iframe>';
+    // Fallback jika OSM juga gagal dimuat (mis. tidak ada internet sama sekali):
+    // sembunyikan spinner setelah timeout dan tampilkan tombol buka peta eksternal.
+    // CATATAN: TIDAK pakai <script> inline di sini — string ini dipasang lewat
+    // .innerHTML (lihat wrap.innerHTML=html di akhir renderDetailGardu), dan
+    // <script> yang disisipkan lewat innerHTML TIDAK dieksekusi browser.
+    // Timeout-nya didaftarkan lewat armGpsMapFallback() yang dipanggil dari JS
+    // asli setelah innerHTML terpasang (lihat pemanggilannya di bawah).
+    html += '<div class="gps-map-fallback" style="display:none;position:absolute;inset:0;z-index:2;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#e8edf2,#d5dce8);">';
+    html += '<span style="font-size:26px;opacity:.5;">🗺️</span>';
+    html += '<span style="font-size:var(--fs-xs);color:var(--pln-text3);text-align:center;padding:0 12px;">Peta tidak dapat dimuat.<br>Ketuk untuk buka di Google Maps.</span>';
+    html += '</div>';
     html += '</div>';
     html += '<div class="gps-map-overlay">';
     html += '<div class="gps-map-badge">🗺️ Buka Google Maps</div>';
     html += '</div>';
     html += '<div class="gps-map-coords">🌐 '+lat.toFixed(6)+', '+lon.toFixed(6)+'</div>';
     html += '</div>';
+    // Daftarkan id supaya setelah innerHTML dipasang, timeout fallback benar-benar aktif.
+    window._pendingGpsMapIds = window._pendingGpsMapIds || [];
+    window._pendingGpsMapIds.push(mapWrapId);
   }
 
   // ── Tombol Catat Inspeksi (semua role yang login) ──
@@ -5635,7 +5670,15 @@ function renderDetailGardu(g, riwayat){
   } else {
     // MED-10 FIX: ambil sesi sekali di luar loop, bukan sekali per baris riwayat
     var _sRiwayat = getSession();
-    var _canDeleteInspeksi = _sRiwayat && (_sRiwayat.role === 'admin' || _sRiwayat.role === 'superadmin');
+    // PERUBAHAN KEBIJAKAN: akun Admin ULP ('admin') sekarang HANYA bisa
+    // mengedit data inspeksi, tidak lagi bisa menghapus. Hapus data
+    // inspeksi dibatasi hanya untuk 'superadmin'. Tombol edit untuk role
+    // 'admin' tetap muncul lewat _canEditInspeksi di bawah (tidak berubah).
+    // PENTING: ini hanya menyembunyikan tombol di UI. Supaya benar-benar
+    // aman, batasan yang sama WAJIB juga ditegakkan di sisi server pada
+    // fungsi fn_hapus_inspeksi (cek role di dalam fungsi, bukan hanya di
+    // klien) — lihat catatan di percakapan untuk contoh SQL-nya.
+    var _canDeleteInspeksi = _sRiwayat && _sRiwayat.role === 'superadmin';
     riwayat.forEach(function(r, idx){
       var prosen = r['PROSEN'] !== '' && r['PROSEN'] !== null ? parseFloat(r['PROSEN']) : null;
       var bc = prosen === null ? 'badge-nonaktif' : prosen > 80 ? 'badge-kritis' : prosen > 60 ? 'badge-perlu' : 'badge-normal';
@@ -5844,8 +5887,11 @@ function renderDetailGardu(g, riwayat){
       html += ukurCell('TPF-T', tpfT, '');
       html += '</div>';
 
-      // Phase Sequence display
-      var phaseSeq = r['PHASE_SEQUENCE'] || '';
+      // Phase Sequence display — selalu tampil walau kosong, agar tidak
+      // terlihat seperti field yang hilang. Berlaku di semua jalur yang
+      // memanggil renderDetailGardu, termasuk detail via scan QR.
+      var phaseSeq = String(r['PHASE_SEQUENCE'] || '').trim().toUpperCase();
+      html += '<div class="ukur-section-title">🔄 Urutan Fasa (Phase Sequence)</div>';
       if (phaseSeq) {
         var psIsNormal = (phaseSeq === 'CW' || phaseSeq === 'RST');
         var psBg    = psIsNormal ? '#D1FAE5' : '#FEF3C7';
@@ -5860,13 +5906,14 @@ function renderDetailGardu(g, riwayat){
         } else {
           psLabel = '⚠️ Terbalik! (Berlawanan Jarum Jam / Counter-Clockwise)';
         }
-        html += '<div class="ukur-section-title">🔄 Urutan Fasa (Phase Sequence)</div>';
         html += '<div style="padding:10px 12px;border-radius:6px;background:'+psBg+';color:'+psColor+';border:1.5px solid '+psBorder+';font-size:var(--fs-xs);font-weight:700;margin-top:6px;">';
         html += psLabel;
         if (!psIsNormal) {
           html += '<div style="margin-top:4px;font-weight:500;font-size:var(--fs-xs);">Perlu tindak lanjut: periksa dan perbaiki koneksi kabel fasa pada trafo atau panel PHB-TR.</div>';
         }
         html += '</div>';
+      } else {
+        html += '<div style="padding:10px 12px;border-radius:6px;background:#F1F5F9;color:var(--pln-text3);border:1.5px solid var(--pln-border);font-size:var(--fs-xs);font-weight:600;margin-top:6px;font-style:italic;">— Tidak ada keterangan (belum diukur saat inspeksi ini)</div>';
       }
 
       var jurDef = [
@@ -6184,6 +6231,31 @@ function renderTrenBeban(data, wrap) {
   }
 
   wrap.innerHTML = html;
+  armGpsMapFallback();
+}
+
+// ── Timeout fallback untuk GPS mini map ──────────────────────
+// Dipanggil setiap kali renderDetailGardu selesai memasang HTML-nya.
+// Untuk tiap id peta yang baru dirender, pasang timer 6 detik: kalau
+// sampai saat itu iframe belum sempat memicu onload/onerror (mis. request
+// di-block diam-diam oleh webview/koneksi), sembunyikan spinner dan
+// tampilkan tombol fallback "buka di Google Maps" supaya tidak terlihat
+// stuck loading selamanya.
+function armGpsMapFallback() {
+  var ids = window._pendingGpsMapIds || [];
+  window._pendingGpsMapIds = [];
+  ids.forEach(function(id) {
+    setTimeout(function() {
+      var w = document.getElementById(id);
+      if (!w) return;
+      var loadingEl = w.querySelector('.gps-map-loading');
+      if (loadingEl && loadingEl.style.display !== 'none') {
+        loadingEl.style.display = 'none';
+        var fallbackEl = w.querySelector('.gps-map-fallback');
+        if (fallbackEl) fallbackEl.style.display = 'flex';
+      }
+    }, 6000);
+  });
 }
 
 function ukurCell2(label, val, unit) {
@@ -7158,6 +7230,10 @@ function submitFormInspeksi() {
       if (prosen !== null) gCached['_lastBeban'] = String(prosen);
     }
 
+    // FIX: inspeksi baru mengubah statistik Sudah/Belum Inspeksi & Overdue
+    // di tab Rekap — tandai basi supaya di-refresh saat tab dibuka lagi.
+    rekapSudahMuat = false;
+
     // Tutup form setelah 2 detik dan reload detail
     setTimeout(function() {
       tutupFormInspeksi();
@@ -7169,6 +7245,16 @@ function submitFormInspeksi() {
 
 // ── Hapus Inspeksi by ID ──────────────────────────────────────
 function hapusInspeksiById(id, tglLabel) {
+  // Defense-in-depth: cek ulang di sini juga (bukan cuma sembunyikan
+  // tombolnya di renderDetailGardu), supaya fungsi ini tetap aman kalau
+  // suatu saat dipanggil dari tempat lain. Admin ULP tidak boleh menghapus
+  // inspeksi — hanya superadmin. Otorisasi final tetap harus ditegakkan
+  // di server (fn_hapus_inspeksi), ini hanya lapisan tambahan di klien.
+  var _sDel = getSession();
+  if (!_sDel || _sDel.role !== 'superadmin') {
+    showAlert('❌ Akun Anda tidak memiliki izin untuk menghapus data inspeksi. Hubungi superadmin.');
+    return;
+  }
   bukaModalKonfirmasi({
     ikon: '🗑️',
     judul: 'Hapus Data Inspeksi',
@@ -7185,6 +7271,7 @@ function hapusInspeksiById(id, tglLabel) {
         return;
       }
       showAlert('✅ Data inspeksi berhasil dihapus.');
+      rekapSudahMuat = false; // FIX: statistik inspeksi berubah, tandai rekap basi
       // Ambil no_gardu dari topbar detail-view lalu reload
       var titleEl = document.getElementById('detail-view-title');
       var noGardu = titleEl ? titleEl.textContent.trim() : '';
@@ -7660,6 +7747,7 @@ function simpanEditInspeksi() {
     }
     okEl.textContent = '✅ Data berhasil diperbarui!';
     okEl.style.display = 'block';
+    rekapSudahMuat = false; // FIX: statistik inspeksi berubah, tandai rekap basi
     setTimeout(function() {
       document.getElementById('modal-edit-inspeksi').style.display = 'none';
       var pagesEl = document.getElementById('ei-jur-pages');
@@ -7730,6 +7818,7 @@ function hapusInspeksiDariPengukuran(id, tglLabel) {
       }
       showAlert('✅ Data inspeksi berhasil dihapus.');
       _ukurSudahMuat = false;
+      rekapSudahMuat = false; // FIX: statistik inspeksi berubah, tandai rekap basi
       muatDataPengukuran(true);
     });
   });
@@ -12462,13 +12551,58 @@ function konfirmasiAksi(pesan, judul, labelAksi, callback) {
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./sw.js')
+    navigator.serviceWorker.register('./sw.js', {
+      // updateViaCache:'none' → browser TIDAK BOLEH menjawab permintaan
+      // sw.js dari HTTP disk cache-nya sendiri. Tanpa ini, browser bisa
+      // menahan versi sw.js lama sesuai Cache-Control server dan baru
+      // memeriksa versi baru setelah cache itu kedaluwarsa — inilah salah
+      // satu sebab deploy baru terasa "tidak nempel" tanpa clear cache manual.
+      updateViaCache: 'none'
+    })
       .then(function(reg) {
         console.log('[SW] Terdaftar, scope:', reg.scope);
+
+        // Selalu minta browser cek versi sw.js terbaru begitu halaman
+        // dibuka, bukan menunggu jadwal cek otomatis browser (biasanya
+        // baru dicek ulang setiap ~24 jam atau saat navigasi berikutnya).
+        reg.update().catch(function(){});
+
+        // Kalau ada SW baru sedang menunggu (waiting) — mis. tab ini
+        // sempat terbuka lama sebelum deploy baru — langsung suruh dia
+        // aktif. Dikombinasikan dengan skipWaiting() di sw.js dan listener
+        // controllerchange di bawah, ini membuat versi baru terpasang
+        // otomatis tanpa perlu aksi manual dari pengguna.
+        if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+
+        reg.addEventListener('updatefound', function() {
+          var newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', function() {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // SW baru sudah terpasang & siap — karena sw.js sudah
+              // skipWaiting() otomatis saat install, dia akan segera
+              // mengambil alih (lihat listener controllerchange di bawah).
+              console.log('[SW] Versi baru terpasang, akan aktif otomatis.');
+            }
+          });
+        });
       })
       .catch(function(err) {
         console.warn('[SW] Gagal register:', err);
       });
+
+    // Begitu SW baru mengambil alih kontrol (controllerchange), reload
+    // SEKALI supaya halaman yang sedang terbuka langsung memuat aset
+    // (index.html/JS/CSS) versi terbaru dari deploy — bukan hanya SW-nya
+    // saja yang baru sementara konten di memori tab masih versi lama.
+    // Guard _swReloaded mencegah reload berulang/looping.
+    var _swReloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+      if (_swReloaded) return;
+      _swReloaded = true;
+      console.log('[SW] Versi baru aktif — memuat ulang halaman.');
+      window.location.reload();
+    });
 
     // Dengarkan pesan dari SW (SYNC_SUCCESS dari background sync)
     navigator.serviceWorker.addEventListener('message', function(event) {
