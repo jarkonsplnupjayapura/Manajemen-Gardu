@@ -7063,32 +7063,15 @@ function fiValidate() {
   var sA = parseFloat(document.getElementById('fi-s-total').value);
   var tA = parseFloat(document.getElementById('fi-t-total').value);
   if (!rA && !sA && !tA) errs.push('Minimal satu nilai arus (R/S/T) harus diisi.');
-
-  // FIX: Validasi rentang TPF (True Power Factor) — server menolak nilai di luar 0–1.2
-  // (sama seperti batas min/max pada input), tapi sebelumnya tidak dicek di sisi klien
-  // sehingga submit gagal diam-diam dengan pesan generik "Gagal menyimpan inspeksi."
-  ['fi-tpf-r','fi-tpf-s','fi-tpf-t'].forEach(function(id){
-    var label = 'TPF-' + id.slice(-1).toUpperCase();
-    errs.push.apply(errs, fiCheckTpfRange(id, label));
-  });
-  for (var jti = 1; jti <= _fiJurusanCount; jti++) {
-    ['tpfr','tpfs','tpft'].forEach(function(suf){
-      var label = 'TPF-' + suf.slice(-1).toUpperCase() + ' (Jurusan ' + jti + ')';
-      errs.push.apply(errs, fiCheckTpfRange('fi-jur'+jti+'-'+suf, label));
-    });
+  // FIX: Daya trafo (kVA) diisi otomatis (readonly) dari data gardu. Jika data
+  // gardu tidak punya KAPASITAS_KVA/DAYA_KVA, field ini kosong dan sebelumnya
+  // baru ketahuan gagal setelah submit ke server dengan pesan yang tidak jelas.
+  // Validasi di awal agar user tahu penyebabnya dan tahu harus berbuat apa.
+  var dayaVal = parseFloat(document.getElementById('fi-daya').value);
+  if (!dayaVal || dayaVal <= 0) {
+    errs.push('Daya trafo (kVA) gardu ini belum terisi di data master. Silakan lengkapi data kapasitas gardu terlebih dahulu (menu Edit Gardu) sebelum menyimpan inspeksi.');
   }
   return errs;
-}
-
-// FIX: Helper validasi TPF — mengembalikan array pesan error (kosong jika valid/kosong)
-function fiCheckTpfRange(elId, label) {
-  var el = document.getElementById(elId);
-  if (!el || el.value.trim() === '') return [];
-  var v = parseFloat(String(el.value).replace(',', '.'));
-  if (!isNaN(v) && (v < 0 || v > 1.2)) {
-    return [label + ' harus di antara 0 dan 1.2 (nilai power factor wajar). Nilai saat ini: ' + el.value + '.'];
-  }
-  return [];
 }
 
 // ── Set alert bar ─────────────────────────────────────────────
@@ -7235,6 +7218,7 @@ function submitFormInspeksi() {
     btnSimpan.innerHTML = '💾 Simpan Inspeksi';
 
     if (res.status !== 'ok') {
+      console.error('[submitFormInspeksi] Gagal menyimpan inspeksi. Respons server:', res, 'Params:', params);
       fiSetAlert(userFriendlyError(res.message, 'Gagal menyimpan inspeksi.'), false);
       return;
     }
@@ -7720,29 +7704,6 @@ function simpanEditInspeksi() {
   }
 
   if (!petugas) { errEl.textContent = '⚠️ Nama petugas wajib diisi.'; errEl.style.display = 'block'; return; }
-
-  // FIX: Validasi rentang TPF (0–1.2) sebelum submit — mencegah "Gagal menyimpan"
-  // akibat CHECK constraint server saat nilai TPF di luar rentang wajar.
-  var tpfEditFields = [['ei-tpfr','TPF-R'], ['ei-tpfs','TPF-S'], ['ei-tpft','TPF-T']];
-  for (var tei = 0; tei < tpfEditFields.length; tei++) {
-    var tErr = fiCheckTpfRange(tpfEditFields[tei][0], tpfEditFields[tei][1]);
-    if (tErr.length) { errEl.textContent = '⚠️ ' + tErr[0]; errEl.style.display = 'block'; return; }
-  }
-  eiSaveCurrentJurPage(); // sinkronkan panel jurusan aktif sebelum divalidasi
-  for (var jsi = 0; jsi < _eiJurusanData.length; jsi++) {
-    var jd = _eiJurusanData[jsi];
-    if (!jd) continue;
-    var jTpfFields = [['tpf_r','TPF-R'], ['tpf_s','TPF-S'], ['tpf_t','TPF-T']];
-    for (var jfi = 0; jfi < jTpfFields.length; jfi++) {
-      var jv = jd[jTpfFields[jfi][0]];
-      if (jv !== null && jv !== undefined && (jv < 0 || jv > 1.2)) {
-        errEl.textContent = '⚠️ ' + jTpfFields[jfi][1] + ' pada Jurusan ' + (jsi+1) + ' harus di antara 0 dan 1.2. Nilai saat ini: ' + jv + '.';
-        errEl.style.display = 'block';
-        return;
-      }
-    }
-  }
-
   var btn = document.getElementById('btn-simpan-edit-inspeksi');
   btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
   var gv = function(id) { var el = document.getElementById(id); return el && el.value !== '' ? el.value : null; };
@@ -9616,18 +9577,14 @@ function userFriendlyError(technicalMsg, fallback) {
     'invalid input':            'Data yang dimasukkan tidak valid. Periksa kembali isian form.',
     'violates foreign key':     'Data terkait tidak ditemukan. Periksa nomor gardu.',
     'violates not-null':        'Ada kolom wajib yang belum diisi.',
-    'violates check constraint':'Ada nilai yang di luar rentang wajar (mis. TPF harus 0–1.2, Prosen 0–200). Periksa kembali angka yang diisi.',
-    'check_':                   'Ada nilai yang di luar rentang wajar (mis. TPF harus 0–1.2, Prosen 0–200). Periksa kembali angka yang diisi.',
     'value too long':           'Data yang dimasukkan terlalu panjang.',
     'server error 500':         'Terjadi kesalahan pada server. Coba lagi beberapa saat.',
     'server error 502':         'Server sedang tidak tersedia. Coba lagi beberapa saat.',
     'server error 503':         'Server sedang tidak tersedia. Coba lagi beberapa saat.',
     'failed to fetch':          'Gagal terhubung ke server. Periksa koneksi internet.',
     'networkerror':             'Gagal terhubung ke server. Periksa koneksi internet.',
-    'koneksi timeout':          'Koneksi timeout. Periksa jaringan lalu coba lagi.',
     'login gagal':              'Username atau password salah.',
-    'pin salah':                'PIN yang dimasukkan salah.',
-    'gagal':                    fallback || 'Terjadi kesalahan. Coba lagi.'
+    'pin salah':                'PIN yang dimasukkan salah.'
   };
   var technical = (technicalMsg || '').toLowerCase();
   for (var key in map) {
@@ -9635,6 +9592,17 @@ function userFriendlyError(technicalMsg, fallback) {
       return map[key];
     }
   }
+  // FIX: sebelumnya ada rule 'gagal' → fallback yang menangkap HAMPIR SEMUA
+  // pesan error kustom dari fungsi database (karena pesan-pesan itu biasanya
+  // ditulis dengan awalan "Gagal: ..."). Akibatnya pesan spesifik dari server
+  // (mis. "Gagal: inspeksi untuk gardu ini sudah ada hari ini") selalu ditimpa
+  // jadi pesan generik "Gagal menyimpan inspeksi." — user tidak pernah tahu
+  // alasan sebenarnya. Sekarang: tampilkan pesan teknis apa adanya selama itu
+  // bukan dump error HTTP mentah dan tidak terlalu panjang.
+  if (technicalMsg && !/^server error \d/i.test(technicalMsg) && technicalMsg.length < 300) {
+    return technicalMsg;
+  }
+  console.error('[userFriendlyError] Pesan teknis dari server:', technicalMsg);
   return fallback || 'Terjadi kesalahan. Coba lagi.';
 }
 
