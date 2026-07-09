@@ -2086,52 +2086,18 @@ input[type=number]{-moz-appearance:textfield;}
      crossorigin="anonymous" wajib disertakan bersama integrity.
      ============================================================ -->
 
-<!-- Leaflet CSS: jsdelivr (primary) dengan SRI hash -->
-<link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-      crossorigin="anonymous"/>
-
-<!-- Leaflet JS: jsdelivr (primary) dengan SRI hash -->
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XR0UgOo="
-        crossorigin="anonymous"></script>
-
-<!-- Leaflet fallback: cdnjs (jika jsdelivr gagal) — pakai elemen DOM, bukan document.write -->
-<script>
-(function() {
-  if (typeof L !== 'undefined') return; // Leaflet sudah dimuat, skip
-
-  // Fallback CSS dari cdnjs
-  var cssEl = document.createElement('link');
-  cssEl.rel  = 'stylesheet';
-  cssEl.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
-  cssEl.integrity   = 'sha512-Zcn6bjR/8RZbLEpLIeOwNtzREBAJnUKESxces60Mpoj+2okopSAcSUIUOseddDm0cxv7/wQxg0kdny0PLB0Uew==';
-  cssEl.crossOrigin = 'anonymous';
-  document.head.appendChild(cssEl);
-
-  // Fallback JS dari cdnjs
-  var jsEl = document.createElement('script');
-  jsEl.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
-  jsEl.integrity   = 'sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWoFqsFR3uT3isWVTUK8m7AkdObat/mORMqMRn5GWvsuJRA/Fq20A==';
-  jsEl.crossOrigin = 'anonymous';
-  jsEl.onerror = function() {
-    // Last-resort fallback tanpa SRI (unpkg) — hanya jika dua CDN pertama gagal
-    console.warn('[Leaflet] cdnjs gagal, mencoba unpkg sebagai last-resort...');
-    var lastJs = document.createElement('script');
-    lastJs.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    lastJs.crossOrigin = 'anonymous';
-    document.head.appendChild(lastJs);
-
-    var lastCss = document.createElement('link');
-    lastCss.rel  = 'stylesheet';
-    lastCss.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    lastCss.crossOrigin = 'anonymous';
-    document.head.appendChild(lastCss);
-  };
-  document.head.appendChild(jsEl);
-})();
-</script>
+<!-- Leaflet CSS + JS — di-hosting sendiri di vendor/leaflet/ (bukan CDN lagi).
+     Alasan: 3 CDN (jsdelivr/cdnjs/unpkg) sempat gagal SRI-check bersamaan
+     (CDN sewaktu-waktu mengubah byte hasil minify/build tanpa mengubah versi
+     paket, sehingga hash SRI yang di-hardcode jadi basi). Selain itu app ini
+     "offline-first" (lihat sw.js) — sw.js sengaja TIDAK meng-cache request
+     cross-origin, jadi selama peta di-load dari CDN, fitur peta otomatis
+     rusak saat offline meski app-shell sendiri bisa dibuka. Dengan file lokal:
+     tidak ada lagi supply-chain risk dari CDN pihak ketiga, tidak ada lagi
+     SRI yang bisa basi, dan peta ikut ter-precache oleh sw.js → benar-benar
+     jalan offline. Update versi Leaflet = ganti isi vendor/leaflet/ manual. -->
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css"/>
+<script src="vendor/leaflet/leaflet.min.js"></script>
 
 <!-- Leaflet.markercluster — anti-lag untuk banyak marker -->
 
@@ -3239,8 +3205,8 @@ input[type=number]{-moz-appearance:textfield;}
       <div id="pin-gardu-title" style="font-size:var(--fs-md);font-weight:700;">Konfirmasi PIN</div>
       <div style="font-size:var(--fs-xs);color:var(--pln-text3);">Masukkan PIN Anda untuk melanjutkan</div>
     </div>
-    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:var(--sp-md);" id="pin-gardu-dots">
-      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    <div style="display:flex;gap:6px;justify-content:center;margin-bottom:var(--sp-md);flex-wrap:wrap;" id="pin-gardu-dots">
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
       <button class="btn btn-outline pin-key" data-target="gardu" data-v="1">1</button>
@@ -3256,6 +3222,11 @@ input[type=number]{-moz-appearance:textfield;}
       <button class="btn btn-outline pin-key" data-target="gardu" data-v="0">0</button>
       <button class="btn btn-ghost pin-key" data-target="gardu" data-v="back">⌫</button>
     </div>
+    <!-- PIN bisa 4–8 digit (lihat modal Set PIN) → panjang tidak tetap, jadi TIDAK BISA
+         auto-submit begitu 4 digit tercapai (itu akan memotong PIN admin yang >4 digit).
+         Tombol ini muncul begitu >=4 digit terisi; auto-submit tetap jalan HANYA saat
+         mentok di 8 digit (batas pasti, tidak ambigu). -->
+    <button id="btn-konfirmasi-pin-gardu" class="btn btn-blue" style="display:none;width:100%;margin-top:8px;" onclick="konfirmasiPinGarduInput()">✓ Konfirmasi PIN</button>
     <div id="pin-gardu-error" style="display:none;color:var(--pln-red);text-align:center;margin-top:var(--sp-sm);font-size:var(--fs-sm);"></div>
     <button id="btn-belum-pin" class="btn btn-outline" style="display:none;margin-top:var(--sp-sm);width:100%;font-size:var(--fs-xs);color:var(--pln-text3);" onclick="bukaSetPinDariModalPin()">🔐 Belum punya PIN? Set PIN dulu</button>
     <button class="btn btn-outline" style="margin-top:var(--sp-sm);width:100%;" onclick="tutupModalPinGardu()">Batal</button>
@@ -9950,7 +9921,13 @@ function _doHapusGardu(noGardu, pin) {
   var s = getSession();
   if (!s) { showAlert('❌ Sesi habis. Silakan login ulang.'); return; }
   var msgEl = document.getElementById('edit-gardu-msg');
-  if (msgEl) { msgEl.style.display='block'; msgEl.style.background='var(--pln-bg)'; msgEl.style.color='var(--pln-text2)'; msgEl.textContent='⏳ Menghapus gardu...'; }
+  if (msgEl) {
+    msgEl.style.display='block'; msgEl.style.background='var(--pln-bg)'; msgEl.style.color='var(--pln-text2)'; msgEl.textContent='⏳ Menghapus gardu...';
+    // #edit-gardu-msg ada di PALING ATAS form, sedangkan tombol Hapus ada di
+    // PALING BAWAH — tanpa scroll manual, pesan loading/error ini tidak akan
+    // terlihat sama sekali oleh user yang sedang di scroll posisi bawah.
+    msgEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
   // Nonaktifkan tombol selama proses
   var hapusBtn = document.getElementById('btn-hapus-gardu-edit');
   if (hapusBtn) hapusBtn.disabled = true;
@@ -9962,7 +9939,17 @@ function _doHapusGardu(noGardu, pin) {
       muatDaftarGardu(true);
       showAlert('✅ Gardu ' + noGardu + ' berhasil dihapus.');
     } else {
-      if (msgEl) { msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B'; msgEl.textContent=userFriendlyError(res.message, 'Gagal menghapus gardu.'); }
+      // FIX: sebelumnya cuma update msgEl (yang posisinya di atas, di luar layar
+      // kalau user sedang scroll ke tombol Hapus di bawah) tanpa showAlert() —
+      // hasilnya terasa "tidak ada reaksi apa-apa" padahal sebenarnya errornya
+      // ada, cuma tidak terlihat. Sekarang konsisten dengan doTambah/submitEditGardu:
+      // selalu tampilkan popup juga, apa pun posisi scroll user.
+      var pesan = userFriendlyError(res.message, 'Gagal menghapus gardu.');
+      if (msgEl) {
+        msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B'; msgEl.textContent=pesan;
+        msgEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      showAlert('❌ ' + pesan);
     }
   });
 }
@@ -10091,9 +10078,31 @@ function bukaSetPinDariModalPin() {
   bukaModalSetPin();
 }
 
+var PIN_GARDU_MAX = 8; // harus sama dengan maxlength di #setpin-baru (Set PIN: 4–8 digit)
+
 function updatePinGarduDots() {
   var dots = document.querySelectorAll('#pin-gardu-dots .pin-dot');
   dots.forEach(function(d, i){ d.classList.toggle('filled', i < pinGarduBuffer.length); });
+  // Tombol konfirmasi manual muncul begitu PIN sudah memenuhi panjang minimum (4),
+  // karena panjang PIN sebenarnya (4–8 digit, lihat Set PIN) tidak diketahui di sisi
+  // klien — tidak bisa auto-submit di angka tetap tanpa berisiko memotong PIN yang
+  // lebih panjang dari 4 digit.
+  var btnKonfirmasi = document.getElementById('btn-konfirmasi-pin-gardu');
+  if (btnKonfirmasi) {
+    btnKonfirmasi.style.display = (pinGarduBuffer.length >= 4 && _pinGarduCallback) ? 'block' : 'none';
+  }
+}
+
+// Dipanggil oleh tombol "✓ Konfirmasi PIN" — submit manual, berapa pun panjang PIN
+// yang sudah diketik (selama >=4 digit, divalidasi lagi di server).
+function konfirmasiPinGarduInput() {
+  if (pinGarduBuffer.length < 4 || !_pinGarduCallback) return;
+  var pin = pinGarduBuffer;
+  var cb  = _pinGarduCallback;
+  // PENTING: JANGAN tutupModalPinGardu() di sini — masing-masing callback
+  // bertanggung jawab menutup modal sendiri (sukses) atau membiarkan
+  // modal terbuka untuk retry (gagal).
+  cb(pin);
 }
 
 function bukaModalSetPin() {
@@ -10146,15 +10155,14 @@ document.addEventListener('DOMContentLoaded', function() {
       var v = btn.getAttribute('data-v');
       if (v === 'clear') { pinGarduBuffer = ''; updatePinGarduDots(); return; }
       if (v === 'back')  { pinGarduBuffer = pinGarduBuffer.slice(0,-1); updatePinGarduDots(); return; }
-      if (pinGarduBuffer.length >= 6) return;
+      if (pinGarduBuffer.length >= PIN_GARDU_MAX) return;
       pinGarduBuffer += v;
       updatePinGarduDots();
-      if (pinGarduBuffer.length >= 4 && _pinGarduCallback) {
-        // Simpan pin dan callback SEKARANG sebelum setTimeout,
-        // karena _pinGarduCallback & pinGarduBuffer bisa berubah oleh kode lain.
-        // PENTING: JANGAN tutupModalPinGardu() di sini.
-        // Masing-masing callback bertanggung jawab menutup modal sendiri
-        // (jika sukses) atau membiarkan modal terbuka (jika gagal/retry).
+      // Auto-submit HANYA saat mentok di panjang maksimum (8) — itu satu-satunya
+      // titik yang tidak ambigu secara panjang. Untuk PIN 4–7 digit, user menekan
+      // tombol "✓ Konfirmasi PIN" (lihat updatePinGarduDots/konfirmasiPinGarduInput)
+      // supaya PIN yang lebih pendek dari 8 digit tidak ke-submit prematur/terpotong.
+      if (pinGarduBuffer.length >= PIN_GARDU_MAX && _pinGarduCallback) {
         var pin = pinGarduBuffer;
         var cb  = _pinGarduCallback;
         setTimeout(function() { cb(pin); }, 120);
@@ -12518,41 +12526,14 @@ function konfirmasiAksi(pesan, judul, labelAksi, callback) {
 
 </script>
 
-<!-- SheetJS — untuk export XLSX client-side (ringan, tren beban) -->
-<!-- MED-12 FIX: SRI hash ditambahkan untuk keamanan supply-chain -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
-        integrity="sha512-s4KN4BGKVX7GECVGPqnFLpMuMOoVKkL3IqLYFBHqQ6kRt7EflFvVRNUYhMfEjgXKF4Y71uZRrJBVSwBi/y4A=="
-        crossorigin="anonymous"
-        async></script>
-<!-- ExcelJS — untuk export Excel berformat (pengukuran & pemeliharaan) -->
-<!-- Primary: jsdelivr; fallback: unpkg jika CDN pertama gagal -->
-<script>
-(function() {
-  function loadScript(src, integrity, onOk, onFail) {
-    var s = document.createElement('script');
-    s.src = src;
-    if (integrity) { s.integrity = integrity; s.crossOrigin = 'anonymous'; }
-    s.onload = onOk;
-    s.onerror = onFail;
-    document.head.appendChild(s);
-  }
-  loadScript(
-    'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js',
-    'sha256-UNAGwDQE10HbNqL6KBzYl3KIJtl+tyHGx5dVpRCGiAE=',
-    function() { /* loaded from jsdelivr */ },
-    function() {
-      // Fallback ke unpkg jika jsdelivr gagal
-      console.warn('[ExcelJS] jsdelivr gagal, mencoba unpkg...');
-      loadScript(
-        'https://unpkg.com/exceljs@4.4.0/dist/exceljs.min.js',
-        null, // no SRI for fallback (different CDN may have different bytes)
-        function() { console.log('[ExcelJS] loaded from unpkg fallback'); },
-        function() { console.error('[ExcelJS] Semua CDN gagal. Export Excel tidak tersedia.'); }
-      );
-    }
-  );
-})();
-</script>
+<!-- SheetJS & ExcelJS — di-hosting sendiri di vendor/ (bukan CDN lagi).
+     Alasan sama seperti Leaflet di atas: CDN sempat gagal SRI-check
+     bersamaan untuk ketiga library ini, dan file eksternal tidak ikut
+     ter-precache oleh sw.js sehingga fitur export Excel rusak saat offline.
+     File di sini diambil langsung dari tarball resmi npm (xlsx@0.18.5,
+     exceljs@4.4.0) — identik byte-per-byte dengan yang dipublikasikan. -->
+<script src="vendor/xlsx/xlsx.full.min.js" async></script>
+<script src="vendor/exceljs/exceljs.min.js"></script>
 
 
 
