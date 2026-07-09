@@ -3206,7 +3206,7 @@ input[type=number]{-moz-appearance:textfield;}
       <div style="font-size:var(--fs-xs);color:var(--pln-text3);">Masukkan PIN Anda untuk melanjutkan</div>
     </div>
     <div style="display:flex;gap:6px;justify-content:center;margin-bottom:var(--sp-md);flex-wrap:wrap;" id="pin-gardu-dots">
-      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
       <button class="btn btn-outline pin-key" data-target="gardu" data-v="1">1</button>
@@ -3222,11 +3222,8 @@ input[type=number]{-moz-appearance:textfield;}
       <button class="btn btn-outline pin-key" data-target="gardu" data-v="0">0</button>
       <button class="btn btn-ghost pin-key" data-target="gardu" data-v="back">⌫</button>
     </div>
-    <!-- PIN bisa 4–8 digit (lihat modal Set PIN) → panjang tidak tetap, jadi TIDAK BISA
-         auto-submit begitu 4 digit tercapai (itu akan memotong PIN admin yang >4 digit).
-         Tombol ini muncul begitu >=4 digit terisi; auto-submit tetap jalan HANYA saat
-         mentok di 8 digit (batas pasti, tidak ambigu). -->
-    <button id="btn-konfirmasi-pin-gardu" class="btn btn-blue" style="display:none;width:100%;margin-top:8px;" onclick="konfirmasiPinGarduInput()">✓ Konfirmasi PIN</button>
+    <!-- PIN admin selalu 4 digit → auto-submit begitu 4 digit terisi, tidak perlu
+         tombol konfirmasi manual. -->
     <div id="pin-gardu-error" style="display:none;color:var(--pln-red);text-align:center;margin-top:var(--sp-sm);font-size:var(--fs-sm);"></div>
     <button id="btn-belum-pin" class="btn btn-outline" style="display:none;margin-top:var(--sp-sm);width:100%;font-size:var(--fs-xs);color:var(--pln-text3);" onclick="bukaSetPinDariModalPin()">🔐 Belum punya PIN? Set PIN dulu</button>
     <button class="btn btn-outline" style="margin-top:var(--sp-sm);width:100%;" onclick="tutupModalPinGardu()">Batal</button>
@@ -3239,7 +3236,7 @@ input[type=number]{-moz-appearance:textfield;}
     <div style="text-align:center;margin-bottom:var(--sp-md);">
       <div style="font-size:36px;">🔐</div>
       <div style="font-size:var(--fs-md);font-weight:700;">Set / Ganti PIN</div>
-      <div style="font-size:var(--fs-xs);color:var(--pln-text3);">PIN (4–8 digit angka) digunakan untuk konfirmasi tambah/edit data gardu</div>
+      <div style="font-size:var(--fs-xs);color:var(--pln-text3);">PIN (4 digit angka) digunakan untuk konfirmasi tambah/edit data gardu</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:var(--sp-sm);">
       <div>
@@ -3251,12 +3248,12 @@ input[type=number]{-moz-appearance:textfield;}
         </div>
       </div>
       <div>
-        <label class="form-label">PIN Baru (4–8 digit angka)</label>
-        <input id="setpin-baru" type="tel" class="form-input" placeholder="Contoh: 1234" maxlength="8" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+        <label class="form-label">PIN Baru (4 digit angka)</label>
+        <input id="setpin-baru" type="tel" class="form-input" placeholder="Contoh: 1234" maxlength="4" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
       </div>
       <div>
         <label class="form-label">Ulangi PIN Baru</label>
-        <input id="setpin-konfirmasi" type="tel" class="form-input" placeholder="Ketik ulang PIN baru" maxlength="8" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+        <input id="setpin-konfirmasi" type="tel" class="form-input" placeholder="Ketik ulang PIN baru" maxlength="4" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
       </div>
     </div>
     <div id="setpin-msg" style="display:none;margin-top:var(--sp-sm);padding:var(--sp-sm);border-radius:var(--radius-xs);font-size:var(--fs-sm);"></div>
@@ -10078,31 +10075,11 @@ function bukaSetPinDariModalPin() {
   bukaModalSetPin();
 }
 
-var PIN_GARDU_MAX = 8; // harus sama dengan maxlength di #setpin-baru (Set PIN: 4–8 digit)
+var PIN_GARDU_MAX = 4; // PIN admin selalu 4 digit — harus sama dengan maxlength di #setpin-baru
 
 function updatePinGarduDots() {
   var dots = document.querySelectorAll('#pin-gardu-dots .pin-dot');
   dots.forEach(function(d, i){ d.classList.toggle('filled', i < pinGarduBuffer.length); });
-  // Tombol konfirmasi manual muncul begitu PIN sudah memenuhi panjang minimum (4),
-  // karena panjang PIN sebenarnya (4–8 digit, lihat Set PIN) tidak diketahui di sisi
-  // klien — tidak bisa auto-submit di angka tetap tanpa berisiko memotong PIN yang
-  // lebih panjang dari 4 digit.
-  var btnKonfirmasi = document.getElementById('btn-konfirmasi-pin-gardu');
-  if (btnKonfirmasi) {
-    btnKonfirmasi.style.display = (pinGarduBuffer.length >= 4 && _pinGarduCallback) ? 'block' : 'none';
-  }
-}
-
-// Dipanggil oleh tombol "✓ Konfirmasi PIN" — submit manual, berapa pun panjang PIN
-// yang sudah diketik (selama >=4 digit, divalidasi lagi di server).
-function konfirmasiPinGarduInput() {
-  if (pinGarduBuffer.length < 4 || !_pinGarduCallback) return;
-  var pin = pinGarduBuffer;
-  var cb  = _pinGarduCallback;
-  // PENTING: JANGAN tutupModalPinGardu() di sini — masing-masing callback
-  // bertanggung jawab menutup modal sendiri (sukses) atau membiarkan
-  // modal terbuka untuk retry (gagal).
-  cb(pin);
 }
 
 function bukaModalSetPin() {
@@ -10135,7 +10112,7 @@ function submitSetPin() {
 
   if (!pass || !pinBaru || !pinKonfirmasi) { showMsg('Semua field wajib diisi.', false); return; }
   if (!/^\d+$/.test(pinBaru)) { showMsg('PIN hanya boleh berisi angka (0-9).', false); return; }
-  if (pinBaru.length < 4) { showMsg('PIN minimal 4 digit angka.', false); return; }
+  if (pinBaru.length !== 4) { showMsg('PIN harus tepat 4 digit angka.', false); return; }
   if (pinBaru !== pinKonfirmasi) { showMsg('PIN baru dan konfirmasi tidak sama.', false); return; }
 
   apiGet({ action:'setPin', token: s.token, password: pass, pinBaru: pinBaru }, function(res){
@@ -10158,10 +10135,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (pinGarduBuffer.length >= PIN_GARDU_MAX) return;
       pinGarduBuffer += v;
       updatePinGarduDots();
-      // Auto-submit HANYA saat mentok di panjang maksimum (8) — itu satu-satunya
-      // titik yang tidak ambigu secara panjang. Untuk PIN 4–7 digit, user menekan
-      // tombol "✓ Konfirmasi PIN" (lihat updatePinGarduDots/konfirmasiPinGarduInput)
-      // supaya PIN yang lebih pendek dari 8 digit tidak ke-submit prematur/terpotong.
+      // PIN admin selalu 4 digit → auto-submit begitu 4 digit terisi.
       if (pinGarduBuffer.length >= PIN_GARDU_MAX && _pinGarduCallback) {
         var pin = pinGarduBuffer;
         var cb  = _pinGarduCallback;
