@@ -3351,9 +3351,10 @@ input[type=number]{-moz-appearance:textfield;}
           <option value="superadmin">Super Admin</option>
         </select>
       </div>
-      <div class="form-group" id="uf-ulp-wrap"><label class="form-label">ULP *</label>
+      <div class="form-group" id="uf-ulp-wrap"><label class="form-label">Unit Kerja *</label>
         <select id="uf-ulp" class="form-select">
-          <option value="">-- Pilih ULP --</option>
+          <option value="">-- Pilih Unit Kerja --</option>
+          <option>UP3 JAYAPURA</option>
           <option>ULP ABEPURA</option>
           <option>ULP JAYAPURA</option>
           <option>ULP SENTANI</option>
@@ -4638,7 +4639,12 @@ function renderUserList() {
       wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--pln-text3);font-size:var(--fs-sm);">Belum ada user.</div>';
       return;
     }
-    var html = '<div class="user-table-row user-table-head"><span>User</span><span>Role / ULP</span><span></span><span></span></div>';
+    // Daftar utama HANYA menampilkan user aktif. User nonaktif (hasil
+    // soft-delete via hapusUser) disembunyikan ke bagian collapsible
+    // di bawah supaya tidak menumpuk tapi tetap bisa diaktifkan lagi.
+    var htmlActive   = '<div class="user-table-row user-table-head"><span>User</span><span>Role / Unit Kerja</span><span></span><span></span></div>';
+    var htmlInactive = '';
+    var inactiveCount = 0;
     users.forEach(function(u, i) {
       var isAktif   = !u.aktif || (u.aktif||'').toUpperCase() === 'YA';
       var roleStr   = u.role === 'staff_up3' ? '🟣 Staff UP3' : isFullAccessRole(u.role) ? '⭐ Super Admin' : u.role === 'admin' ? '🟢 Admin ULP' : '🔵 Petugas';
@@ -4650,15 +4656,55 @@ function renderUserList() {
         ? '<span style="font-size:9px;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 5px;margin-left:4px;">✅ Aktif</span>'
         : '<span style="font-size:9px;background:#FEE2E2;color:#991B1B;border-radius:4px;padding:1px 5px;margin-left:4px;">🚫 Nonaktif</span>';
       var canDel = !isFullAccessRole(u.role);
-      html += '<div class="user-table-row">';
-      html += '<span><b>'+esc(u.username)+'</b><br><span style="opacity:.6;font-size:9px;">'+esc(u.nama)+'</span>'+pinBadge+aktifBadge+'</span>';
-      html += '<span>'+roleStr+ulpStr+'</span>';
-      html += '<button class="user-action-btn btn-edit-user" onclick="editUser('+i+',null)">✏️ Edit</button>';
-      html += canDel ? '<button class="user-action-btn btn-del-user" onclick="hapusUser(\''+esc(u.username)+'\',\''+esc(u.nama)+'\')">🗑️</button>' : '<span></span>';
-      html += '</div>';
+      var row = '<div class="user-table-row">';
+      row += '<span><b>'+esc(u.username)+'</b><br><span style="opacity:.6;font-size:9px;">'+esc(u.nama)+'</span>'+pinBadge+aktifBadge+'</span>';
+      row += '<span>'+roleStr+ulpStr+'</span>';
+      row += '<button class="user-action-btn btn-edit-user" onclick="editUser('+i+',null)">✏️ Edit</button>';
+      if (isAktif) {
+        row += canDel ? '<button class="user-action-btn btn-del-user" onclick="hapusUser(\''+esc(u.username)+'\',\''+esc(u.nama)+'\')">🗑️</button>' : '<span></span>';
+      } else {
+        row += canDel ? '<button class="user-action-btn" onclick="aktifkanUserMgmt(\''+esc(u.username)+'\',\''+esc(u.nama)+'\')" style="color:#065F46;">✅ Aktifkan</button>' : '<span></span>';
+      }
+      row += '</div>';
+      if (isAktif) { htmlActive += row; } else { htmlInactive += row; inactiveCount++; }
     });
+
+    var html = htmlActive;
+    if (inactiveCount > 0) {
+      html += '<div style="padding:8px 12px;border-top:1px solid var(--pln-border);">'
+            +   '<button type="button" id="btn-toggle-inactive-user" data-count="'+inactiveCount+'" onclick="toggleInactiveUserList()" style="background:none;border:none;color:var(--pln-biru2);font-size:var(--fs-xs);font-weight:700;cursor:pointer;padding:0;">👁️ Tampilkan '+inactiveCount+' user nonaktif</button>'
+            + '</div>'
+            + '<div id="inactive-user-rows" style="display:none;">' + htmlInactive + '</div>';
+    }
     wrap.innerHTML = html;
     wrap._userCache = users;
+  });
+}
+
+// ── Tampilkan/sembunyikan user nonaktif (hasil soft-delete) ───
+function toggleInactiveUserList() {
+  var el  = document.getElementById('inactive-user-rows');
+  var btn = document.getElementById('btn-toggle-inactive-user');
+  if (!el || !btn) return;
+  var count   = btn.getAttribute('data-count') || '';
+  var showing = el.style.display !== 'none';
+  el.style.display = showing ? 'none' : 'block';
+  btn.textContent = showing
+    ? ('👁️ Tampilkan ' + count + ' user nonaktif')
+    : ('🙈 Sembunyikan ' + count + ' user nonaktif');
+}
+
+// ── Aktifkan kembali user yang sudah di-nonaktifkan (soft delete) ──
+function aktifkanUserMgmt(username, nama) {
+  var label = nama ? '"' + nama + '" (' + username + ')' : '"' + username + '"';
+  var s = getSession();
+  apiGet({ action: 'aktifkanUser', token: s ? s.token : '', username: username, aktifkan: true }, function(res) {
+    if (res.status === 'ok') {
+      renderUserList();
+      showAlert('✅ Akun ' + label + ' berhasil diaktifkan kembali.');
+    } else {
+      showAlert('❌ ' + userFriendlyError(res.message, 'Gagal mengaktifkan user.'));
+    }
   });
 }
 
@@ -4723,7 +4769,7 @@ function simpanUser() {
   if (!uname || !nama) return showMsg('Username dan nama wajib diisi.', true);
   if (!usernameLama && !pass) return showMsg('Password wajib diisi untuk user baru.', true);
   if (pass && pass.length < 6) return showMsg('Password minimal 6 karakter.', true);
-  if (!isFullAccessRole(role) && !ulp) return showMsg('ULP wajib dipilih untuk role ini.', true);
+  if (!isFullAccessRole(role) && !ulp) return showMsg('Unit Kerja wajib dipilih untuk role ini.', true);
 
   showMsg('Menyimpan ke server...', false);
   var params = {
