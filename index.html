@@ -7314,7 +7314,12 @@ function fiValidate() {
   var rA = parseFloat(document.getElementById('fi-r-total').value);
   var sA = parseFloat(document.getElementById('fi-s-total').value);
   var tA = parseFloat(document.getElementById('fi-t-total').value);
-  if (!rA && !sA && !tA) errs.push('Minimal satu nilai arus (R/S/T) harus diisi.');
+  // CATATAN: validasi "minimal satu arus harus diisi" SENGAJA dihapus dari sini.
+  // Field arus R/S/T sudah terdaftar di FI_OPTIONAL_NUMERIC_FIELDS, jadi kalau
+  // kosong akan ditangani oleh popup konfirmasi (fiGetEmptyOptionalFields +
+  // bukaModalKonfirmasi di submitFormInspeksi) — bukan diblokir hard-error
+  // di sini. User tinggal konfirmasi lewat popup, lalu field kosong disimpan
+  // sebagai 0 ke database.
   // FIX: Daya trafo (kVA) diisi otomatis (readonly) dari data gardu. Jika data
   // gardu tidak punya KAPASITAS_KVA/DAYA_KVA, field ini kosong dan sebelumnya
   // baru ketahuan gagal setelah submit ke server dengan pesan yang tidak jelas.
