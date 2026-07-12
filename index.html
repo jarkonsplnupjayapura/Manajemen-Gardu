@@ -921,6 +921,7 @@ input[type=number]{-moz-appearance:textfield;}
 .badge-petugas{background:#2563EB;color:#fff;}
 .badge-admin{background:#059669;color:#fff;}
 .badge-superadmin{background:linear-gradient(135deg,#DC2626,#F59E0B);color:#fff;}
+.badge-staffup3{background:linear-gradient(135deg,#7C3AED,#2563EB);color:#fff;}
 
 .topbar-user-info{
   display:flex;flex-direction:column;align-items:flex-end;gap:2px;
@@ -3346,6 +3347,7 @@ input[type=number]{-moz-appearance:textfield;}
         <select id="uf-role" class="form-select" onchange="onUFRoleChange()">
           <option value="petugas">Petugas</option>
           <option value="admin">Admin ULP</option>
+          <option value="staff_up3">Staff UP3</option>
           <option value="superadmin">Super Admin</option>
         </select>
       </div>
@@ -3480,8 +3482,6 @@ input[type=number]{-moz-appearance:textfield;}
           <option value="">-- Pilih --</option>
           <option value="PLN">PLN</option>
           <option value="NON">NON PLN</option>
-          <option value="KOSONG">KOSONG</option>
-          <option value="BELUM BERNOMOR">BELUM BERNOMOR</option>
         </select></div>
       <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">STATUS OPERASIONAL</label>
         <select id="f-status-op" class="form-input">
@@ -3490,6 +3490,45 @@ input[type=number]{-moz-appearance:textfield;}
         </select></div>
       <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">MEREK TRAFO</label>
         <input id="f-merek" class="form-input" placeholder="Contoh: WELTRAF, UNINDO, B. DJAJA" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
+
+      <!-- ── Data Nameplate Trafo (opsional) ── -->
+      <div style="display:flex;align-items:center;gap:8px;margin:var(--sp-xs) 0 2px;padding-top:var(--sp-xs);border-top:1.5px dashed var(--pln-border);">
+        <span style="font-size:var(--fs-sm);">🔧</span>
+        <span style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-text2);text-transform:uppercase;letter-spacing:.4px;">Data Nameplate Trafo (opsional)</span>
+      </div>
+      <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">SERIAL NUMBER</label>
+        <input id="f-np-serial" class="form-input" placeholder="Contoh: 10R255943" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-sm);">
+        <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">ARUS PRIMER (A)</label>
+          <input id="f-np-arus-primer" class="form-input" type="number" step="any" placeholder="Contoh: 2,987"></div>
+        <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">ARUS SEKUNDER (A)</label>
+          <input id="f-np-arus-sekunder" class="form-input" type="number" step="any" placeholder="Contoh: 144,338"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-sm);">
+        <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">TEGANGAN PRIMER (V)</label>
+          <input id="f-np-tegangan-primer" class="form-input" type="number" step="any" placeholder="Contoh: 20000"></div>
+        <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">TEGANGAN SEKUNDER (V)</label>
+          <input id="f-np-tegangan-sekunder" class="form-input" type="number" step="any" placeholder="Contoh: 400"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-sm);">
+        <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">FREKUENSI (Hz)</label>
+          <input id="f-np-frekuensi" class="form-input" type="number" step="any" placeholder="Contoh: 50"></div>
+        <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">VEKTOR GRUP</label>
+          <input id="f-np-vektor" class="form-input" placeholder="Contoh: Yzn5"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-sm);">
+        <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">JENIS OLI</label>
+          <input id="f-np-jenis-oli" class="form-input" placeholder="Contoh: ONAN" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
+        <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">VOLUME OLI (Liter)</label>
+          <input id="f-np-volume-oli" class="form-input" type="number" step="any" placeholder="Contoh: 144"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-sm);">
+        <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">BERAT TOTAL (Kg)</label>
+          <input id="f-np-berat" class="form-input" type="number" step="any" placeholder="Contoh: 600"></div>
+        <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">TAHUN PRODUKSI</label>
+          <input id="f-np-tahun" class="form-input" type="number" step="1" placeholder="Contoh: 2010"></div>
+      </div>
+
       <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">LATITUDE</label>
         <input id="f-lat" class="form-input" type="number" step="any" placeholder="Contoh: -2.5916"></div>
       <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">LONGITUDE</label>
@@ -3604,8 +3643,6 @@ input[type=number]{-moz-appearance:textfield;}
             <option value="">-- Pilih --</option>
             <option value="PLN">PLN</option>
             <option value="NON">NON PLN</option>
-            <option value="KOSONG">KOSONG</option>
-            <option value="BELUM BERNOMOR">BELUM BERNOMOR</option>
           </select></div>
         <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">STATUS OPERASIONAL</label>
           <select id="ef-status" class="form-input">
@@ -3614,6 +3651,45 @@ input[type=number]{-moz-appearance:textfield;}
           </select></div>
         <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">MEREK TRAFO</label>
           <input id="ef-merek" class="form-input" placeholder="Contoh: WELTRAF, UNINDO, B. DJAJA" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
+
+        <!-- ── Data Nameplate Trafo (opsional) ── -->
+        <div style="display:flex;align-items:center;gap:8px;margin:var(--sp-xs) 0 2px;padding-top:var(--sp-xs);border-top:1.5px dashed var(--pln-border);">
+          <span style="font-size:var(--fs-sm);">🔧</span>
+          <span style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-text2);text-transform:uppercase;letter-spacing:.4px;">Data Nameplate Trafo (opsional)</span>
+        </div>
+        <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">SERIAL NUMBER</label>
+          <input id="ef-np-serial" class="form-input" placeholder="Contoh: 10R255943" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-sm);">
+          <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">ARUS PRIMER (A)</label>
+            <input id="ef-np-arus-primer" class="form-input" type="number" step="any" placeholder="Contoh: 2,987"></div>
+          <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">ARUS SEKUNDER (A)</label>
+            <input id="ef-np-arus-sekunder" class="form-input" type="number" step="any" placeholder="Contoh: 144,338"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-sm);">
+          <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">TEGANGAN PRIMER (V)</label>
+            <input id="ef-np-tegangan-primer" class="form-input" type="number" step="any" placeholder="Contoh: 20000"></div>
+          <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">TEGANGAN SEKUNDER (V)</label>
+            <input id="ef-np-tegangan-sekunder" class="form-input" type="number" step="any" placeholder="Contoh: 400"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-sm);">
+          <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">FREKUENSI (Hz)</label>
+            <input id="ef-np-frekuensi" class="form-input" type="number" step="any" placeholder="Contoh: 50"></div>
+          <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">VEKTOR GRUP</label>
+            <input id="ef-np-vektor" class="form-input" placeholder="Contoh: Yzn5"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-sm);">
+          <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">JENIS OLI</label>
+            <input id="ef-np-jenis-oli" class="form-input" placeholder="Contoh: ONAN" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
+          <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">VOLUME OLI (Liter)</label>
+            <input id="ef-np-volume-oli" class="form-input" type="number" step="any" placeholder="Contoh: 144"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-sm);">
+          <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">BERAT TOTAL (Kg)</label>
+            <input id="ef-np-berat" class="form-input" type="number" step="any" placeholder="Contoh: 600"></div>
+          <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">TAHUN PRODUKSI</label>
+            <input id="ef-np-tahun" class="form-input" type="number" step="1" placeholder="Contoh: 2010"></div>
+        </div>
+
         <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">LATITUDE</label>
           <input id="ef-lat" class="form-input" type="number" step="any" placeholder="Contoh: -2.5916"></div>
         <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">LONGITUDE</label>
@@ -3933,7 +4009,8 @@ input[type=number]{-moz-appearance:textfield;}
 //  [AUTH v2] SISTEM LOGIN SERVER-SIDE
 //  Password disimpan di Google Spreadsheet B (rahasia),
 //  BUKAN di file HTML ini. HTML ini tidak mengandung password apapun.
-//  Role: superadmin | adminulp | petugas
+//  Role: superadmin | staff_up3 | admin | petugas
+//  (staff_up3 = hak akses SAMA PERSIS dengan superadmin, lihat isFullAccessRole())
 //  Storage: sessionStorage (session token sementara)
 // ══════════════════════════════════════════════════════════════
 
@@ -4105,6 +4182,23 @@ function clearSession() {
   sessionStorage.removeItem('plnSession');
 }
 
+// ── Role dengan akses penuh lintas-ULP ───────────────────────
+// 'staff_up3' adalah role baru dengan hak akses SAMA PERSIS dengan
+// 'superadmin' (lihat semua ULP, semua fitur admin). Satu-satunya
+// alasan dipisah jadi role sendiri (bukan sekadar alias) adalah supaya
+// tetap bisa dibedakan secara administratif di daftar user / label UI.
+// Semua pengecekan hak akses di klien HARUS lewat helper ini, JANGAN
+// bandingkan langsung ke 'superadmin' saja, supaya staff_up3 otomatis
+// ikut ter-cover di mana pun helper ini dipakai.
+//
+// PENTING: ini hanya lapisan UI. Otorisasi sesungguhnya tetap harus
+// ditegakkan di RPC Supabase (SECURITY DEFINER) sisi server — fungsi
+// SQL seperti fn_hapus_gardu, fn_hapus_inspeksi, fn_tambah_user, dsb.
+// juga perlu diupdate agar mengizinkan role 'staff_up3' setara 'superadmin'.
+function isFullAccessRole(role) {
+  return role === 'superadmin' || role === 'staff_up3';
+}
+
 // Toggle show/hide password di halaman login
 function toggleShowPassword() {
   var inp = document.getElementById('login-password');
@@ -4242,8 +4336,8 @@ function onLoginSuccess(user) {
   var badge = document.getElementById('topbar-user-badge');
   var uLabel = document.getElementById('topbar-username-label');
   if (badge) {
-    var roleLabel = user.role === 'superadmin' ? 'SUPER ADMIN' : user.role === 'admin' ? 'Admin ULP' : 'PETUGAS';
-    var roleClass = user.role === 'superadmin' ? 'badge-superadmin' : user.role === 'admin' ? 'badge-admin' : 'badge-petugas';
+    var roleLabel = user.role === 'staff_up3' ? 'STAFF UP3' : isFullAccessRole(user.role) ? 'SUPER ADMIN' : user.role === 'admin' ? 'Admin ULP' : 'PETUGAS';
+    var roleClass = user.role === 'staff_up3' ? 'badge-staffup3' : isFullAccessRole(user.role) ? 'badge-superadmin' : user.role === 'admin' ? 'badge-admin' : 'badge-petugas';
     badge.textContent = roleLabel;
     badge.className = 'user-badge ' + roleClass;
   }
@@ -4267,22 +4361,24 @@ function onLoginSuccess(user) {
   // Atur icon kunci
   var lockBtn = document.getElementById('btn-admin-lock');
   if (lockBtn) {
-    if (user.role === 'superadmin') { lockBtn.style.color = 'var(--pln-kuning)'; lockBtn.title = 'Super Admin'; }
+    if (user.role === 'staff_up3') { lockBtn.style.color = 'var(--pln-kuning)'; lockBtn.title = 'Staff UP3'; }
+    else if (isFullAccessRole(user.role)) { lockBtn.style.color = 'var(--pln-kuning)'; lockBtn.title = 'Super Admin'; }
     else if (user.role === 'admin') { lockBtn.style.color = '#FCD34D'; lockBtn.title = 'Admin ULP: '+user.ulp; }
     else { lockBtn.style.color = 'rgba(255,255,255,.45)'; lockBtn.title = 'Petugas'; }
   }
   if (dtbLock) {
-    if (user.role === 'superadmin') { dtbLock.style.color = 'var(--pln-kuning)'; dtbLock.title = 'Super Admin'; }
+    if (user.role === 'staff_up3') { dtbLock.style.color = 'var(--pln-kuning)'; dtbLock.title = 'Staff UP3'; }
+    else if (isFullAccessRole(user.role)) { dtbLock.style.color = 'var(--pln-kuning)'; dtbLock.title = 'Super Admin'; }
     else if (user.role === 'admin') { dtbLock.style.color = '#FCD34D'; dtbLock.title = 'Admin ULP: '+user.ulp; }
     else { dtbLock.style.color = 'rgba(255,255,255,.45)'; dtbLock.title = 'Petugas'; }
   }
 
   // Tampilkan/sembunyikan tombol Kelola User
   var btnUser = document.getElementById('btn-kelola-user');
-  if (btnUser) btnUser.style.display = user.role === 'superadmin' ? '' : 'none';
+  if (btnUser) btnUser.style.display = isFullAccessRole(user.role) ? '' : 'none';
 
   // Set state admin & ULP
-  if (user.role !== 'superadmin' && user.ulp) {
+  if (!isFullAccessRole(user.role) && user.ulp) {
     currentULP = user.ulp;
   } else {
     currentULP = '';
@@ -4293,9 +4389,9 @@ function onLoginSuccess(user) {
   activeFilterStatus = '';
 
   var filterULPRow = document.getElementById('filter-ulp-row');
-  if (filterULPRow) filterULPRow.style.display = (user.role === 'superadmin') ? '' : 'none';
+  if (filterULPRow) filterULPRow.style.display = (isFullAccessRole(user.role)) ? '' : 'none';
 
-  var ulpUntukFilter = (user.role !== 'superadmin' && user.ulp) ? user.ulp : '';
+  var ulpUntukFilter = (!isFullAccessRole(user.role) && user.ulp) ? user.ulp : '';
   muatDaftarGardu(true, ulpUntukFilter);
   // MED-4 & MED-5 FIX: Sinkronkan ULP_SHEET_MAP dari DB, lalu bangun filter peta dinamis
   syncULPSheetMap();
@@ -4381,7 +4477,7 @@ function filterGarduByULP(data, ulpFilter) {
 // Wrapper lama (tetap ada untuk backward compat)
 function filterGarduBySession(data) {
   var s = getSession();
-  if (!s || s.role === 'superadmin' || !s.ulp) return data;
+  if (!s || isFullAccessRole(s.role) || !s.ulp) return data;
   return filterGarduByULP(data, s.ulp);
 }
 
@@ -4400,7 +4496,7 @@ function bukaMenuAdmin() {
     return;
   }
   // Superadmin langsung masuk (tidak perlu PIN tambahan)
-  if (s.role === 'superadmin') {
+  if (isFullAccessRole(s.role)) {
     _tampilkanPanelAdmin(s);
     return;
   }
@@ -4457,14 +4553,14 @@ function _tampilkanModalPinAdmin(s) {
 
 function _tampilkanPanelAdmin(s) {
   // Tandai PIN sudah diverifikasi untuk sesi ini
-  if (s.role !== 'superadmin') _adminUlpVerified = true;
+  if (!isFullAccessRole(s.role)) _adminUlpVerified = true;
 
   var titleEl = document.getElementById('admin-panel-title');
   var subEl   = document.getElementById('admin-panel-sub');
-  var isSuperadmin = (s.role === 'superadmin');
+  var isSuperadmin = (isFullAccessRole(s.role));
 
   if (isSuperadmin) {
-    if (titleEl) titleEl.textContent = '🔓 Super Admin Aktif';
+    if (titleEl) titleEl.textContent = s.role === 'staff_up3' ? '🔓 Staff UP3 Aktif' : '🔓 Super Admin Aktif';
     if (subEl)   subEl.textContent   = 'Akses penuh ke semua ULP';
   } else {
     if (titleEl) titleEl.textContent = '🔓 Admin: ' + (s.ulp || 'ULP Anda');
@@ -4545,7 +4641,7 @@ function renderUserList() {
     var html = '<div class="user-table-row user-table-head"><span>User</span><span>Role / ULP</span><span></span><span></span></div>';
     users.forEach(function(u, i) {
       var isAktif   = !u.aktif || (u.aktif||'').toUpperCase() === 'YA';
-      var roleStr   = u.role === 'superadmin' ? '⭐ Super Admin' : u.role === 'admin' ? '🟢 Admin ULP' : '🔵 Petugas';
+      var roleStr   = u.role === 'staff_up3' ? '🟣 Staff UP3' : isFullAccessRole(u.role) ? '⭐ Super Admin' : u.role === 'admin' ? '🟢 Admin ULP' : '🔵 Petugas';
       var ulpStr    = u.ulp ? ('<br><span style="opacity:.6;font-size:9px;">'+esc(u.ulp)+'</span>') : '';
       var pinBadge  = u.hasPIN
         ? '<span style="font-size:9px;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 5px;margin-left:4px;">🔑 PIN ✓</span>'
@@ -4553,7 +4649,7 @@ function renderUserList() {
       var aktifBadge = isAktif
         ? '<span style="font-size:9px;background:#D1FAE5;color:#065F46;border-radius:4px;padding:1px 5px;margin-left:4px;">✅ Aktif</span>'
         : '<span style="font-size:9px;background:#FEE2E2;color:#991B1B;border-radius:4px;padding:1px 5px;margin-left:4px;">🚫 Nonaktif</span>';
-      var canDel = u.role !== 'superadmin';
+      var canDel = !isFullAccessRole(u.role);
       html += '<div class="user-table-row">';
       html += '<span><b>'+esc(u.username)+'</b><br><span style="opacity:.6;font-size:9px;">'+esc(u.nama)+'</span>'+pinBadge+aktifBadge+'</span>';
       html += '<span>'+roleStr+ulpStr+'</span>';
@@ -4603,7 +4699,8 @@ function tutupFormUser() {
 function onUFRoleChange() {
   var role = document.getElementById('uf-role').value;
   var wrap = document.getElementById('uf-ulp-wrap');
-  if (wrap) wrap.style.display = (role === 'superadmin') ? 'none' : '';
+  // Superadmin & Staff UP3 sama-sama akses lintas-ULP → tidak perlu pilih ULP.
+  if (wrap) wrap.style.display = isFullAccessRole(role) ? 'none' : '';
 }
 
 function simpanUser() {
@@ -4626,7 +4723,7 @@ function simpanUser() {
   if (!uname || !nama) return showMsg('Username dan nama wajib diisi.', true);
   if (!usernameLama && !pass) return showMsg('Password wajib diisi untuk user baru.', true);
   if (pass && pass.length < 6) return showMsg('Password minimal 6 karakter.', true);
-  if (role !== 'superadmin' && !ulp) return showMsg('ULP wajib dipilih untuk role ini.', true);
+  if (!isFullAccessRole(role) && !ulp) return showMsg('ULP wajib dipilih untuk role ini.', true);
 
   showMsg('Menyimpan ke server...', false);
   var params = {
@@ -4635,7 +4732,7 @@ function simpanUser() {
     username: uname,
     nama: nama,
     role: role,
-    ulp: role === 'superadmin' ? '' : ulp
+    ulp: isFullAccessRole(role) ? '' : ulp
   };
   if (usernameLama) params.usernameLama = usernameLama;
   if (pass) params.password = pass;
@@ -4702,7 +4799,7 @@ function renderUserListULP() {
     }
     var myULP = (s.ulp || '').toUpperCase();
     var users = (res.data || []).filter(function(u) {
-      return u.role !== 'superadmin' && (u.ulp || '').toUpperCase() === myULP;
+      return !isFullAccessRole(u.role) && (u.ulp || '').toUpperCase() === myULP;
     });
     wrap._userUlpCache = users;
     if (!users.length) {
@@ -4809,8 +4906,8 @@ function simpanUserULP() {
   if (!nama)  return showMsg('Nama lengkap wajib diisi.', true);
   if (!usernameLama && !pass) return showMsg('Password wajib diisi untuk user baru.', true);
   if (pass && pass.length < 6) return showMsg('Password minimal 6 karakter.', true);
-  // Admin ULP tidak boleh buat superadmin
-  if (role === 'superadmin') return showMsg('Anda tidak dapat membuat akun Superadmin.', true);
+  // Admin ULP tidak boleh buat akun dengan akses lintas-ULP (Superadmin / Staff UP3)
+  if (isFullAccessRole(role)) return showMsg('Anda tidak dapat membuat akun Superadmin / Staff UP3.', true);
 
   showMsg('Menyimpan...', false);
   var params = {
@@ -5274,7 +5371,7 @@ function cacheClear(k){ if(k) delete _cache[k]; else _cache={}; }
 function muatDaftarGardu(force, ulpFilter){
   // ulpFilter: string ULP eksplisit (opsional). Jika tidak diisi, ambil dari session.
   var s = getSession();
-  var activeULP = (ulpFilter !== undefined) ? ulpFilter : ((s && s.role !== 'superadmin') ? (s.ulp || '') : '');
+  var activeULP = (ulpFilter !== undefined) ? ulpFilter : ((s && !isFullAccessRole(s.role)) ? (s.ulp || '') : '');
 
   _cacheKey = 'gardu_' + (activeULP ? activeULP.replace(/\s+/g,'_').toUpperCase() : 'ALL'); // O4: granular cache per ULP
   var cached = !force && cacheGet(_cacheKey);
@@ -5404,7 +5501,7 @@ function renderDaftarGardu(data){
     var rawCache = cacheGet(_cacheKey || 'gardu_ALL'); // O4: granular cache
     var totalRaw = rawCache ? rawCache.length : 0;
     var ulpMsg = '';
-    if (s && s.role !== 'superadmin' && s.ulp && totalRaw > 0) {
+    if (s && !isFullAccessRole(s.role) && s.ulp && totalRaw > 0) {
       // Ada data di cache tapi tidak ada yang cocok dengan ULP session
       var sheetVal = ulpAkunToSheet(s.ulp);
       var ulpUnik = {};
@@ -5553,6 +5650,45 @@ function renderDetailGardu(g, riwayat){
   html += '</div></div>';
   html += '</div>';
 
+  // ── Data Nameplate Trafo (accordion, collapsed default) ──
+  (function(){
+    var npFields = [
+      ['Serial Number',      g['SERIAL_NUMBER']],
+      ['Arus Primer',        g['ARUS_PRIMER']        ? g['ARUS_PRIMER']+' A'        : ''],
+      ['Arus Sekunder',      g['ARUS_SEKUNDER']      ? g['ARUS_SEKUNDER']+' A'      : ''],
+      ['Tegangan Primer',    g['TEGANGAN_PRIMER']    ? g['TEGANGAN_PRIMER']+' V'    : ''],
+      ['Tegangan Sekunder',  g['TEGANGAN_SEKUNDER']  ? g['TEGANGAN_SEKUNDER']+' V'  : ''],
+      ['Frekuensi',          g['FREKUENSI_HZ']       ? g['FREKUENSI_HZ']+' Hz'      : ''],
+      ['Vektor Grup',        g['VEKTOR_GRUP']],
+      ['Jenis Oli',          g['JENIS_OLI']],
+      ['Volume Oli',         g['VOLUME_OLI_LITER']   ? g['VOLUME_OLI_LITER']+' L'   : ''],
+      ['Berat Total',        g['BERAT_TOTAL_KG']     ? g['BERAT_TOTAL_KG']+' Kg'    : ''],
+      ['Tahun Produksi',     g['TAHUN_PRODUKSI']]
+    ];
+    var hasNameplate = npFields.some(function(f){ return f[1] !== undefined && f[1] !== null && String(f[1]).trim() !== ''; });
+    var npId = 'np-' + Math.random().toString(36).slice(2, 9);
+    html += '<div class="card" style="padding:0;overflow:hidden;">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:var(--sp-sm) var(--sp-md);cursor:pointer;" onclick="var b=document.getElementById(\''+npId+'\');var i=document.getElementById(\''+npId+'-icon\');if(b){var open=b.style.display!==\'none\';b.style.display=open?\'none\':\'block\';if(i)i.textContent=open?\'▾\':\'▴\';}">';
+    html += '<div style="display:flex;align-items:center;gap:8px;">';
+    html += '<span style="font-size:var(--fs-md);">🔧</span>';
+    html += '<span style="font-size:var(--fs-sm);font-weight:700;color:var(--pln-text2);">Data Nameplate Trafo</span>';
+    html += '</div>';
+    html += '<span id="'+npId+'-icon" style="color:var(--pln-text3);">▾</span>';
+    html += '</div>';
+    html += '<div id="'+npId+'" style="display:none;padding:0 var(--sp-md) var(--sp-md);">';
+    if (hasNameplate) {
+      html += '<div class="grid2">';
+      npFields.forEach(function(f){
+        html += '<div><div class="lbl">'+esc(f[0])+'</div><div class="val">'+esc(String(f[1]||'').trim() || '—')+'</div></div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div style="font-size:var(--fs-sm);color:var(--pln-text3);font-style:italic;">Data nameplate belum diisi. Lengkapi lewat menu Edit Gardu.</div>';
+    }
+    html += '</div>';
+    html += '</div>';
+  })();
+
   // ── GPS Mini Map ──
   // CATATAN PERBAIKAN: iframe Google Maps (maps.google.com/maps?...&output=embed)
   // kerap "nyangkut" loading tanpa pernah render di webview Capacitor/Android
@@ -5648,7 +5784,7 @@ function renderDetailGardu(g, riwayat){
     // aman, batasan yang sama WAJIB juga ditegakkan di sisi server pada
     // fungsi fn_hapus_inspeksi (cek role di dalam fungsi, bukan hanya di
     // klien) — lihat catatan di percakapan untuk contoh SQL-nya.
-    var _canDeleteInspeksi = _sRiwayat && _sRiwayat.role === 'superadmin';
+    var _canDeleteInspeksi = _sRiwayat && isFullAccessRole(_sRiwayat.role);
     riwayat.forEach(function(r, idx){
       var prosen = r['PROSEN'] !== '' && r['PROSEN'] !== null ? parseFloat(r['PROSEN']) : null;
       var bc = prosen === null ? 'badge-nonaktif' : prosen > 80 ? 'badge-kritis' : prosen > 60 ? 'badge-perlu' : 'badge-normal';
@@ -5668,7 +5804,7 @@ function renderDetailGardu(g, riwayat){
 
       // MED-10 FIX: _sRiwayat sudah diambil sebelum loop — tidak perlu panggil getSession() lagi
       var _canEditInspeksi = _sRiwayat && (
-        _sRiwayat.role === 'admin' || _sRiwayat.role === 'superadmin' ||
+        _sRiwayat.role === 'admin' || isFullAccessRole(_sRiwayat.role) ||
         (_sRiwayat.role === 'petugas' && _sRiwayat.nama && r['PETUGAS'] &&
           String(_sRiwayat.nama).toLowerCase().trim() === String(r['PETUGAS']).toLowerCase().trim())
       );
@@ -6320,6 +6456,92 @@ function tutupDetail(){
 var _fiGardu = null;        // object gardu yg sedang diinspeksi
 var _fiJurusanCount = 0;   // jumlah jurusan aktif (max 6)
 var _fiManualCalc = false;  // apakah kalkulasi manual diaktifkan
+var _fiConfirmedZeroIds = null; // {id:true,...} field kosong yg sudah dikonfirmasi user utk disimpan sebagai 0
+
+// Field pengukuran yang BOLEH kosong secara teknis (mis. gardu 1 fasa
+// tidak punya arus S/T, sensor tertentu tidak dipakai di lokasi tsb),
+// tapi user tetap diminta konfirmasi eksplisit dulu sebelum kolom kosong
+// tersebut disimpan sebagai 0 ke database — supaya tidak ada kolom yang
+// "kelewatan tanpa sadar" oleh petugas saat input di lapangan.
+var FI_OPTIONAL_NUMERIC_FIELDS = [
+  {id:'fi-r-total',   label:'Arus R (A)'},
+  {id:'fi-s-total',   label:'Arus S (A)'},
+  {id:'fi-t-total',   label:'Arus T (A)'},
+  {id:'fi-n-total',   label:'Arus N (A)'},
+  {id:'fi-v-rn',      label:'Tegangan R-N (V)'},
+  {id:'fi-v-sn',      label:'Tegangan S-N (V)'},
+  {id:'fi-v-tn',      label:'Tegangan T-N (V)'},
+  {id:'fi-v-rs',      label:'Tegangan R-S (V)'},
+  {id:'fi-v-st',      label:'Tegangan S-T (V)'},
+  {id:'fi-v-rt',      label:'Tegangan R-T (V)'},
+  {id:'fi-thd-r',     label:'THD R (%)'},
+  {id:'fi-thd-s',     label:'THD S (%)'},
+  {id:'fi-thd-t',     label:'THD T (%)'},
+  {id:'fi-ipeak-r',   label:'IPeak R (A)'},
+  {id:'fi-ipeak-s',   label:'IPeak S (A)'},
+  {id:'fi-ipeak-t',   label:'IPeak T (A)'},
+  {id:'fi-tpf-r',     label:'TPF R'},
+  {id:'fi-tpf-s',     label:'TPF S'},
+  {id:'fi-tpf-t',     label:'TPF T'}
+];
+
+// Kembalikan daftar field opsional yang saat ini masih kosong.
+// Field manual (daya-pakai/prosen/tdk-seimbang) sengaja TIDAK dicek di
+// sini — itu hasil kalkulasi/override, bukan pengukuran mentah.
+// Suffix field pengukuran per-jurusan (kartu "+ Tambah Jurusan"), sama
+// persis dengan field yang dibaca fiGetJurusanData().
+var FI_JURUSAN_FIELD_SUFFIXES = [
+  {suf:'-r',      label:'Arus R'},
+  {suf:'-s',      label:'Arus S'},
+  {suf:'-t',      label:'Arus T'},
+  {suf:'-n',      label:'Arus N'},
+  {suf:'-rn',     label:'Tegangan R-N'},
+  {suf:'-sn',     label:'Tegangan S-N'},
+  {suf:'-tn',     label:'Tegangan T-N'},
+  {suf:'-rs',     label:'Tegangan R-S'},
+  {suf:'-st',     label:'Tegangan S-T'},
+  {suf:'-rt',     label:'Tegangan R-T'},
+  {suf:'-thdr',   label:'THD R'},
+  {suf:'-thds',   label:'THD S'},
+  {suf:'-thdt',   label:'THD T'},
+  {suf:'-ipeakr', label:'IPeak R'},
+  {suf:'-ipeaks', label:'IPeak S'},
+  {suf:'-ipeakt', label:'IPeak T'},
+  {suf:'-tpfr',   label:'TPF R'},
+  {suf:'-tpfs',   label:'TPF S'},
+  {suf:'-tpft',   label:'TPF T'}
+];
+
+function fiGetEmptyOptionalFields() {
+  var empty = FI_OPTIONAL_NUMERIC_FIELDS.filter(function(f) {
+    var el = document.getElementById(f.id);
+    if (!el) return false;
+    return !el.value.trim();
+  });
+
+  // Field per-jurusan: jurusan yang SELURUHNYA kosong (tidak ada nama/R/S/T)
+  // tidak akan disertakan saat submit — lihat fiGetJurusanData() — jadi tidak
+  // perlu ditanyakan. Jurusan yang sudah mulai diisi (ada nama atau salah
+  // satu arus) tapi field lainnya masih kosong, itu yang perlu dikonfirmasi.
+  for (var i = 1; i <= _fiJurusanCount; i++) {
+    var namaEl = document.getElementById('fi-jur'+i+'-nama');
+    var rEl    = document.getElementById('fi-jur'+i+'-r');
+    var sEl    = document.getElementById('fi-jur'+i+'-s');
+    var tEl    = document.getElementById('fi-jur'+i+'-t');
+    var adaIsi = (namaEl && namaEl.value.trim()) || (rEl && rEl.value.trim()) ||
+                 (sEl && sEl.value.trim()) || (tEl && tEl.value.trim());
+    if (!adaIsi) continue;
+    FI_JURUSAN_FIELD_SUFFIXES.forEach(function(js) {
+      var id = 'fi-jur'+i+js.suf;
+      var el = document.getElementById(id);
+      if (el && !el.value.trim()) {
+        empty.push({ id: id, label: 'Jurusan ' + i + ' — ' + js.label });
+      }
+    });
+  }
+
+  return empty;
+}
 
 // ── Buka form inspeksi dari detail gardu ─────────────────────
 function bukaFormInspeksi(noGardu) {
@@ -6337,6 +6559,7 @@ function bukaFormInspeksi(noGardu) {
   _fiGardu = g;
   _fiJurusanCount = 0;
   _fiManualCalc = false;
+  _fiConfirmedZeroIds = null; // reset konfirmasi field-kosong dari sesi form sebelumnya
 
   // Isi info gardu (readonly display)
   document.getElementById('fi-topbar-title').textContent = noGardu;
@@ -6447,6 +6670,7 @@ function _fiDoClose() {
   fiStopAutosave();
   document.getElementById('form-inspeksi-view').style.display = 'none';
   _fiGardu = null;
+  _fiConfirmedZeroIds = null; // reset supaya sesi form berikutnya tidak mewarisi konfirmasi lama
   try { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
   document.documentElement.scrollTop = 0;
   document.body.scrollTop = 0;
@@ -6832,7 +7056,19 @@ function fiToggleJurusan(n) {
 function fiGetJurusanData() {
   var result = [];
   for (var i = 1; i <= _fiJurusanCount; i++) {
-    var getV = function(id){ var el=document.getElementById(id); return el&&el.value.trim() ? parseFloat(el.value)||null : null; };
+    // FIX: sebelumnya pakai `parseFloat(el.value)||null` — bug, karena 0 itu
+    // falsy di JS, jadi nilai 0 yang benar-benar diketik user ikut berubah
+    // jadi null (hilang). Sekarang pakai isNaN() supaya 0 valid tetap 0.
+    // Field yang KOSONG (bukan diisi 0) tetap null, KECUALI sudah dikonfirmasi
+    // user via popup "Ada Field Kosong" — baru jadi 0.
+    var getV = function(id){
+      var el = document.getElementById(id);
+      if (!el) return null;
+      var v = el.value.trim();
+      if (!v) return (_fiConfirmedZeroIds && _fiConfirmedZeroIds[id]) ? 0 : null;
+      var n = parseFloat(v);
+      return isNaN(n) ? null : n;
+    };
     var getS = function(id){ var el=document.getElementById(id); return el&&el.value.trim() ? el.value.trim() : null; };
     var nama = getS('fi-jur'+i+'-nama');
     var titik = getS('fi-jur'+i+'-titik');
@@ -7085,12 +7321,47 @@ function submitFormInspeksi() {
     return;
   }
 
+  // Cek field pengukuran opsional yang masih kosong. Kalau ada dan belum
+  // dikonfirmasi user pada percobaan submit ini, tampilkan popup konfirmasi
+  // dulu — JANGAN langsung kirim ke server. Field yang sudah dikonfirmasi
+  // akan disimpan sebagai 0 (bukan null / kosong).
+  // Hanya field yang BELUM pernah dikonfirmasi user yang perlu ditanyakan lagi —
+  // ini penting kalau submit sebelumnya gagal (mis. jaringan putus) lalu user
+  // menekan Simpan ulang, atau user mengisi sebagian field lalu mengosongkan
+  // field lain sebelum submit ulang.
+  var emptyFields = fiGetEmptyOptionalFields();
+  var belumDikonfirmasi = emptyFields.filter(function(f) {
+    return !(_fiConfirmedZeroIds && _fiConfirmedZeroIds[f.id]);
+  });
+  if (belumDikonfirmasi.length) {
+    var daftarKosong = belumDikonfirmasi.map(function(f){ return '• ' + f.label; }).join('<br>');
+    bukaModalKonfirmasi({
+      warna:      '#F59E0B',
+      ikon:       '⚠️',
+      judul:      'Ada Field Kosong',
+      pesan:      'Field pengukuran berikut belum diisi:<br><br>' + daftarKosong +
+                  '<br><br>Jika dilanjutkan, field tersebut akan disimpan dengan nilai <b>0</b>. Lanjutkan simpan?',
+      labelAksi:  'Ya, Simpan dengan 0',
+      labelBatal: 'Kembali Isi Dulu'
+    }, function() {
+      if (!_fiConfirmedZeroIds) _fiConfirmedZeroIds = {};
+      belumDikonfirmasi.forEach(function(f) { _fiConfirmedZeroIds[f.id] = true; });
+      submitFormInspeksi(); // ulangi submit — sekarang sudah terkonfirmasi, lanjut ke bawah
+    });
+    return;
+  }
+
   // Ambil nilai — gunakan _safeParseInput untuk menangani koma desimal format Indonesia
   var getV = function(id){
     var el = document.getElementById(id);
     if (!el) return null;
     var s = el.value.trim();
-    if (!s) return null;
+    if (!s) {
+      // Field kosong: kalau field ini ada di daftar opsional DAN sudah
+      // dikonfirmasi user di atas, simpan sebagai 0. Selain itu (mis.
+      // field manual daya-pakai/prosen/tdk-seimbang), tetap null seperti semula.
+      return (_fiConfirmedZeroIds && _fiConfirmedZeroIds[id]) ? 0 : null;
+    }
     // Normalisasi: "53,789" (koma=desimal ID) → 53.789
     // "1.234,56" (titik=ribuan) → 1234.56
     // "53.789" dengan tepat 3 digit → ambiguous; jika >9999 tanpa titik, titik=ribuan
@@ -7196,6 +7467,7 @@ function submitFormInspeksi() {
     // Sukses — hapus draft yang tersimpan
     var noGardu = _fiGardu['NO_GARDU'];
     fiClearDraft(noGardu);
+    _fiConfirmedZeroIds = null; // reset supaya form berikutnya tidak mewarisi konfirmasi lama
     fiSetAlert('Inspeksi berhasil disimpan! ' + (res.message||''), true);
     btnSimpan.textContent = '✅ Tersimpan';
     btnSimpan.style.background = 'var(--pln-green)';
@@ -7230,7 +7502,7 @@ function hapusInspeksiById(id, tglLabel) {
   // inspeksi — hanya superadmin. Otorisasi final tetap harus ditegakkan
   // di server (fn_hapus_inspeksi), ini hanya lapisan tambahan di klien.
   var _sDel = getSession();
-  if (!_sDel || _sDel.role !== 'superadmin') {
+  if (!_sDel || !isFullAccessRole(_sDel.role)) {
     showAlert('❌ Akun Anda tidak memiliki izin untuk menghapus data inspeksi. Hubungi superadmin.');
     return;
   }
@@ -7918,7 +8190,7 @@ function simpanEditPemeliharaan() {
 
 function bukaModalExport() {
   var s = getSession();
-  var isNonSuperadmin = s && s.role !== 'superadmin' && s.ulp;
+  var isNonSuperadmin = s && !isFullAccessRole(s.role) && s.ulp;
   var sel = document.getElementById('export-ulp-filter');
   if (isNonSuperadmin) {
     // Non-superadmin: kunci ke ULP sendiri, tidak bisa pilih ULP lain
@@ -8025,7 +8297,7 @@ function doExport() {
   // Kirim parameter ULP ke server untuk non-superadmin (hemat bandwidth & cegah kebocoran data)
   var s = getSession();
   var exportParams = { action: 'getExportRekap', bulan: '' };
-  if (s && s.role !== 'superadmin' && s.ulp) {
+  if (s && !isFullAccessRole(s.role) && s.ulp) {
     var sheetVal = ulpAkunToSheet(s.ulp);
     if (sheetVal) exportParams.ulp = sheetVal;
   }
@@ -9098,7 +9370,7 @@ function muatRekap() {
   var s = getSession();
   // Superadmin: lihat semua ULP. Admin ULP & Petugas: filter ke ULP masing-masing
   var params = { action:'getRekap' };
-  if (s && s.role !== 'superadmin' && s.ulp) {
+  if (s && !isFullAccessRole(s.role) && s.ulp) {
     params.ulp = s.ulp;
   }
   apiGet(params, function(res) {
@@ -9114,7 +9386,7 @@ function muatRekap() {
 function renderRekap(d) {
   var html = '';
   var s = getSession();
-  var isNonSuperadmin = s && s.role !== 'superadmin' && s.ulp;
+  var isNonSuperadmin = s && !isFullAccessRole(s.role) && s.ulp;
 
   // Tampilkan label ULP untuk non-superadmin (admin ULP & petugas)
   if (isNonSuperadmin) {
@@ -9324,7 +9596,7 @@ function muatGarduKritis() {
   var s = getSession();
   var params = { action: 'getGarduKritis' };
   // Superadmin lihat semua, admin ULP & petugas filter ke ULP masing-masing
-  if (s && s.role !== 'superadmin' && s.ulp) {
+  if (s && !isFullAccessRole(s.role) && s.ulp) {
     params.ulp = s.ulp;
   }
   apiGet(params, function(res) {
@@ -9340,7 +9612,7 @@ function muatGarduKritis() {
     }
     var d = res.data;
     // Filter sisi klien sebagai pengaman tambahan
-    if (s && s.role !== 'superadmin' && s.ulp) {
+    if (s && !isFullAccessRole(s.role) && s.ulp) {
       var ulpEnum = _normalizeUlpEnumClient(s.ulp);
       if (d.bebanLebih) d.bebanLebih = d.bebanLebih.filter(function(g){ return _normalizeUlpEnumClient(g.ulp||'') === ulpEnum; });
       if (d.overdue)    d.overdue    = d.overdue.filter(function(g){    return _normalizeUlpEnumClient(g.ulp||'') === ulpEnum; });
@@ -9585,7 +9857,9 @@ function bukaFormTambahGardu() {
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
-  ['f-nogardu','f-alamat','f-daya','f-merek','f-lat','f-lng','f-keterangan'].forEach(function(id){
+  ['f-nogardu','f-alamat','f-daya','f-merek','f-lat','f-lng','f-keterangan',
+   'f-np-serial','f-np-arus-primer','f-np-arus-sekunder','f-np-tegangan-primer','f-np-tegangan-sekunder',
+   'f-np-frekuensi','f-np-vektor','f-np-jenis-oli','f-np-volume-oli','f-np-berat','f-np-tahun'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -9681,6 +9955,48 @@ function setSelectOrFallback(selectEl, val) {
   }
 }
 
+// ── Cek field kosong pada form Gardu (Tambah/Edit) ───────────────────────────
+// Field kosong TIDAK memblokir simpan — hanya memicu popup konfirmasi ke user.
+// Pengecekan murni berdasarkan string kosong ('') vs terisi, BUKAN truthy/falsy
+// angka — jadi kalau user benar-benar mengetik "0", field itu dianggap TERISI
+// dan nilai 0 tetap dikirim apa adanya ke server (lihat _tambahGardu/_editGardu
+// di supabase-api.js: pola `p.x ? parseFloat(p.x) : null` sudah otomatis
+// menganggap string "0" sebagai terisi, jadi tidak perlu diubah).
+var GARDU_FIELD_LABELS = [
+  { id: 'unitup',               label: 'Unit UP3' },
+  { id: 'penyulang',            label: 'Penyulang' },
+  { id: 'alamat',               label: 'Alamat' },
+  { id: 'daya',                 label: 'Daya (kVA)' },
+  { id: 'tipe',                 label: 'Tipe' },
+  { id: 'kepemilikan',          label: 'Status Kepemilikan' },
+  { id: 'merek',                label: 'Merek Trafo' },
+  { id: 'np-serial',            label: 'Serial Number' },
+  { id: 'np-arus-primer',       label: 'Arus Primer' },
+  { id: 'np-arus-sekunder',     label: 'Arus Sekunder' },
+  { id: 'np-tegangan-primer',   label: 'Tegangan Primer' },
+  { id: 'np-tegangan-sekunder', label: 'Tegangan Sekunder' },
+  { id: 'np-frekuensi',         label: 'Frekuensi' },
+  { id: 'np-vektor',            label: 'Vektor Grup' },
+  { id: 'np-jenis-oli',         label: 'Jenis Oli' },
+  { id: 'np-volume-oli',        label: 'Volume Oli' },
+  { id: 'np-berat',             label: 'Berat Total' },
+  { id: 'np-tahun',             label: 'Tahun Produksi' },
+  { id: 'lat',                  label: 'Latitude' },
+  { id: 'lng',                  label: 'Longitude' },
+  { id: 'keterangan',           label: 'Keterangan' }
+];
+
+function cariFieldKosongGardu(prefix) {
+  var kosong = [];
+  GARDU_FIELD_LABELS.forEach(function(f) {
+    var el = document.getElementById(prefix + f.id);
+    if (el && (el.value == null || el.value.toString().trim() === '')) {
+      kosong.push(f.label);
+    }
+  });
+  return kosong;
+}
+
 function submitTambahGardu() {
   var noGardu = (document.getElementById('f-nogardu').value||'').trim().toUpperCase();
   var msgEl = document.getElementById('tambah-gardu-msg');
@@ -9714,7 +10030,18 @@ function submitTambahGardu() {
       merek:(document.getElementById('f-merek').value||'').trim(),
       lat:(document.getElementById('f-lat').value||'').trim(),
       lng:(document.getElementById('f-lng').value||'').trim(),
-      keterangan:(document.getElementById('f-keterangan').value||'').trim()
+      keterangan:(document.getElementById('f-keterangan').value||'').trim(),
+      npSerial:(document.getElementById('f-np-serial').value||'').trim(),
+      npArusPrimer:(document.getElementById('f-np-arus-primer').value||'').trim(),
+      npArusSekunder:(document.getElementById('f-np-arus-sekunder').value||'').trim(),
+      npTeganganPrimer:(document.getElementById('f-np-tegangan-primer').value||'').trim(),
+      npTeganganSekunder:(document.getElementById('f-np-tegangan-sekunder').value||'').trim(),
+      npFrekuensi:(document.getElementById('f-np-frekuensi').value||'').trim(),
+      npVektor:(document.getElementById('f-np-vektor').value||'').trim(),
+      npJenisOli:(document.getElementById('f-np-jenis-oli').value||'').trim(),
+      npVolumeOli:(document.getElementById('f-np-volume-oli').value||'').trim(),
+      npBerat:(document.getElementById('f-np-berat').value||'').trim(),
+      npTahun:(document.getElementById('f-np-tahun').value||'').trim()
     }, function(res){
       msgEl.style.display='block';
       if (res.status==='ok'){
@@ -9729,12 +10056,33 @@ function submitTambahGardu() {
     });
   }
 
-  // Minta PIN konfirmasi untuk operasi tambah gardu
-  bukaModalPinGardu('Konfirmasi PIN — Tambah Gardu', function(pin) {
-    // Tutup modal PIN segera, lalu kirim ke server
-    tutupModalPinGardu();
-    doTambah(pin);
-  });
+  function lanjutkanKePinTambah() {
+    // Minta PIN konfirmasi untuk operasi tambah gardu
+    bukaModalPinGardu('Konfirmasi PIN — Tambah Gardu', function(pin) {
+      // Tutup modal PIN segera, lalu kirim ke server
+      tutupModalPinGardu();
+      doTambah(pin);
+    });
+  }
+
+  // Cek field kosong (di luar NO GARDU & ULP yang sudah wajib) → tampilkan
+  // popup konfirmasi dulu. Kalau user pilih "Lanjutkan", data tetap disimpan
+  // apa adanya (termasuk field yang memang sengaja diisi 0).
+  var fieldKosongTambah = cariFieldKosongGardu('f-');
+  if (fieldKosongTambah.length > 0) {
+    bukaModalKonfirmasi({
+      ikon: '⚠️',
+      judul: 'Ada Field yang Belum Diisi',
+      pesan: 'Field berikut masih kosong:<br><strong>' + fieldKosongTambah.join(', ') + '</strong><br><br>Data tetap bisa disimpan sesuai isian saat ini. Lanjutkan?',
+      labelAksi: '✅ Lanjutkan Simpan',
+      labelBatal: 'Batal, Lengkapi Dulu',
+      warna: '#F59E0B'
+    }, function() {
+      lanjutkanKePinTambah();
+    });
+  } else {
+    lanjutkanKePinTambah();
+  }
 }
 
 function cariGarduUntukEdit() {
@@ -9779,6 +10127,17 @@ function cariGarduUntukEdit() {
     document.getElementById('ef-lat').value = g['LATITUDE']||'';
     document.getElementById('ef-lng').value = g['LONGITUDE']||'';
     document.getElementById('ef-keterangan').value = g['KETERANGAN']||'';
+    document.getElementById('ef-np-serial').value = g['SERIAL_NUMBER']||'';
+    document.getElementById('ef-np-arus-primer').value = g['ARUS_PRIMER']||'';
+    document.getElementById('ef-np-arus-sekunder').value = g['ARUS_SEKUNDER']||'';
+    document.getElementById('ef-np-tegangan-primer').value = g['TEGANGAN_PRIMER']||'';
+    document.getElementById('ef-np-tegangan-sekunder').value = g['TEGANGAN_SEKUNDER']||'';
+    document.getElementById('ef-np-frekuensi').value = g['FREKUENSI_HZ']||'';
+    document.getElementById('ef-np-vektor').value = g['VEKTOR_GRUP']||'';
+    document.getElementById('ef-np-jenis-oli').value = g['JENIS_OLI']||'';
+    document.getElementById('ef-np-volume-oli').value = g['VOLUME_OLI_LITER']||'';
+    document.getElementById('ef-np-berat').value = g['BERAT_TOTAL_KG']||'';
+    document.getElementById('ef-np-tahun').value = g['TAHUN_PRODUKSI']||'';
 
     // Populate ULP dropdown
     var ulpSel = document.getElementById('ef-ulp');
@@ -9815,7 +10174,7 @@ function cariGarduUntukEdit() {
     var hapusBtn = document.getElementById('btn-hapus-gardu-edit');
     if (hapusBtn) {
       var _sCheck = getSession();
-      hapusBtn.parentElement.style.display = (_sCheck && _sCheck.role === 'superadmin') ? 'block' : 'none';
+      hapusBtn.parentElement.style.display = (_sCheck && isFullAccessRole(_sCheck.role)) ? 'block' : 'none';
     }
   });
 }
@@ -9842,10 +10201,15 @@ function submitEditGardu() {
   // ── Konfirmasi sebelum simpan ──
   var noBaruVal = (document.getElementById('ef-nogardu-baru').value||'').trim().toUpperCase();
   var _noBaruLabel = noBaruVal && noBaruVal !== noLama ? noLama + ' → ' + noBaruVal : noLama;
+  var _fieldKosongEdit = cariFieldKosongGardu('ef-');
+  var _pesanKonfirmasiEdit = 'Gardu: <strong>' + _noBaruLabel + '</strong><br>ULP: <strong>' + ulpVal + '</strong><br>Status: <strong>' + (document.getElementById('ef-status').value||'AKTIF') + '</strong><br><br>Perubahan ini akan tersimpan ke database.';
+  if (_fieldKosongEdit.length > 0) {
+    _pesanKonfirmasiEdit += '<br><br>⚠️ Field berikut masih kosong: <strong>' + _fieldKosongEdit.join(', ') + '</strong><br>Data tetap akan disimpan sesuai isian saat ini (termasuk jika Anda sengaja mengisi 0).';
+  }
   bukaModalKonfirmasi({
     ikon: '✏️',
     judul: 'Konfirmasi Perubahan Data Gardu',
-    pesan: 'Gardu: <strong>' + _noBaruLabel + '</strong><br>ULP: <strong>' + ulpVal + '</strong><br>Status: <strong>' + (document.getElementById('ef-status').value||'AKTIF') + '</strong><br><br>Perubahan ini akan tersimpan ke database.',
+    pesan: _pesanKonfirmasiEdit,
     labelAksi: '✏️ Simpan Perubahan',
     labelBatal: 'Batal',
     warna: 'var(--pln-biru2)'
@@ -9869,7 +10233,18 @@ function submitEditGardu() {
       merek:(document.getElementById('ef-merek').value||'').trim(),
       lat:(document.getElementById('ef-lat').value||'').trim(),
       lng:(document.getElementById('ef-lng').value||'').trim(),
-      keterangan:(document.getElementById('ef-keterangan').value||'').trim()
+      keterangan:(document.getElementById('ef-keterangan').value||'').trim(),
+      npSerial:(document.getElementById('ef-np-serial').value||'').trim(),
+      npArusPrimer:(document.getElementById('ef-np-arus-primer').value||'').trim(),
+      npArusSekunder:(document.getElementById('ef-np-arus-sekunder').value||'').trim(),
+      npTeganganPrimer:(document.getElementById('ef-np-tegangan-primer').value||'').trim(),
+      npTeganganSekunder:(document.getElementById('ef-np-tegangan-sekunder').value||'').trim(),
+      npFrekuensi:(document.getElementById('ef-np-frekuensi').value||'').trim(),
+      npVektor:(document.getElementById('ef-np-vektor').value||'').trim(),
+      npJenisOli:(document.getElementById('ef-np-jenis-oli').value||'').trim(),
+      npVolumeOli:(document.getElementById('ef-np-volume-oli').value||'').trim(),
+      npBerat:(document.getElementById('ef-np-berat').value||'').trim(),
+      npTahun:(document.getElementById('ef-np-tahun').value||'').trim()
     }, function(res){
       msgEl.style.display='block';
       if (res.status==='ok'){
@@ -9893,7 +10268,7 @@ function konfirmasiHapusGardu() {
 
   var s = getSession();
   // Hanya superadmin yang boleh hapus gardu
-  if (!s || s.role !== 'superadmin') {
+  if (!s || !isFullAccessRole(s.role)) {
     showAlert('❌ Hanya Superadmin yang dapat menghapus gardu.'); return;
   }
 
@@ -9974,7 +10349,7 @@ function cariGarduDariScannerAuto(val) {
       var _garduUlp = normalizeULP(g['ULP']||'');
       var _userUlp  = normalizeULP(s ? s.ulp||'' : '');
       var _userSheet= normalizeULP(ulpAkunToSheet(s ? s.ulp||'' : ''));
-      if (s && s.role !== 'superadmin' && _garduUlp !== _userUlp && _garduUlp !== _userSheet && ('ULP '+_userSheet) !== _garduUlp) {
+      if (s && !isFullAccessRole(s.role) && _garduUlp !== _userUlp && _garduUlp !== _userSheet && ('ULP '+_userSheet) !== _garduUlp) {
         document.getElementById('list-scan').innerHTML = '<div class="empty-state">🔍 Arahkan kamera ke barcode gardu Anda</div>';
         // Double rAF: tunggu tab selesai render BARU tampilkan popup
         requestAnimationFrame(function(){
@@ -9994,7 +10369,7 @@ function cariGarduDariScannerAuto(val) {
           return;
         }
         var garduList = res2.data;
-        if (s && s.role !== 'superadmin') {
+        if (s && !isFullAccessRole(s.role)) {
           garduList = garduList.filter(function(g){
             var _gu = normalizeULP(g['ULP']||'');
             var _uu = normalizeULP(s.ulp||'');
@@ -10269,7 +10644,7 @@ function _updateSidebarUserFooter() {
   if (!suf) return;
   var s = getSession();
   if (s && s.nama) {
-    var roleLabel = s.role === 'superadmin' ? 'Super Admin' : s.role === 'admin' ? 'Admin ULP' : 'Petugas';
+    var roleLabel = s.role === 'staff_up3' ? 'Staff UP3' : isFullAccessRole(s.role) ? 'Super Admin' : s.role === 'admin' ? 'Admin ULP' : 'Petugas';
     var ulpLabel = s.ulp ? s.ulp.replace(/^ULP\s+/i,'') : '';
     suf.innerHTML =
       '<div class="sidebar-user-name">' + esc(s.nama || s.username) + '</div>' +
@@ -10292,7 +10667,7 @@ function _updatePetaULPBanner() {
   var bannerText = document.getElementById('peta-ulp-banner-text');
   var topbarTitle = document.getElementById('peta-topbar-title');
   var filterBar = document.getElementById('peta-ulp-filter-bar');
-  var isNonSuperadmin = s && s.role !== 'superadmin' && s.ulp;
+  var isNonSuperadmin = s && !isFullAccessRole(s.role) && s.ulp;
   if (isNonSuperadmin) {
     var ulpLabel = s.ulp.replace(/^ULP\s+/i, 'ULP ').trim();
     if (banner)      { banner.style.display = 'flex'; }
@@ -10303,7 +10678,7 @@ function _updatePetaULPBanner() {
     if (banner)      { banner.style.display = 'none'; }
     if (topbarTitle) { topbarTitle.textContent = 'Peta Gardu Papua'; }
     // Tampilkan filter bar hanya untuk superadmin
-    if (filterBar && s && s.role === 'superadmin') { filterBar.style.display = 'flex'; }
+    if (filterBar && s && isFullAccessRole(s.role)) { filterBar.style.display = 'flex'; }
     else if (filterBar) { filterBar.style.display = 'none'; }
   }
 }
@@ -10393,7 +10768,7 @@ function muatPetaGardu(force) {
   _updatePetaULPBanner();
 
   var s = getSession();
-  var isNonSuperadmin = s && s.role !== 'superadmin' && s.ulp;
+  var isNonSuperadmin = s && !isFullAccessRole(s.role) && s.ulp;
 
   // Sudah punya peta + data, tidak perlu fetch ulang
   if (_petaMap && _petaSudahMuat && !force) {
@@ -10894,7 +11269,7 @@ function muatDaftarPemeliharaan(force) {
     }
     var allData = res.data || [];
     // Filter per ULP jika bukan superadmin
-    if (s.role !== 'superadmin' && s.ulp) {
+    if (!isFullAccessRole(s.role) && s.ulp) {
       var ulpNorm = String(s.ulp).trim().toUpperCase();
       allData = allData.filter(function(d) {
         return !d.ulp || String(d.ulp).trim().toUpperCase() === ulpNorm;
@@ -10961,11 +11336,11 @@ function renderDaftarPemeliharaan() {
 
   var isMobile    = window.innerWidth < 768;
   var _sPm        = getSession();
-  var _canDeletePm= _sPm && (_sPm.role === 'admin' || _sPm.role === 'superadmin');
+  var _canDeletePm= _sPm && (_sPm.role === 'admin' || isFullAccessRole(_sPm.role));
   // KRITIS-3 FIX: petugas hanya boleh edit pemeliharaan miliknya sendiri
   // (mengikuti pola yang sama dengan inspeksi — cek nama petugas per-baris, bukan global)
   var _isPetugasPm = _sPm && _sPm.role === 'petugas' && _sPm.nama;
-  var _isAdminPm   = _sPm && (_sPm.role === 'admin' || _sPm.role === 'superadmin');
+  var _isAdminPm   = _sPm && (_sPm.role === 'admin' || isFullAccessRole(_sPm.role));
   // Fungsi cek edit per-baris: admin/superadmin bisa semua; petugas hanya miliknya
   function _canEditThisPm(d) {
     if (!_sPm) return false;
@@ -11170,7 +11545,7 @@ function muatDataPengukuran(force) {
     // muat daftar gardu dulu secara background lalu enrich
     if (Object.keys(garduIndex).length === 0) {
       var sEnrich = getSession();
-      var ulpEnrich = (sEnrich && sEnrich.role !== 'superadmin') ? (sEnrich.ulp || '') : '';
+      var ulpEnrich = (sEnrich && !isFullAccessRole(sEnrich.role)) ? (sEnrich.ulp || '') : '';
       apiGet({ action: 'getDaftarGardu', ulp: ulpEnrich || undefined }, function(gRes) {
         if (gRes.status === 'ok' && gRes.data) {
           allGardu = gRes.data;
@@ -11288,8 +11663,8 @@ function renderTabelPengukuran() {
   html += '</select></div></div>';
 
   var _sUkur = getSession();
-  var _canEditUkur = _sUkur && (_sUkur.role === 'admin' || _sUkur.role === 'superadmin' || _sUkur.role === 'petugas');
-  var _canDeleteUkur = _sUkur && (_sUkur.role === 'admin' || _sUkur.role === 'superadmin');
+  var _canEditUkur = _sUkur && (_sUkur.role === 'admin' || isFullAccessRole(_sUkur.role) || _sUkur.role === 'petugas');
+  var _canDeleteUkur = _sUkur && (_sUkur.role === 'admin' || isFullAccessRole(_sUkur.role));
 
   if (isMobile) {
     // Mobile: card view
@@ -11303,7 +11678,7 @@ function renderTabelPengukuran() {
       var _rid = r['_id'];
       // cek apakah petugas ini yang input (untuk role petugas)
       var _canEditRow = _canEditUkur && (
-        (_sUkur.role === 'admin' || _sUkur.role === 'superadmin') ||
+        (_sUkur.role === 'admin' || isFullAccessRole(_sUkur.role)) ||
         (_sUkur.role === 'petugas' && _sUkur.nama &&
           String(_sUkur.nama).toLowerCase().trim() === String(r['PETUGAS']||'').toLowerCase().trim())
       );
@@ -11367,7 +11742,7 @@ function renderTabelPengukuran() {
       var rowBg = i % 2 === 0 ? '#fff' : '#F8FAFD';
       var _rid = r['_id'];
       var _canEditRow = _canEditUkur && (
-        (_sUkur.role === 'admin' || _sUkur.role === 'superadmin') ||
+        (_sUkur.role === 'admin' || isFullAccessRole(_sUkur.role)) ||
         (_sUkur.role === 'petugas' && _sUkur.nama &&
           String(_sUkur.nama).toLowerCase().trim() === String(r['PETUGAS']||'').toLowerCase().trim())
       );
@@ -14838,7 +15213,7 @@ window.exportErrors        = exportErrors;
 // ── Modal open/close — callable dari main app ────────────────
 function bukaModalCsvImport() {
   var s = getSession();
-  if (!s || s.role !== 'superadmin') {
+  if (!s || !isFullAccessRole(s.role)) {
     showMsg('Akses ditolak. Hanya Superadmin yang dapat menggunakan fitur ini.', true);
     return;
   }

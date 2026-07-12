@@ -393,7 +393,18 @@ async function _getDetailLengkap(p, signal) {
     'STATUS_OPERASIONAL': g.status_operasional || '',
     'LATITUDE':           g.latitude   || '',
     'LONGITUDE':          g.longitude  || '',
-    'KETERANGAN':         g.keterangan || ''
+    'KETERANGAN':         g.keterangan || '',
+    'SERIAL_NUMBER':      g.serial_number      || '',
+    'ARUS_PRIMER':        g.arus_primer        != null ? String(g.arus_primer)        : '',
+    'ARUS_SEKUNDER':      g.arus_sekunder      != null ? String(g.arus_sekunder)      : '',
+    'TEGANGAN_PRIMER':    g.tegangan_primer    != null ? String(g.tegangan_primer)    : '',
+    'TEGANGAN_SEKUNDER':  g.tegangan_sekunder  != null ? String(g.tegangan_sekunder)  : '',
+    'FREKUENSI_HZ':       g.frekuensi_hz       != null ? String(g.frekuensi_hz)       : '',
+    'VEKTOR_GRUP':        g.vektor_grup        || '',
+    'JENIS_OLI':          g.jenis_oli          || '',
+    'VOLUME_OLI_LITER':   g.volume_oli_liter   != null ? String(g.volume_oli_liter)   : '',
+    'BERAT_TOTAL_KG':     g.berat_total_kg     != null ? String(g.berat_total_kg)     : '',
+    'TAHUN_PRODUKSI':     g.tahun_produksi     != null ? String(g.tahun_produksi)     : ''
   };
 
   return {
@@ -709,7 +720,18 @@ async function _tambahGardu(p, signal) {
     p_merek_trafo:        p.merek      || null,
     p_latitude:           p.lat        ? String(p.lat) : null,
     p_longitude:          p.lng        ? String(p.lng) : null,
-    p_keterangan:         p.keterangan || null
+    p_keterangan:         p.keterangan || null,
+    p_serial_number:      p.npSerial             || null,
+    p_arus_primer:        p.npArusPrimer         ? parseFloat(p.npArusPrimer)         : null,
+    p_arus_sekunder:      p.npArusSekunder       ? parseFloat(p.npArusSekunder)       : null,
+    p_tegangan_primer:    p.npTeganganPrimer     ? parseFloat(p.npTeganganPrimer)     : null,
+    p_tegangan_sekunder:  p.npTeganganSekunder   ? parseFloat(p.npTeganganSekunder)   : null,
+    p_frekuensi_hz:       p.npFrekuensi          ? parseFloat(p.npFrekuensi)          : null,
+    p_vektor_grup:        p.npVektor             || null,
+    p_jenis_oli:          p.npJenisOli           ? String(p.npJenisOli).toUpperCase() : null,
+    p_volume_oli_liter:   p.npVolumeOli          ? parseFloat(p.npVolumeOli)          : null,
+    p_berat_total_kg:     p.npBerat              ? parseFloat(p.npBerat)              : null,
+    p_tahun_produksi:     p.npTahun              ? parseInt(p.npTahun, 10)            : null
   }, signal);
 
   if (!data || data.status !== 'ok')
@@ -740,7 +762,18 @@ async function _editGardu(p, signal) {
     p_merek_trafo:        p.merek      || null,
     p_latitude:           p.lat        ? String(p.lat) : null,
     p_longitude:          p.lng        ? String(p.lng) : null,
-    p_keterangan:         p.keterangan || null
+    p_keterangan:         p.keterangan || null,
+    p_serial_number:      p.npSerial             || null,
+    p_arus_primer:        p.npArusPrimer         ? parseFloat(p.npArusPrimer)         : null,
+    p_arus_sekunder:      p.npArusSekunder       ? parseFloat(p.npArusSekunder)       : null,
+    p_tegangan_primer:    p.npTeganganPrimer     ? parseFloat(p.npTeganganPrimer)     : null,
+    p_tegangan_sekunder:  p.npTeganganSekunder   ? parseFloat(p.npTeganganSekunder)   : null,
+    p_frekuensi_hz:       p.npFrekuensi          ? parseFloat(p.npFrekuensi)          : null,
+    p_vektor_grup:        p.npVektor             || null,
+    p_jenis_oli:          p.npJenisOli           ? String(p.npJenisOli).toUpperCase() : null,
+    p_volume_oli_liter:   p.npVolumeOli          ? parseFloat(p.npVolumeOli)          : null,
+    p_berat_total_kg:     p.npBerat              ? parseFloat(p.npBerat)              : null,
+    p_tahun_produksi:     p.npTahun              ? parseInt(p.npTahun, 10)            : null
   }, signal);
 
   if (!data || data.status !== 'ok')
@@ -752,7 +785,10 @@ async function _editGardu(p, signal) {
 // ── HAPUS GARDU via RPC ──────────────────────────────────────
 // DESTRUKTIF: menghapus gardu beserta seluruh riwayat inspeksinya.
 // Memerlukan PIN konfirmasi untuk cegah hapus tidak sengaja.
-// RPC fn_hapus_gardu harus memverifikasi: token valid, role superadmin,
+// RPC fn_hapus_gardu harus memverifikasi: token valid, role superadmin
+// ATAU staff_up3 (lihat isFullAccessRole() di index.html — staff_up3 punya
+// hak akses setara superadmin, RPC SQL ini perlu diupdate agar mengizinkan
+// kedua role tsb, bukan hanya 'superadmin'),
 // PIN benar, gardu ada — baru kemudian hapus cascade.
 async function _hapusGardu(p, signal) {
   if (!p.noGardu) return { status: 'error', message: 'Kode gardu tidak boleh kosong.' };
@@ -1253,7 +1289,18 @@ function _mapGarduRow(g) {
     'STATUS_OPERASIONAL': g.status_operasional || '',
     'LATITUDE':           g.latitude   || '',
     'LONGITUDE':          g.longitude  || '',
-    'KETERANGAN':         g.keterangan || ''
+    'KETERANGAN':         g.keterangan || '',
+    'SERIAL_NUMBER':      g.serial_number      || '',
+    'ARUS_PRIMER':        g.arus_primer        != null ? String(g.arus_primer)        : '',
+    'ARUS_SEKUNDER':      g.arus_sekunder      != null ? String(g.arus_sekunder)      : '',
+    'TEGANGAN_PRIMER':    g.tegangan_primer    != null ? String(g.tegangan_primer)    : '',
+    'TEGANGAN_SEKUNDER':  g.tegangan_sekunder  != null ? String(g.tegangan_sekunder)  : '',
+    'FREKUENSI_HZ':       g.frekuensi_hz       != null ? String(g.frekuensi_hz)       : '',
+    'VEKTOR_GRUP':        g.vektor_grup        || '',
+    'JENIS_OLI':          g.jenis_oli          || '',
+    'VOLUME_OLI_LITER':   g.volume_oli_liter   != null ? String(g.volume_oli_liter)   : '',
+    'BERAT_TOTAL_KG':     g.berat_total_kg     != null ? String(g.berat_total_kg)     : '',
+    'TAHUN_PRODUKSI':     g.tahun_produksi     != null ? String(g.tahun_produksi)     : ''
   };
 }
 
@@ -1374,7 +1421,9 @@ async function _tambahPemeliharaan(p, signal) {
 // ── GET DAFTAR PEMELIHARAAN via RPC ──────────────────────────
 async function _getDaftarPemeliharaan(p, signal) {
   // Catatan: p_ulp tidak dikirim ke RPC karena filter ULP dilakukan di DB
-  // berdasarkan role user (superadmin lihat semua, selain itu hanya ULP sendiri).
+  // berdasarkan role user (superadmin & staff_up3 lihat semua ULP, selain
+  // itu hanya ULP sendiri — pastikan fn_get_pemeliharaan sudah diupdate
+  // untuk mengenali role staff_up3 juga, bukan hanya 'superadmin').
   // Filter tambahan (kategori, ulp) dilakukan di sisi klien setelah data diterima.
   // p_status TIDAK dikirim karena kolom status tidak ada di tabel pemeliharaan.
   // catatan & foto_urls otomatis ikut di response RPC (sudah ditambahkan di fn_get_pemeliharaan).
