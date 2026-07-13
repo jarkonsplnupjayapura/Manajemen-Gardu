@@ -8996,28 +8996,60 @@ function _buildSheetMasterGardu(wb, rows, periodeLabel, ulpLabel, tglCetak) {
     views: [{ state:'frozen', ySplit:4 }]
   });
   ws.columns = [
-    {width:5},{width:14},{width:16},{width:18},{width:16},{width:30},{width:10},{width:14},
-    {width:18},{width:18},{width:16},{width:16},{width:12},{width:12},{width:10},{width:10},
-    {width:10},{width:10},{width:14},{width:12},{width:12},{width:12},{width:10},{width:10}
+    {width:5},{width:14},{width:16},{width:18},{width:16},{width:14},{width:30},{width:12},
+    {width:12},{width:14},{width:18},{width:18},{width:16},{width:16},{width:12},{width:12},
+    {width:10},{width:10},{width:10},{width:10},{width:14},{width:12},{width:12},{width:12},{width:22}
   ];
 
-  ws.mergeCells('A1:X1');
+  ws.mergeCells('A1:Y1');
   ws.getCell('A1').value = 'PT. PLN (PERSERO) UP3 JAYAPURA — TABEL MASTER GARDU';
   ws.getCell('A1').style = { font:{bold:true,size:13,color:{argb:'FFFFFFFF'},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FF003B7B'}}, alignment:{horizontal:'center',vertical:'middle'} };
   ws.getRow(1).height = 26;
 
-  ws.mergeCells('A2:X2');
+  ws.mergeCells('A2:Y2');
   ws.getCell('A2').value = 'ULP: '+ulpLabel+' | Dicetak: '+tglCetak+' | Total Gardu: '+rows.length;
   ws.getCell('A2').style = { font:{size:9,color:{argb:'FF555555'},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FFF5A300'}}, alignment:{horizontal:'center',vertical:'middle'} };
   ws.getRow(2).height = 16;
 
   ws.getRow(3).height = 6; // spacer
 
-  var hdr = ['NO','NO GARDU','ULP','UNITUP','PENYULANG','ALAMAT','DAYA\n(kVA)','TIPE',
-    'STATUS\nOPERASIONAL','STATUS\nKEPEMILIKAN','MEREK\nTRAFO','SERIAL\nNUMBER',
-    'TEG. PRIMER\n(V)','TEG. SEKUNDER\n(V)','ARUS PRIMER\n(A)','ARUS SEKUNDER\n(A)',
-    'FREKUENSI\n(Hz)','VEKTOR\nGRUP','JENIS\nOLI','VOLUME OLI\n(L)','BERAT TOTAL\n(kg)',
-    'TAHUN\nPRODUKSI','LATITUDE','LONGITUDE'];
+  // ── Urutan kolom Format C (sesuai template ekspor) ──────────
+  // NO, UNITUP, ULP, NO GARDU, PENYULANG, KAPASITAS (KVA), ALAMAT,
+  // LATITUDE, LONGITUDE, TIPE, STATUS_KEPEMILIKAN, STATUS_OPERASIONAL,
+  // MEREK TRAFO, SERIAL NUMBER, TEG. PRIMER (V), TEG. SEKUNDER (V),
+  // ARUS PRIMER (A), ARUS SEKUNDER (A), FREKUENSI (Hz), VEKTOR GRUP,
+  // JENIS OLI, VOLUME OLI (L), BERAT TOTAL (kg), TAHUN PRODUKSI, Keterangan
+  var COLS = [
+    { key:'no',           label:'NO' },
+    { key:'unitup',       label:'UNITUP' },
+    { key:'ulp',          label:'ULP' },
+    { key:'noGardu',      label:'NO GARDU' },
+    { key:'penyulang',    label:'PENYULANG' },
+    { key:'daya',         label:'KAPASITAS\n(KVA)' },
+    { key:'alamat',       label:'ALAMAT' },
+    { key:'latitude',     label:'LATITUDE' },
+    { key:'longitude',    label:'LONGITUDE' },
+    { key:'tipe',         label:'TIPE' },
+    { key:'kepemilikan',  label:'STATUS\nKEPEMILIKAN' },
+    { key:'status',       label:'STATUS\nOPERASIONAL' },
+    { key:'merekTrafo',   label:'MEREK\nTRAFO' },
+    { key:'serialNumber', label:'SERIAL\nNUMBER' },
+    { key:'tegPrimer',    label:'TEG. PRIMER\n(V)' },
+    { key:'tegSekunder',  label:'TEG. SEKUNDER\n(V)' },
+    { key:'arusPrimer',   label:'ARUS PRIMER\n(A)' },
+    { key:'arusSekunder', label:'ARUS SEKUNDER\n(A)' },
+    { key:'frekuensi',    label:'FREKUENSI\n(Hz)' },
+    { key:'vektorGrup',   label:'VEKTOR\nGRUP' },
+    { key:'jenisOli',     label:'JENIS\nOLI' },
+    { key:'volumeOli',    label:'VOLUME OLI\n(L)' },
+    { key:'beratTotal',   label:'BERAT TOTAL\n(kg)' },
+    { key:'tahunProduksi',label:'TAHUN\nPRODUKSI' },
+    { key:'keterangan',   label:'KETERANGAN' }
+  ];
+  // Kolom teks/identitas → rata kiri; sisanya rata tengah.
+  var LEFT_ALIGN_KEYS = { unitup:1, ulp:1, noGardu:1, penyulang:1, alamat:1 };
+
+  var hdr = COLS.map(function(c){ return c.label; });
   var rHdr = ws.getRow(4);
   rHdr.height = 34;
   hdr.forEach(function(h,i){
@@ -9038,20 +9070,14 @@ function _buildSheetMasterGardu(wb, rows, periodeLabel, ulpLabel, tglCetak) {
     var rRow = ws.getRow(rNum);
     rRow.height = 16;
     var bg = idx%2===1 ? 'FFF5F9FF' : 'FFFFFFFF';
-    var vals = [
-      idx+1, r.noGardu, r.ulp, r.unitup, r.penyulang, r.alamat, r.daya||'', r.tipe||'',
-      r.status||'', r.kepemilikan||'', r.merekTrafo||'', r.serialNumber||'',
-      r.tegPrimer||'', r.tegSekunder||'', r.arusPrimer||'', r.arusSekunder||'',
-      r.frekuensi||'', r.vektorGrup||'', r.jenisOli||'', r.volumeOli||'', r.beratTotal||'',
-      r.tahunProduksi||'', r.latitude||'', r.longitude||''
-    ];
-    vals.forEach(function(v,ci){
+    COLS.forEach(function(c, ci){
+      var v = c.key === 'no' ? (idx+1) : (r[c.key]!=null ? r[c.key] : '');
       var cell = rRow.getCell(ci+1);
       cell.value = v;
       cell.style = {
-        font:      { size:9, name:'Calibri', bold: ci===1 },
+        font:      { size:9, name:'Calibri', bold: c.key==='noGardu' },
         fill:      { type:'pattern', pattern:'solid', fgColor:{argb:bg} },
-        alignment: { horizontal: (ci===0||ci>=6) ? 'center' : 'left', vertical:'middle' },
+        alignment: { horizontal: LEFT_ALIGN_KEYS[c.key] ? 'left' : 'center', vertical:'middle' },
         border:    { top:border, bottom:border, left:border, right:border }
       };
     });
