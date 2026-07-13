@@ -41,10 +41,7 @@ var APP_SHELL = [
   './icon-baru-192.png',
   './icon-baru-512.png',
   './vendor/leaflet/leaflet.css',
-  './vendor/leaflet/leaflet.min.js',
-  './vendor/leaflet/images/marker-icon.png',
-  './vendor/leaflet/images/layers.png',
-  './vendor/leaflet/images/layers-2x.png'
+  './vendor/leaflet/leaflet.min.js'
 ];
 
 // ── INSTALL ───────────────────────────────────────────────────
