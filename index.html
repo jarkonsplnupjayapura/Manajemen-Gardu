@@ -2100,8 +2100,6 @@ input[type=number]{-moz-appearance:textfield;}
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css"/>
 <script src="vendor/leaflet/leaflet.min.js"></script>
 
-<!-- Leaflet.markercluster — anti-lag untuk banyak marker -->
-
 <!-- ══ MOBILE RESPONSIVE FIX (max-width: 768px) ══════════════
      Hanya perbaikan CSS mobile — tidak mengubah logika/alur/desktop
      ══════════════════════════════════════════════════════════ -->
@@ -2485,11 +2483,19 @@ input[type=number]{-moz-appearance:textfield;}
     <div class="topbar-info"><div class="topbar-sub">UP3 Jayapura</div><div class="topbar-title">SOP & Panduan</div></div>
   </div>
   <div class="page-body">
-    <div class="alert alert-info">📋 Standar Operasional Prosedur inspeksi dan pemeliharaan gardu PT. PLN UP3 Jayapura.</div>
+    <div class="alert alert-info">📋 Panduan penggunaan aplikasi, Standar Operasional Prosedur inspeksi, dan pemeliharaan gardu PT. PLN UP3 Jayapura. Tap kartu untuk membuka dokumen.</div>
+
+    <div class="sec">📱 Panduan Penggunaan Aplikasi</div>
+    <div class="sop-card" onclick="bukaDokumen('PANDUAN_APLIKASI','Panduan Aplikasi Manajemen Gardu')"><div class="sop-icon">📘</div><div class="sop-info"><div class="sop-title">Panduan Aplikasi Manajemen Gardu</div><div class="sop-sub">Pengenalan umum & navigasi aplikasi dari awal</div></div><div class="sop-arrow">›</div></div>
+    <div class="sop-card" onclick="bukaDokumen('PANDUAN_TAMBAH_GARDU','Panduan Tambah Gardu Baru')"><div class="sop-icon">➕</div><div class="sop-info"><div class="sop-title">Panduan Tambah Gardu Baru</div><div class="sop-sub">Langkah-langkah menambahkan data gardu baru</div></div><div class="sop-arrow">›</div></div>
+    <div class="sop-card" onclick="bukaDokumen('PANDUAN_EDIT_GARDU','Panduan Edit Data Gardu')"><div class="sop-icon">✏️</div><div class="sop-info"><div class="sop-title">Panduan Edit Data Gardu</div><div class="sop-sub">Cara mengubah data gardu yang sudah ada</div></div><div class="sop-arrow">›</div></div>
+    <div class="sop-card" onclick="bukaDokumen('PANDUAN_FORM_PENGUKURAN','Panduan Form Pengukuran Gardu')"><div class="sop-icon">📏</div><div class="sop-info"><div class="sop-title">Panduan Form Pengukuran Gardu</div><div class="sop-sub">Cara mengisi form inspeksi/pengukuran gardu</div></div><div class="sop-arrow">›</div></div>
+    <div class="sop-card" onclick="bukaDokumen('PANDUAN_EDIT_INSPEKSI','Panduan Edit Data Inspeksi')"><div class="sop-icon">📝</div><div class="sop-info"><div class="sop-title">Panduan Edit Data Inspeksi</div><div class="sop-sub">Cara mengubah data hasil inspeksi/pengukuran</div></div><div class="sop-arrow">›</div></div>
+
     <div class="sec">Pemeliharaan Gardu</div>
-    <div class="sop-card" onclick="bukaLinkSOP('LINK_SOP_PEMELIHARAAN_GARDU')"><div class="sop-icon">📄</div><div class="sop-info"><div class="sop-title">SOP Pemeliharaan Gardu</div><div class="sop-sub">Prosedur pemeliharaan rutin gardu</div></div><div class="sop-arrow">›</div></div>
+    <div class="sop-card" onclick="bukaDokumen('LINK_SOP_PEMELIHARAAN_GARDU','SOP Pemeliharaan Gardu')"><div class="sop-icon">📄</div><div class="sop-info"><div class="sop-title">SOP Pemeliharaan Gardu</div><div class="sop-sub">Prosedur pemeliharaan rutin gardu</div></div><div class="sop-arrow">›</div></div>
     <div class="sec">Keselamatan Kerja</div>
-    <div class="sop-card" onclick="bukaLinkSOP('LINK_SOP_K3')"><div class="sop-icon">⛑️</div><div class="sop-info"><div class="sop-title">SOP K3 Pekerjaan Tegangan Menengah</div><div class="sop-sub">Prosedur keselamatan kerja di area tegangan menengah</div></div><div class="sop-arrow">›</div></div>
+    <div class="sop-card" onclick="bukaDokumen('LINK_SOP_K3','SOP K3 Pekerjaan Tegangan Menengah')"><div class="sop-icon">⛑️</div><div class="sop-info"><div class="sop-title">SOP K3 Pekerjaan Tegangan Menengah</div><div class="sop-sub">Prosedur keselamatan kerja di area tegangan menengah</div></div><div class="sop-arrow">›</div></div>
   </div>
 </div>
 
@@ -3261,6 +3267,29 @@ input[type=number]{-moz-appearance:textfield;}
     <div style="display:flex;gap:var(--sp-sm);margin-top:var(--sp-md);">
       <button class="btn btn-outline" style="flex:1;" onclick="tutupModalSetPin()">Batal</button>
       <button class="btn btn-blue" style="flex:2;" onclick="submitSetPin()">Simpan PIN</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VIEWER DOKUMEN (Panduan Aplikasi & SOP — PDF Google Drive) -->
+<div id="modal-panduan-pdf" style="display:none;position:fixed;inset:0;z-index:9700;background:rgba(10,45,107,.55);backdrop-filter:blur(6px);flex-direction:column;align-items:center;justify-content:center;overflow:hidden;">
+  <div style="background:#F5F7FA;border-radius:20px;width:100%;height:100%;max-width:900px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 64px rgba(10,45,107,.28),0 4px 16px rgba(10,45,107,.14);margin:16px;">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#0A2D6B,#1048A8);padding:0 12px 0 20px;height:60px;display:flex;align-items:center;gap:10px;flex-shrink:0;border-radius:20px 20px 0 0;">
+      <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
+        <div style="background:rgba(255,255,255,.18);border-radius:10px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📄</div>
+        <div style="min-width:0;">
+          <div id="panduan-pdf-title" style="font-size:15px;font-weight:700;color:#fff;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Dokumen</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.55);letter-spacing:.3px;text-transform:uppercase;font-weight:500;">UP3 Jayapura · Panduan & SOP</div>
+        </div>
+      </div>
+      <button onclick="bukaPanduanPdfTabBaru()" title="Buka di tab baru / unduh dari Google Drive" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;height:34px;padding:0 12px;font-size:12px;font-weight:700;cursor:pointer;color:#fff;display:flex;align-items:center;gap:6px;flex-shrink:0;white-space:nowrap;">⬇️ Unduh</button>
+      <button onclick="tutupModalPanduanPdf()" title="Tutup" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer;color:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+    </div>
+    <!-- Body: iframe preview (Google Drive embeddable /preview endpoint) -->
+    <div style="flex:1;background:#525659;position:relative;min-height:0;">
+      <div id="panduan-pdf-loading" class="loading" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;background:#525659;z-index:2;"><div class="spinner"></div>Memuat dokumen...</div>
+      <iframe id="panduan-pdf-frame" src="about:blank" style="width:100%;height:100%;border:0;position:relative;z-index:1;" allow="autoplay" onload="var l=document.getElementById('panduan-pdf-loading');if(l)l.style.display='none';"></iframe>
     </div>
   </div>
 </div>
@@ -6463,20 +6492,97 @@ function toggleRiwayat(id, btn) {
     : '<span>▲ Sembunyikan Detail</span>';
 }
 
-// ── SOP LINKS CONFIG ─────────────────────────────────────────
-// Ganti URL di bawah ini dengan link Google Drive Anda
-var SOP_LINKS = {
+// ── DOKUMEN / PANDUAN LINKS CONFIG ─────────────────────────────
+// Tempel link "Bagikan" dari Google Drive apa adanya (boleh format
+// /view?usp=sharing, /view?usp=drive_link, /edit, ?id=..., dll — otomatis
+// diproses, tidak perlu diutak-atik manual). WAJIB: setelan share file di
+// Drive = "Siapa saja yang memiliki link → Pelihat", supaya petugas yang
+// belum tentu login akun Google yang sama tetap bisa membukanya.
+var DOKUMEN_LINKS = {
+  // ── Panduan Aplikasi ──
+  'PANDUAN_APLIKASI':        'https://drive.google.com/file/d/1mJhv4P9WHeZy1ScXDpkE6NnJjuRas0zN/view?usp=sharing',
+  'PANDUAN_TAMBAH_GARDU':    'https://drive.google.com/file/d/1r2OX0xT2x7dwdz-idmEQLtF9NEIiNV0g/view?usp=drive_link',
+  'PANDUAN_EDIT_GARDU':      'https://drive.google.com/file/d/1Umb2OoIj-lWrTI4qRsU26sex6SfUZ-u7/view?usp=drive_link',
+  'PANDUAN_FORM_PENGUKURAN': 'https://drive.google.com/file/d/1WLro7lQA3OwVqIpGs_cGy9i3t6SRv9ht/view?usp=drive_link',
+  'PANDUAN_EDIT_INSPEKSI':   'https://drive.google.com/file/d/1ru03wUZ2r0EhsqwsbfbctzHEWHsjek9z/view?usp=drive_link',
+  // ── SOP & K3 (belum diisi — ganti saat linknya sudah ada) ──
   'LINK_SOP_PEMELIHARAAN_GARDU': 'ISI_LINK_DRIVE_SOP_PEMELIHARAAN_DI_SINI',
   'LINK_SOP_K3':                 'ISI_LINK_DRIVE_SOP_K3_DI_SINI'
 };
-function bukaLinkSOP(key) {
-  var url = SOP_LINKS[key];
+
+// Ambil FILE_ID Google Drive dari berbagai format URL yang biasa muncul
+// dari tombol "Bagikan" Drive:
+//  - https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+//  - https://drive.google.com/file/d/FILE_ID/view?usp=drive_link
+//  - https://drive.google.com/file/d/FILE_ID/edit
+//  - https://drive.google.com/open?id=FILE_ID
+//  - https://drive.google.com/uc?id=FILE_ID&export=download
+function ekstrakDriveFileId(url) {
+  if (!url) return null;
+  var m = url.match(/\/file\/d\/([a-zA-Z0-9_-]{10,})/) ||
+          url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+  return m ? m[1] : null;
+}
+
+// Buka dokumen (Panduan Aplikasi atau SOP) — dipanggil dari kartu di tab
+// "SOP & Panduan". Link Google Drive dibuka LANGSUNG DI DALAM APLIKASI
+// lewat modal preview (tidak perlu keluar/pindah tab), link non-Drive
+// tetap dibuka di tab baru sebagai fallback.
+function bukaDokumen(key, judul) {
+  var url = DOKUMEN_LINKS[key];
   if (!url || url.indexOf('ISI_LINK') === 0) {
-    alert('Link SOP belum diisi.\nSilakan isi URL di bagian SOP_LINKS dalam kode.');
+    alert((judul ? judul + '\n\n' : '') + 'Link dokumen belum diisi.\nSilakan isi URL di bagian DOKUMEN_LINKS dalam kode (key: ' + key + ').');
     return;
   }
-  window.open(url, '_blank', 'noopener');
+  var fileId = ekstrakDriveFileId(url);
+  if (fileId) {
+    bukaModalPanduanPdf(fileId, judul, url);
+  } else {
+    window.open(url, '_blank', 'noopener');
+  }
 }
+
+// Alias — kompatibilitas mundur, kalau masih ada pemanggil lama bukaLinkSOP()
+function bukaLinkSOP(key) { bukaDokumen(key, null); }
+
+var _panduanPdfLinkAsli = '';
+function bukaModalPanduanPdf(fileId, judul, urlAsli) {
+  _panduanPdfLinkAsli = urlAsli || '';
+  var titleEl = document.getElementById('panduan-pdf-title');
+  if (titleEl) titleEl.textContent = judul || 'Dokumen';
+  var loadingEl = document.getElementById('panduan-pdf-loading');
+  if (loadingEl) loadingEl.style.display = 'flex'; // reset spinner tiap buka dokumen baru
+  var frame = document.getElementById('panduan-pdf-frame');
+  if (frame) frame.src = 'https://drive.google.com/file/d/' + fileId + '/preview';
+  var modal = document.getElementById('modal-panduan-pdf');
+  if (modal) modal.style.display = 'flex';
+}
+
+function tutupModalPanduanPdf() {
+  var modal = document.getElementById('modal-panduan-pdf');
+  if (modal) modal.style.display = 'none';
+  var frame = document.getElementById('panduan-pdf-frame');
+  if (frame) frame.src = 'about:blank'; // hentikan loading PDF & bebaskan memori
+}
+
+function bukaPanduanPdfTabBaru() {
+  if (_panduanPdfLinkAsli) window.open(_panduanPdfLinkAsli, '_blank', 'noopener');
+}
+
+// Tutup modal saat klik backdrop (area luar kartu) — konsisten dengan
+// modal lain di aplikasi ini (mis. modal-konfirmasi, modal-keluar-form).
+document.addEventListener('click', function(e) {
+  var modal = document.getElementById('modal-panduan-pdf');
+  if (modal && e.target === modal) tutupModalPanduanPdf();
+});
+
+// Tutup modal dengan tombol Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    var modal = document.getElementById('modal-panduan-pdf');
+    if (modal && modal.style.display === 'flex') tutupModalPanduanPdf();
+  }
+});
 
 function tutupDetail(){
   var dv = document.getElementById('detail-view');
@@ -10766,15 +10872,36 @@ function _initPetaMap(callback) {
   }
   _petaInitRetryCount = 0; // berhasil visible, reset counter
 
-  // Cek Leaflet tersedia — jika tidak, tampilkan pesan error ramah
+  // Cek Leaflet tersedia — jika tidak, tampilkan pesan error yang MENDIAGNOSIS
+  // penyebab asli, bukan menuduh "CDN diblokir jaringan" (pesan lama ini basi
+  // sejak Leaflet dipindah ke file lokal vendor/leaflet/ — lihat catatan di
+  // <head>). Kalau L undefined, penyebab paling mungkin sekarang adalah file
+  // vendor/leaflet/leaflet.min.js belum ter-upload ke server (404), BUKAN
+  // VPN/firewall. Kita cek langsung via fetch HEAD supaya pesannya akurat.
   if (typeof L === 'undefined') {
     var errWrap = document.getElementById('peta-map-wrap');
-    if (errWrap) errWrap.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:#5F7099;font-size:14px;text-align:center;padding:20px;">' +
-      '<span style="font-size:32px;">🗺️</span>' +
-      '<b style="color:#1048A8;">Leaflet map library gagal dimuat</b>' +
-      '<span>Jaringan memblok CDN peta. Coba:<br>1. Refresh halaman (Ctrl+F5)<br>2. Nonaktifkan VPN/firewall sementara<br>3. Gunakan koneksi data mobile</span>' +
-      '<button onclick="location.reload()" style="padding:8px 20px;background:#1048A8;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">↻ Refresh Halaman</button>' +
-      '</div>';
+    if (errWrap) {
+      errWrap.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:#5F7099;font-size:14px;text-align:center;padding:20px;">' +
+        '<span style="font-size:32px;">🗺️</span>' +
+        '<b style="color:#1048A8;">Peta gagal dimuat</b>' +
+        '<span id="peta-err-detail">🔍 Memeriksa penyebabnya…</span>' +
+        '<button onclick="location.reload()" style="padding:8px 20px;background:#1048A8;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">↻ Refresh Halaman</button>' +
+        '</div>';
+      fetch('vendor/leaflet/leaflet.min.js', { method: 'HEAD', cache: 'no-store' })
+        .then(function(res) {
+          var detailEl = document.getElementById('peta-err-detail');
+          if (!detailEl) return;
+          if (res.ok) {
+            detailEl.innerHTML = 'File peta ditemukan di server tapi gagal dijalankan browser (kemungkinan file rusak/ke-corrupt saat upload).<br>Coba refresh paksa (Ctrl+F5 / Cmd+Shift+R). Jika masih gagal, buka Console (F12) untuk lihat pesan error-nya.';
+          } else {
+            detailEl.innerHTML = 'File <code>vendor/leaflet/leaflet.min.js</code> tidak ditemukan di server (HTTP ' + res.status + ').<br>Kemungkinan besar folder <b>vendor/leaflet/</b> belum ter-upload ke hosting/GitHub Pages. Ini bukan masalah jaringan atau VPN — cek deployment-nya.';
+          }
+        })
+        .catch(function() {
+          var detailEl = document.getElementById('peta-err-detail');
+          if (detailEl) detailEl.innerHTML = 'Tidak bisa memeriksa file peta — kemungkinan perangkat sedang offline dan file peta belum tersimpan untuk mode offline.<br>Sambungkan ke internet lalu refresh halaman.';
+        });
+    }
     if (callback) callback();
     return;
   }
