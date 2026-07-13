@@ -84,7 +84,17 @@ function sbFetch(path, opts) {
     method:  opts.method  || 'GET',
     headers: headers,
     body:    opts.body    || undefined,
-    signal:  opts.signal  || undefined
+    signal:  opts.signal  || undefined,
+    // PENTING: paksa selalu ambil dari network, jangan pernah dari HTTP
+    // cache browser. Tanpa ini, request GET dengan URL yang identik
+    // (mis. buka Detail Gardu → edit inspeksi → auto-refresh Detail Gardu
+    // dengan URL yang sama persis) berisiko disajikan dari cache lama oleh
+    // browser meski datanya di server sudah berubah — menyebabkan field
+    // yang baru saja disimpan (spt phase_sequence) terlihat kosong/hilang
+    // padahal sudah benar tersimpan di database. Sama seperti strategi
+    // 'no-store' yang sudah dipakai di sw.js untuk app-shell, di sini
+    // diterapkan untuk semua request REST/RPC ke Supabase.
+    cache:   'no-store'
   });
 }
 
@@ -354,7 +364,7 @@ async function _getDetailLengkap(p, signal) {
   try {
     var resI = await sbFetch(
       '/rest/v1/inspeksi?no_gardu=eq.' + encodeURIComponent(noGardu) +
-      '&select=*&order=tgl_ukur.desc,jam_ukur.desc&limit=5',
+      '&select=*&order=tgl_ukur.desc,jam_ukur.desc,id.desc&limit=5',
       { signal: signal }
     );
     if (resI.ok) {
@@ -521,7 +531,7 @@ async function _getExportRekap(p, signal) {
   // Diurutkan desc sehingga baris pertama per no_gardu adalah yang terbaru.
   var inspMap = {}; // no_gardu → row inspeksi terakhir (dengan semua kolom detail)
   try {
-    var inspUrl = '/rest/v1/inspeksi?select=*&order=tgl_ukur.desc,jam_ukur.desc';
+    var inspUrl = '/rest/v1/inspeksi?select=*&order=tgl_ukur.desc,jam_ukur.desc,id.desc';
     if (ulpFilter) inspUrl += '&ulp=eq.' + encodeURIComponent(ulpFilter);
 
     var iOff2  = 0;
