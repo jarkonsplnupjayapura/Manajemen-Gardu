@@ -10719,10 +10719,17 @@ function tutupBannerInstall() {
 var _pwaInstallPrompt = null;
 
 // ── Android / Chrome / Edge: tangkap event sebelum browser tampilkan prompt ──
+// CATATAN: banner "Pasang sebagai Aplikasi" HANYA untuk tampilan mobile.
+// Di desktop (lebar layar >= 768px, sama dengan breakpoint yang dipakai di
+// seluruh aplikasi ini) banner ini sengaja tidak ditampilkan — install PWA
+// desktop biasanya lewat ikon install di address bar browser, dan banner
+// bottom-sheet ini didesain untuk layar sempit (mobile), bukan desktop.
 window.addEventListener('beforeinstallprompt', function(e) {
   e.preventDefault(); // cegah prompt otomatis browser
   _pwaInstallPrompt = e;
 
+  // Desktop → jangan tampilkan banner sama sekali
+  if (window.innerWidth >= 768) return;
   // Jangan tampilkan jika user sudah dismiss di sesi ini
   if (sessionStorage.getItem('pwa_banner_dismissed') === '1') return;
   // Jangan tampilkan jika sudah terinstall (standalone mode)
@@ -10731,6 +10738,16 @@ window.addEventListener('beforeinstallprompt', function(e) {
   var banner = document.getElementById('pwa-install-banner');
   if (banner) {
     banner.style.display = 'flex';
+  }
+});
+
+// Kalau jendela browser di-resize dari lebar mobile ke lebar desktop saat
+// banner sedang tampil (mis. user memutar HP ke mode landscape besar, atau
+// membuka DevTools lalu geser breakpoint), sembunyikan otomatis.
+window.addEventListener('resize', function() {
+  if (window.innerWidth >= 768) {
+    var banner = document.getElementById('pwa-install-banner');
+    if (banner && banner.style.display === 'flex') banner.style.display = 'none';
   }
 });
 
