@@ -204,6 +204,9 @@ async function _dispatch(action, p, signal) {
     case 'maintenanceCleanup': return _maintenanceCleanup(p, signal);
     case 'tambahPemeliharaan':    return _tambahPemeliharaan(p, signal);
     case 'getDaftarPemeliharaan': return _getDaftarPemeliharaan(p, signal);
+    case 'tambahPbpdRiwayat':     return _tambahPbpdRiwayat(p, signal);
+    case 'getPbpdRiwayat':        return _getPbpdRiwayat(p, signal);
+    case 'updateStatusPbpd':      return _updateStatusPbpd(p, signal);
     case 'hapusPemeliharaan':     return _hapusPemeliharaan(p, signal);
     case 'editPemeliharaan':      return _editPemeliharaan(p, signal);
     default: return { status: 'error', message: 'Action tidak dikenali: ' + action };
@@ -739,7 +742,7 @@ async function _tambahGardu(p, signal) {
     p_unitup:             p.unitup     || null,
     p_penyulang:          p.penyulang  || null,
     p_alamat:             p.alamat     || null,
-    p_kapasitas_kva:      p.daya       ? parseFloat(p.daya) : null,
+    p_kapasitas_kva:      _parseNumSafe(p.daya),
     p_tipe:               p.tipe       ? String(p.tipe).toUpperCase() : null,
     p_status_kepemilikan: p.kepemilikan ? String(p.kepemilikan).toUpperCase() : null,
     p_status_operasional: p.statusOp   ? String(p.statusOp).toUpperCase() : 'AKTIF',
@@ -748,16 +751,16 @@ async function _tambahGardu(p, signal) {
     p_longitude:          p.lng        ? String(p.lng) : null,
     p_keterangan:         p.keterangan || null,
     p_serial_number:      p.npSerial             || null,
-    p_arus_primer:        p.npArusPrimer         ? parseFloat(p.npArusPrimer)         : null,
-    p_arus_sekunder:      p.npArusSekunder       ? parseFloat(p.npArusSekunder)       : null,
-    p_tegangan_primer:    p.npTeganganPrimer     ? parseFloat(p.npTeganganPrimer)     : null,
-    p_tegangan_sekunder:  p.npTeganganSekunder   ? parseFloat(p.npTeganganSekunder)   : null,
-    p_frekuensi_hz:       p.npFrekuensi          ? parseFloat(p.npFrekuensi)          : null,
+    p_arus_primer:        _parseNumSafe(p.npArusPrimer),
+    p_arus_sekunder:      _parseNumSafe(p.npArusSekunder),
+    p_tegangan_primer:    _parseNumSafe(p.npTeganganPrimer),
+    p_tegangan_sekunder:  _parseNumSafe(p.npTeganganSekunder),
+    p_frekuensi_hz:       _parseNumSafe(p.npFrekuensi),
     p_vektor_grup:        p.npVektor             || null,
     p_jenis_oli:          p.npJenisOli           ? String(p.npJenisOli).toUpperCase() : null,
-    p_volume_oli_liter:   p.npVolumeOli          ? parseFloat(p.npVolumeOli)          : null,
-    p_berat_total_kg:     p.npBerat              ? parseFloat(p.npBerat)              : null,
-    p_tahun_produksi:     p.npTahun              ? parseInt(p.npTahun, 10)            : null
+    p_volume_oli_liter:   _parseNumSafe(p.npVolumeOli),
+    p_berat_total_kg:     _parseNumSafe(p.npBerat),
+    p_tahun_produksi:     (p.npTahun !== null && p.npTahun !== undefined && p.npTahun !== '' && !isNaN(parseInt(p.npTahun,10))) ? parseInt(p.npTahun, 10) : null
   }, signal);
 
   if (!data || data.status !== 'ok')
@@ -781,7 +784,7 @@ async function _editGardu(p, signal) {
     p_unitup:             p.unitup     || null,
     p_penyulang:          p.penyulang  || null,
     p_alamat:             p.alamat     || null,
-    p_kapasitas_kva:      p.daya       ? parseFloat(p.daya) : null,
+    p_kapasitas_kva:      _parseNumSafe(p.daya),
     p_tipe:               p.tipe       ? String(p.tipe).toUpperCase() : null,
     p_status_kepemilikan: p.kepemilikan ? String(p.kepemilikan).toUpperCase() : null,
     p_status_operasional: p.status     ? String(p.status).toUpperCase() : null,
@@ -790,16 +793,16 @@ async function _editGardu(p, signal) {
     p_longitude:          p.lng        ? String(p.lng) : null,
     p_keterangan:         p.keterangan || null,
     p_serial_number:      p.npSerial             || null,
-    p_arus_primer:        p.npArusPrimer         ? parseFloat(p.npArusPrimer)         : null,
-    p_arus_sekunder:      p.npArusSekunder       ? parseFloat(p.npArusSekunder)       : null,
-    p_tegangan_primer:    p.npTeganganPrimer     ? parseFloat(p.npTeganganPrimer)     : null,
-    p_tegangan_sekunder:  p.npTeganganSekunder   ? parseFloat(p.npTeganganSekunder)   : null,
-    p_frekuensi_hz:       p.npFrekuensi          ? parseFloat(p.npFrekuensi)          : null,
+    p_arus_primer:        _parseNumSafe(p.npArusPrimer),
+    p_arus_sekunder:      _parseNumSafe(p.npArusSekunder),
+    p_tegangan_primer:    _parseNumSafe(p.npTeganganPrimer),
+    p_tegangan_sekunder:  _parseNumSafe(p.npTeganganSekunder),
+    p_frekuensi_hz:       _parseNumSafe(p.npFrekuensi),
     p_vektor_grup:        p.npVektor             || null,
     p_jenis_oli:          p.npJenisOli           ? String(p.npJenisOli).toUpperCase() : null,
-    p_volume_oli_liter:   p.npVolumeOli          ? parseFloat(p.npVolumeOli)          : null,
-    p_berat_total_kg:     p.npBerat              ? parseFloat(p.npBerat)              : null,
-    p_tahun_produksi:     p.npTahun              ? parseInt(p.npTahun, 10)            : null
+    p_volume_oli_liter:   _parseNumSafe(p.npVolumeOli),
+    p_berat_total_kg:     _parseNumSafe(p.npBerat),
+    p_tahun_produksi:     (p.npTahun !== null && p.npTahun !== undefined && p.npTahun !== '' && !isNaN(parseInt(p.npTahun,10))) ? parseInt(p.npTahun, 10) : null
   }, signal);
 
   if (!data || data.status !== 'ok')
@@ -1100,11 +1103,11 @@ async function _tambahInspeksi(p, signal) {
     p_tgl_ukur:      p.tglUkur                               || null,
     p_jam_ukur:      p.jamUkur                               || null,
     p_petugas:       p.petugas                               || null,
-    p_daya:          p.daya        ? parseFloat(p.daya)      : null,
-    p_fasa:          p.fasa        ? parseInt(p.fasa)        : null,
-    p_daya_pakai:    p.dayaPakai   ? parseFloat(p.dayaPakai) : null,
-    p_prosen:        p.prosen      ? parseFloat(p.prosen)    : null,
-    p_tdk_seimbang:  p.tdkSeimbang ? parseFloat(p.tdkSeimbang) : null,
+    p_daya:          _parseNumSafe(p.daya),
+    p_fasa:          (p.fasa !== null && p.fasa !== undefined && p.fasa !== '' && !isNaN(parseInt(p.fasa))) ? parseInt(p.fasa) : null,
+    p_daya_pakai:    _parseNumSafe(p.dayaPakai),
+    p_prosen:        _parseNumSafe(p.prosen),
+    p_tdk_seimbang:  _parseNumSafe(p.tdkSeimbang),
     p_r_total:       _parseNumSafe(p.rTotal),
     p_s_total:       _parseNumSafe(p.sTotal),
     p_t_total:       _parseNumSafe(p.tTotal),
@@ -1201,11 +1204,11 @@ async function _editInspeksi(p, signal) {
     p_tgl_ukur:      p.tglUkur                               || null,
     p_jam_ukur:      p.jamUkur                               || null,
     p_petugas:       p.petugas                               || null,
-    p_daya:          p.daya        ? parseFloat(p.daya)      : null,
-    p_fasa:          p.fasa        ? parseInt(p.fasa)        : null,
-    p_daya_pakai:    p.dayaPakai   ? parseFloat(p.dayaPakai) : null,
-    p_prosen:        p.prosen      ? parseFloat(p.prosen)    : null,
-    p_tdk_seimbang:  p.tdkSeimbang ? parseFloat(p.tdkSeimbang) : null,
+    p_daya:          _parseNumSafe(p.daya),
+    p_fasa:          (p.fasa !== null && p.fasa !== undefined && p.fasa !== '' && !isNaN(parseInt(p.fasa))) ? parseInt(p.fasa) : null,
+    p_daya_pakai:    _parseNumSafe(p.dayaPakai),
+    p_prosen:        _parseNumSafe(p.prosen),
+    p_tdk_seimbang:  _parseNumSafe(p.tdkSeimbang),
     p_r_total:       _parseNumSafe(p.rTotal),
     p_s_total:       _parseNumSafe(p.sTotal),
     p_t_total:       _parseNumSafe(p.tTotal),
@@ -1467,6 +1470,56 @@ async function _getDaftarPemeliharaan(p, signal) {
     return { status: 'error', message: (data && data.message) || 'Gagal memuat data pemeliharaan.' };
 
   return { status: 'ok', data: data.data || [], total: data.total || 0 };
+}
+
+// ── RIWAYAT PROSES PB/PD ───────────────────────────────────────
+async function _tambahPbpdRiwayat(p, signal) {
+  var data = await rpcCall('fn_tambah_pbpd_riwayat', {
+    p_token:                 p.token,
+    p_no_gardu:               (p.noGardu || '').trim().toUpperCase(),
+    p_ulp:                    p.ulp                   || null,
+    p_petugas:                p.petugas               || null,
+    p_jenis_sambungan:        p.jenisSambungan        || null,
+    p_daya_va:                p.dayaVa                || null,
+    p_fasa_rekomendasi:       p.fasaRekomendasi       || null,
+    p_jurusan_rekomendasi:    p.jurusanRekomendasi    || null,
+    p_proyeksi_beban_pct:     p.proyeksiBebanPct      || null,
+    p_proyeksi_imbalance_pct: p.proyeksiImbalancePct  || null,
+    p_klasifikasi_beban:      p.klasifikasiBeban      || null,
+    p_klasifikasi_imbalance:  p.klasifikasiImbalance  || null,
+    p_catatan:                p.catatan               || null
+  }, signal);
+
+  if (!data || data.status !== 'ok')
+    return { status: 'error', message: (data && data.message) || 'Gagal menyimpan riwayat PB/PD.' };
+
+  return { status: 'ok', message: data.message, id: data.id };
+}
+
+async function _getPbpdRiwayat(p, signal) {
+  var data = await rpcCall('fn_get_pbpd_riwayat', {
+    p_token:    p.token    || null,
+    p_no_gardu: (p.noGardu || '').trim().toUpperCase(),
+    p_limit:    p.limit    ? parseInt(p.limit) : 5
+  }, signal);
+
+  if (!data || data.status !== 'ok')
+    return { status: 'error', message: (data && data.message) || 'Gagal memuat riwayat PB/PD.' };
+
+  return { status: 'ok', data: data.data || [] };
+}
+
+async function _updateStatusPbpd(p, signal) {
+  var data = await rpcCall('fn_update_status_pbpd', {
+    p_token:  p.token,
+    p_id:     parseInt(p.id),
+    p_status: p.status
+  }, signal);
+
+  if (!data || data.status !== 'ok')
+    return { status: 'error', message: (data && data.message) || 'Gagal memperbarui status PB/PD.' };
+
+  return { status: 'ok', message: data.message };
 }
 
 // ── HAPUS PEMELIHARAAN via RPC ────────────────────────────────
