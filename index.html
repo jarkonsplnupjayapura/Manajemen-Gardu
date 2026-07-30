@@ -3452,7 +3452,64 @@ input[type=number]{-moz-appearance:textfield;}
       <button class="btn btn-outline" id="apbtn-usulp"    onclick="tutupPanelAdmin();bukaModalUserULP()" style="display:none;">👥 Kelola User ULP Saya</button>
       <button class="btn btn-outline" id="apbtn-pin"      onclick="tutupPanelAdmin();bukaModalSetPin()">🔑 Set / Ganti PIN User</button>
       <button class="btn btn-outline" id="apbtn-import"   onclick="tutupPanelAdmin();bukaModalCsvImport()">📥 Import Inspeksi</button>
+      <button class="btn btn-outline" id="apbtn-audit"    onclick="tutupPanelAdmin();bukaModalAuditProsen()">🔍 Audit &amp; Perbaiki Prosen Massal</button>
       <button class="btn btn-red"     id="apbtn-logout"   onclick="doLogout()">🚪 Logout</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AUDIT & PERBAIKI PROSEN MASSAL (SUPER ADMIN ONLY) -->
+<div id="modal-audit-prosen" style="display:none;position:fixed;inset:0;z-index:9200;background:rgba(0,0,0,.55);align-items:flex-start;justify-content:center;padding:var(--sp-md);overflow-y:auto;">
+  <div style="background:var(--pln-card);border-radius:var(--radius);padding:var(--sp-lg);width:100%;max-width:900px;margin:auto;box-shadow:var(--shadow-lg);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-sm);">
+      <div style="font-size:var(--fs-md);font-weight:700;">🔍 Audit &amp; Perbaiki Prosen Massal</div>
+      <button onclick="document.getElementById('modal-audit-prosen').style.display='none'" style="background:var(--pln-bg);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;">✕</button>
+    </div>
+    <div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-bottom:var(--sp-md);line-height:1.5;">
+      Mencari semua data inspeksi yang <strong>Daya (kVA)</strong>-nya tidak sinkron dengan kapasitas trafo terbaru,
+      dan/atau <strong>Prosen Beban</strong>-nya tidak sesuai hasil hitung ulang (Daya Pakai ÷ Daya × 100).
+      Ini biasanya terjadi setelah kapasitas gardu di-upgrade tapi riwayat inspeksi lama belum ikut disesuaikan.
+    </div>
+
+    <div id="audit-prosen-idle">
+      <button class="btn btn-blue" id="btn-audit-mulai" onclick="auditMulaiScan()">▶️ Mulai Audit</button>
+    </div>
+
+    <div id="audit-prosen-loading" style="display:none;padding:var(--sp-md) 0;font-size:var(--fs-sm);color:var(--pln-text2);">
+      ⏳ <span id="audit-prosen-loading-text">Memindai data…</span>
+    </div>
+
+    <div id="audit-prosen-hasil" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:var(--sp-md) 0 var(--sp-sm);flex-wrap:wrap;gap:8px;">
+        <div style="font-size:var(--fs-sm);font-weight:700;" id="audit-prosen-ringkasan">—</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline" style="padding:6px 12px;font-size:var(--fs-xs);" onclick="auditToggleSemua(true)">Pilih Semua</button>
+          <button class="btn btn-outline" style="padding:6px 12px;font-size:var(--fs-xs);" onclick="auditToggleSemua(false)">Batal Semua</button>
+        </div>
+      </div>
+      <div style="max-height:360px;overflow:auto;border:1px solid var(--pln-border);border-radius:var(--radius-xs);">
+        <table style="width:100%;border-collapse:collapse;font-size:var(--fs-xs);">
+          <thead style="position:sticky;top:0;background:var(--pln-bg);">
+            <tr>
+              <th style="padding:8px;text-align:left;"></th>
+              <th style="padding:8px;text-align:left;">Gardu</th>
+              <th style="padding:8px;text-align:left;">Tgl Inspeksi</th>
+              <th style="padding:8px;text-align:right;">Daya Lama→Baru</th>
+              <th style="padding:8px;text-align:right;">Prosen Lama→Baru</th>
+            </tr>
+          </thead>
+          <tbody id="audit-prosen-tbody"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:var(--sp-md);display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-blue" id="btn-audit-perbaiki" onclick="auditPerbaikiTerpilih()">✅ Perbaiki Data Terpilih</button>
+        <span id="audit-prosen-progress" style="font-size:var(--fs-xs);color:var(--pln-text3);"></span>
+      </div>
+      <div id="audit-prosen-log" style="margin-top:var(--sp-sm);max-height:140px;overflow:auto;font-size:11px;color:var(--pln-text3);font-family:monospace;white-space:pre-wrap;"></div>
+    </div>
+
+    <div id="audit-prosen-kosong" style="display:none;padding:var(--sp-md) 0;font-size:var(--fs-sm);color:var(--pln-green);font-weight:600;">
+      ✅ Semua data sudah sinkron. Tidak ada yang perlu diperbaiki.
     </div>
   </div>
 </div>
@@ -4720,6 +4777,7 @@ function _tampilkanPanelAdmin(s) {
   // Tombol KHUSUS superadmin
   showBtn('apbtn-user',    isSuperadmin);
   showBtn('apbtn-usulp',   !isSuperadmin);
+  showBtn('apbtn-audit',   isSuperadmin);
 
   // ── Pastikan tombol Import ada di DOM, baru atur visibility ──
   var actionsEl = document.getElementById('admin-panel-actions');
@@ -8492,6 +8550,248 @@ function simpanEditInspeksi() {
       }
     }, 1200);
   });
+}
+
+// ══════════════════════════════════════════════════════════════
+// AUDIT & PERBAIKI PROSEN MASSAL (Super Admin)
+// Menemukan & memperbaiki record inspeksi lama yang field Daya/Prosen-nya
+// basi — tidak sinkron dengan kapasitas KVA gardu terbaru (mis. setelah
+// upgrade trafo, riwayat inspeksi sebelumnya tidak ikut ter-update).
+// ══════════════════════════════════════════════════════════════
+var _auditProsenHasil = []; // {id, noGardu, tgl, oldDaya, newDaya, oldProsen, newProsen, selected}
+
+function bukaModalAuditProsen() {
+  var s = getSession();
+  if (!s || !s.token || !isFullAccessRole(s.role)) { alert('Fitur ini khusus Super Admin.'); return; }
+  document.getElementById('audit-prosen-idle').style.display    = '';
+  document.getElementById('audit-prosen-loading').style.display = 'none';
+  document.getElementById('audit-prosen-hasil').style.display   = 'none';
+  document.getElementById('audit-prosen-kosong').style.display  = 'none';
+  document.getElementById('audit-prosen-log').textContent = '';
+  document.getElementById('audit-prosen-progress').textContent = '';
+  _auditProsenHasil = [];
+  document.getElementById('modal-audit-prosen').style.display = 'flex';
+}
+
+function _auditSetLoading(text) {
+  document.getElementById('audit-prosen-idle').style.display    = 'none';
+  document.getElementById('audit-prosen-loading').style.display = '';
+  document.getElementById('audit-prosen-loading-text').textContent = text;
+}
+
+// Ambil SEMUA gardu (lintas ULP) → map no_gardu -> kapasitas kVA TERBARU
+function _auditFetchSemuaGardu() {
+  return new Promise(function(resolve, reject) {
+    var s = getSession();
+    apiGet({ action: 'getDaftarGardu', token: s.token }, function(res) {
+      if (!res || res.status !== 'ok') { reject(new Error((res && res.message) || 'Gagal memuat daftar gardu.')); return; }
+      var map = {};
+      (res.data || []).forEach(function(g) {
+        var kva = parseFloat(g.KAPASITAS_KVA);
+        if (g.NO_GARDU && !isNaN(kva) && kva > 0) map[g.NO_GARDU] = kva;
+      });
+      resolve(map);
+    });
+  });
+}
+
+// Ambil SEMUA record inspeksi (paginated, lintas ULP)
+function _auditFetchSemuaInspeksi() {
+  return new Promise(function(resolve, reject) {
+    var s = getSession();
+    var PAGE = 500;
+    var offset = 0;
+    var all = [];
+
+    function nextPage() {
+      apiGet({
+        action:  'getInspeksi',
+        token:   s.token,
+        noGardu: null,
+        ulp:     null,
+        limit:   PAGE,
+        offset:  offset
+      }, function(res) {
+        if (!res || res.status !== 'ok') { reject(new Error((res && res.message) || 'Gagal memuat data inspeksi.')); return; }
+        var rows = res.data || [];
+        all = all.concat(rows);
+        _auditSetLoading('Memindai data inspeksi… (' + all.length + (res.total ? ' / ' + res.total : '') + ')');
+        if (rows.length < PAGE) { resolve(all); return; }
+        offset += PAGE;
+        nextPage();
+      });
+    }
+    nextPage();
+  });
+}
+
+async function auditMulaiScan() {
+  var s = getSession();
+  if (!s || !s.token) { alert('Sesi tidak valid.'); return; }
+  _auditSetLoading('Memuat daftar gardu…');
+  try {
+    var kvaMap = await _auditFetchSemuaGardu();
+    var rows   = await _auditFetchSemuaInspeksi();
+
+    var hasil = [];
+    rows.forEach(function(r) {
+      var noGardu = r['NO_GARDU'] || r['NOGARDU'] || '';
+      var kvaNow  = kvaMap[noGardu];
+      if (kvaNow == null) return; // gardu tidak ditemukan / kva tidak valid → lewati
+
+      var oldDaya   = (r['DAYA'] !== '' && r['DAYA'] != null) ? parseFloat(r['DAYA']) : null;
+      var dayaPakai = (r['DAYA PAKAI'] !== '' && r['DAYA PAKAI'] != null) ? parseFloat(r['DAYA PAKAI']) : null;
+      var oldProsen = (r['PROSEN'] !== '' && r['PROSEN'] != null) ? parseFloat(r['PROSEN']) : null;
+
+      var dayaMismatch = (oldDaya == null) || Math.abs(oldDaya - kvaNow) > 0.01;
+      var newDaya   = kvaNow;
+      var newProsen = (dayaPakai != null && newDaya > 0) ? parseFloat((dayaPakai / newDaya * 100).toFixed(2)) : oldProsen;
+      var prosenMismatch = (dayaPakai != null) && (oldProsen == null || Math.abs(oldProsen - newProsen) > 0.5);
+
+      if (dayaMismatch || prosenMismatch) {
+        hasil.push({
+          id:        r['_id'],
+          noGardu:   noGardu,
+          tgl:       r['TGLUKUR'] || '',
+          oldDaya:   oldDaya,
+          newDaya:   newDaya,
+          oldProsen: oldProsen,
+          newProsen: newProsen,
+          selected:  true
+        });
+      }
+    });
+
+    _auditProsenHasil = hasil;
+    auditRenderHasil();
+  } catch (e) {
+    document.getElementById('audit-prosen-idle').style.display    = '';
+    document.getElementById('audit-prosen-loading').style.display = 'none';
+    alert('❌ Audit gagal: ' + e.message);
+  }
+}
+
+function auditRenderHasil() {
+  document.getElementById('audit-prosen-loading').style.display = 'none';
+  if (!_auditProsenHasil.length) {
+    document.getElementById('audit-prosen-kosong').style.display = '';
+    return;
+  }
+  document.getElementById('audit-prosen-hasil').style.display = '';
+  document.getElementById('audit-prosen-ringkasan').textContent =
+    'Ditemukan ' + _auditProsenHasil.length + ' data yang tidak sinkron.';
+
+  var fmt = function(n) { return (n == null || isNaN(n)) ? '—' : n.toFixed(1); };
+  var tbody = document.getElementById('audit-prosen-tbody');
+  tbody.innerHTML = _auditProsenHasil.map(function(h, i) {
+    return '<tr style="border-top:1px solid var(--pln-border);">' +
+      '<td style="padding:6px 8px;"><input type="checkbox" checked onchange="_auditProsenHasil[' + i + '].selected=this.checked"></td>' +
+      '<td style="padding:6px 8px;font-weight:700;">' + h.noGardu + '</td>' +
+      '<td style="padding:6px 8px;">' + (h.tgl || '—') + '</td>' +
+      '<td style="padding:6px 8px;text-align:right;">' + fmt(h.oldDaya) + ' → <strong>' + fmt(h.newDaya) + '</strong> kVA</td>' +
+      '<td style="padding:6px 8px;text-align:right;">' + fmt(h.oldProsen) + '% → <strong style="color:var(--pln-biru2);">' + fmt(h.newProsen) + '%</strong></td>' +
+      '</tr>';
+  }).join('');
+}
+
+function auditToggleSemua(val) {
+  _auditProsenHasil.forEach(function(h) { h.selected = val; });
+  auditRenderHasil();
+}
+
+// Bangun payload editInspeksi LENGKAP dari record penuh (getInspeksiById),
+// hanya menimpa daya & prosen — field lain dipertahankan PERSIS sama seperti
+// saat admin edit manual satu-satu lewat simpanEditInspeksi(). Ini penting
+// agar data lain (arus, tegangan, THD, jurusan, dst) tidak ikut terhapus.
+function _auditBuildEditPayload(id, row, newDaya, newProsen) {
+  return {
+    action:        'editInspeksi',
+    id:            id,
+    tglUkur:       row['TGLUKUR']     || null,
+    jamUkur:       row['JAM UKUR']    || null,
+    petugas:       row['PETUGAS']     || null,
+    fasa:          row['FASA']        || null,
+    daya:          newDaya,
+    dayaPakai:     row['DAYA PAKAI']  || null,
+    prosen:        newProsen,
+    tdkSeimbang:   row['TDKSEIMBANG'] || null,
+    rTotal:        row['R TOTAL']     || null,
+    sTotal:        row['S TOTAL']     || null,
+    tTotal:        row['T TOTAL']     || null,
+    nTotal:        row['N TOTAL']     || null,
+    vRN:           row['R - N']       || null,
+    vSN:           row['S - N']       || null,
+    vTN:           row['T - N']       || null,
+    vRS:           row['R - S']       || null,
+    vST:           row['S - T']       || null,
+    vRT:           row['R - T']       || null,
+    thdR:          row['THD-R']       || null,
+    thdS:          row['THD-S']       || null,
+    thdT:          row['THD-T']       || null,
+    ipeakR:        row['IPEAK-R']     || null,
+    ipeakS:        row['IPEAK-S']     || null,
+    ipeakT:        row['IPEAK-T']     || null,
+    tpfR:          row['TPF-R']       || null,
+    tpfS:          row['TPF-S']       || null,
+    tpfT:          row['TPF-T']       || null,
+    phaseSequence: row['PHASE_SEQUENCE'] || null,
+    jurusan:       row._jurusanRaw    || null
+  };
+}
+
+function _auditLog(msg) {
+  var el = document.getElementById('audit-prosen-log');
+  el.textContent += msg + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+
+async function auditPerbaikiTerpilih() {
+  var s = getSession();
+  if (!s || !s.token) { alert('Sesi tidak valid.'); return; }
+  var terpilih = _auditProsenHasil.filter(function(h) { return h.selected; });
+  if (!terpilih.length) { alert('Tidak ada data yang dipilih.'); return; }
+  if (!confirm('Perbaiki ' + terpilih.length + ' data inspeksi sekarang?\n\nTindakan ini akan menimpa nilai Daya & Prosen Beban yang tersimpan dengan nilai yang sudah dihitung ulang.')) return;
+
+  var btn = document.getElementById('btn-audit-perbaiki');
+  btn.disabled = true;
+  var progEl = document.getElementById('audit-prosen-progress');
+  var ok = 0, fail = 0;
+
+  for (var i = 0; i < terpilih.length; i++) {
+    var h = terpilih[i];
+    progEl.textContent = 'Memproses ' + (i + 1) + ' / ' + terpilih.length + '…';
+    try {
+      var full = await new Promise(function(resolve, reject) {
+        apiGet({ action: 'getInspeksiById', token: s.token, id: h.id }, function(res) {
+          if (!res || res.status !== 'ok') reject(new Error((res && res.message) || 'Gagal ambil data lengkap.'));
+          else resolve(res.data);
+        });
+      });
+
+      var payload = _auditBuildEditPayload(h.id, full, h.newDaya, h.newProsen);
+      payload.token = s.token;
+
+      var saveRes = await new Promise(function(resolve) {
+        apiGet(payload, function(res) { resolve(res); });
+      });
+
+      if (saveRes && saveRes.status === 'ok') {
+        ok++;
+        _auditLog('✅ ' + h.noGardu + ' (' + h.tgl + '): Daya ' + h.oldDaya + '→' + h.newDaya + ' kVA, Prosen ' + h.oldProsen + '%→' + h.newProsen + '%');
+      } else {
+        fail++;
+        _auditLog('❌ ' + h.noGardu + ' (' + h.tgl + '): ' + ((saveRes && saveRes.message) || 'gagal disimpan'));
+      }
+    } catch (e) {
+      fail++;
+      _auditLog('❌ ' + h.noGardu + ' (' + h.tgl + '): ' + e.message);
+    }
+  }
+
+  btn.disabled = false;
+  progEl.textContent = 'Selesai: ' + ok + ' berhasil, ' + fail + ' gagal.';
+  rekapSudahMuat = false; // data beban berubah → rekap harus dimuat ulang
+  muatDaftarGardu(true);  // refresh daftar gardu agar badge beban ikut ter-update
 }
 
 // ── Konteks pemanggil edit inspeksi (detail gardu / pengukuran) ──
