@@ -7994,7 +7994,46 @@ function tutupModalEditInspeksi() {
   if (pagesEl) delete pagesEl.dataset.built;
 }
 
+// ── FIX: Auto-recalculate Prosen Beban di form Edit Inspeksi ──────────────
+// Sebelumnya field Prosen di form Edit hanya diisi dari nilai lama tersimpan
+// (r['PROSEN']) dan TIDAK pernah dihitung ulang, meski field Daya sudah
+// diubah/dikoreksi (misal setelah upgrade KVA trafo). Akibatnya Daya bisa
+// sudah benar (250) tapi Prosen masih pakai KVA lama (100) → beban tampil
+// 136.3% padahal harusnya 54.5%. Fungsi ini menyamakan perilaku form Edit
+// dengan form Tambah Inspeksi (fiUpdateCalc), yaitu Prosen = Daya Pakai / Daya * 100.
+function eiRecalcProsen() {
+  var dayaEl     = document.getElementById('ei-daya');
+  var dayaPakaiEl = document.getElementById('ei-dayapakai');
+  var prosenEl   = document.getElementById('ei-prosen');
+  if (!dayaEl || !dayaPakaiEl || !prosenEl) return;
+
+  var daya      = parseFloat(dayaEl.value);
+  var dayaPakai = parseFloat(dayaPakaiEl.value);
+
+  if (!isNaN(daya) && daya > 0 && !isNaN(dayaPakai)) {
+    var prosen = parseFloat((dayaPakai / daya * 100).toFixed(2));
+    prosenEl.value = prosen;
+  }
+  // Jika Daya atau Daya Pakai kosong/tidak valid, Prosen tidak diubah paksa —
+  // biarkan admin mengisi manual (mendukung kasus input dari alat ukur langsung).
+}
+
+// Pasang listener input pada Daya & Daya Pakai supaya Prosen otomatis
+// ter-update tiap kali salah satu diubah. Dipasang sekali saja (guard via
+// dataset flag) karena bukaEditInspeksi() bisa dipanggil berulang kali.
+function eiBindAutoRecalcProsen() {
+  var dayaEl      = document.getElementById('ei-daya');
+  var dayaPakaiEl = document.getElementById('ei-dayapakai');
+  if (!dayaEl || !dayaPakaiEl) return;
+  if (dayaEl.dataset.autoProsenBound) return;
+
+  dayaEl.addEventListener('input', eiRecalcProsen);
+  dayaPakaiEl.addEventListener('input', eiRecalcProsen);
+  dayaEl.dataset.autoProsenBound = '1';
+}
+
 function bukaEditInspeksi(id, r) {
+
   var s = getSession();
   if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
   document.getElementById('edit-inspeksi-id').value = id;
@@ -8032,6 +8071,13 @@ function bukaEditInspeksi(id, r) {
   document.getElementById('ei-dayapakai').value    = r['DAYA PAKAI'] || '';
   document.getElementById('ei-prosen').value       = r['PROSEN'] || '';
   document.getElementById('ei-tdkseimbang').value  = r['TDKSEIMBANG'] || r['TDK SEIMBANG'] || '';
+
+  // FIX: Prosen Beban tersimpan bisa basi (mis. dihitung dari KVA lama sebelum
+  // upgrade trafo), sedangkan field Daya di atas sudah nilai terbaru.
+  // Hitung ulang Prosen dari Daya & Daya Pakai yang baru saja di-load supaya
+  // admin langsung melihat angka yang benar, bukan angka basi dari database.
+  eiRecalcProsen();
+  eiBindAutoRecalcProsen();
 
   // Arus
   document.getElementById('ei-r').value = r['R TOTAL'] || '';
