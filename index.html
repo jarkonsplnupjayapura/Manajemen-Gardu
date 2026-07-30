@@ -5795,7 +5795,9 @@ function renderDaftarGardu(data){
 }
 
 // ── DETAIL GARDU ─────────────────────────────────────────────
+window._currentDetailNoGardu = null;
 function bukaDetailGardu(noGardu){
+  window._currentDetailNoGardu = (noGardu||'').trim().toUpperCase();
   tabSebelumDetail = currentTab;
   TAB_IDS.forEach(function(tid){ document.getElementById(tid).classList.remove('active'); });
   if(window.innerWidth < 768) document.getElementById('bottom-nav').style.display = 'none';
@@ -10769,6 +10771,14 @@ function submitEditGardu() {
         msgEl.style.display='none';
         document.getElementById('modal-edit-gardu').style.display='none';
         if (typeof muatDaftarGardu === 'function') muatDaftarGardu(true);
+        // FIX: kalau kartu detail gardu ini sedang terbuka (atau baru saja
+        // dilihat), paksa reload ulang dari server (bukan dari cache),
+        // supaya notif sukses selalu dibarengi tampilan data terbaru.
+        var _noAkhir = (document.getElementById('ef-nogardu-baru').value||'').trim().toUpperCase() || noLama;
+        if (window._currentDetailNoGardu === noLama.trim().toUpperCase() ||
+            window._currentDetailNoGardu === _noAkhir) {
+          bukaDetailGardu(_noAkhir);
+        }
         showAlert('✅ Gardu berhasil diperbarui.');
       } else {
         msgEl.style.background='#FEE2E2'; msgEl.style.color='#991B1B'; msgEl.textContent=userFriendlyError(res.message, 'Gagal mengedit gardu.');
