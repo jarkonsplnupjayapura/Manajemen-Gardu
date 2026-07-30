@@ -781,24 +781,30 @@ async function _editGardu(p, signal) {
     p_no_gardu_lama:      (p.noGarduLama || '').trim().toUpperCase(),
     p_no_gardu_baru:      noGarduBaru || null,
     p_ulp:                ulpEnum,
-    p_unitup:             p.unitup     || null,
-    p_penyulang:          p.penyulang  || null,
-    p_alamat:             p.alamat     || null,
+    p_unitup:             p.unitup     !== undefined ? p.unitup     : null,
+    p_penyulang:          p.penyulang  !== undefined ? p.penyulang  : null,
+    p_alamat:             p.alamat     !== undefined ? p.alamat     : null,
     p_kapasitas_kva:      _parseNumSafe(p.daya),
     p_tipe:               p.tipe       ? String(p.tipe).toUpperCase() : null,
     p_status_kepemilikan: p.kepemilikan ? String(p.kepemilikan).toUpperCase() : null,
     p_status_operasional: p.status     ? String(p.status).toUpperCase() : null,
-    p_merek_trafo:        p.merek      || null,
+    p_merek_trafo:        p.merek      !== undefined ? p.merek      : null,
     p_latitude:           p.lat        ? String(p.lat) : null,
     p_longitude:          p.lng        ? String(p.lng) : null,
-    p_keterangan:         p.keterangan || null,
-    p_serial_number:      p.npSerial             || null,
+    // FIX: sebelumnya `p.keterangan || null` — string kosong '' (saat user
+    // sengaja mengosongkan kolom) ikut ter-konversi jadi null, lalu di RPC
+    // COALESCE(null, keterangan) mempertahankan nilai LAMA. Akibatnya kolom
+    // Keterangan tidak pernah bisa dikosongkan lewat form edit. Sekarang
+    // string kosong dikirim apa adanya supaya backend benar-benar
+    // mengosongkannya, bukan menganggap "tidak diubah".
+    p_keterangan:         p.keterangan !== undefined ? p.keterangan : null,
+    p_serial_number:      p.npSerial             !== undefined ? p.npSerial : null,
     p_arus_primer:        _parseNumSafe(p.npArusPrimer),
     p_arus_sekunder:      _parseNumSafe(p.npArusSekunder),
     p_tegangan_primer:    _parseNumSafe(p.npTeganganPrimer),
     p_tegangan_sekunder:  _parseNumSafe(p.npTeganganSekunder),
     p_frekuensi_hz:       _parseNumSafe(p.npFrekuensi),
-    p_vektor_grup:        p.npVektor             || null,
+    p_vektor_grup:        p.npVektor             !== undefined ? p.npVektor : null,
     p_jenis_oli:          p.npJenisOli           ? String(p.npJenisOli).toUpperCase() : null,
     p_volume_oli_liter:   _parseNumSafe(p.npVolumeOli),
     p_berat_total_kg:     _parseNumSafe(p.npBerat),
