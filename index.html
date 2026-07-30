@@ -8657,7 +8657,9 @@ async function auditMulaiScan() {
           newDaya:   newDaya,
           oldProsen: oldProsen,
           newProsen: newProsen,
-          selected:  true
+          selected:  true,
+          _rawRow:   r // simpan row lengkap dari hasil scan (sudah termasuk arus/tegangan/jurusan dst.)
+                       // agar tidak perlu fetch ulang per-record saat perbaiki (lihat catatan di auditPerbaikiTerpilih)
         });
       }
     });
@@ -8745,13 +8747,24 @@ function _auditLog(msg) {
   el.scrollTop = el.scrollHeight;
 }
 
-async function auditPerbaikiTerpilih() {
+function auditPerbaikiTerpilih() {
   var s = getSession();
-  if (!s || !s.token) { alert('Sesi tidak valid.'); return; }
+  if (!s || !s.token) { window.showAlert('❌ Sesi tidak valid.'); return; }
   var terpilih = _auditProsenHasil.filter(function(h) { return h.selected; });
-  if (!terpilih.length) { alert('Tidak ada data yang dipilih.'); return; }
-  if (!confirm('Perbaiki ' + terpilih.length + ' data inspeksi sekarang?\n\nTindakan ini akan menimpa nilai Daya & Prosen Beban yang tersimpan dengan nilai yang sudah dihitung ulang.')) return;
+  if (!terpilih.length) { window.showAlert('⚠️ Tidak ada data yang dipilih.'); return; }
 
+  // FIX: pakai modal konfirmasi in-app (showConfirm), bukan confirm() bawaan
+  // browser yang tampil sebagai popup terpisah di luar tampilan aplikasi.
+  window.showConfirm(
+    'Perbaiki ' + terpilih.length + ' data inspeksi sekarang? Tindakan ini akan menimpa nilai Daya & Prosen Beban yang tersimpan dengan nilai yang sudah dihitung ulang.',
+    'Perbaiki Data Terpilih?',
+    '✅',
+    function() { _auditJalankanPerbaikan(terpilih); }
+  );
+}
+
+async function _auditJalankanPerbaikan(terpilih) {
+  var s = getSession();
   var btn = document.getElementById('btn-audit-perbaiki');
   btn.disabled = true;
   var progEl = document.getElementById('audit-prosen-progress');
@@ -8761,12 +8774,17 @@ async function auditPerbaikiTerpilih() {
     var h = terpilih[i];
     progEl.textContent = 'Memproses ' + (i + 1) + ' / ' + terpilih.length + '…';
     try {
-      var full = await new Promise(function(resolve, reject) {
-        apiGet({ action: 'getInspeksiById', token: s.token, id: h.id }, function(res) {
-          if (!res || res.status !== 'ok') reject(new Error((res && res.message) || 'Gagal ambil data lengkap.'));
-          else resolve(res.data);
-        });
-      });
+      // FIX (401): sebelumnya di sini ada panggilan tambahan ke action
+      // 'getInspeksiById' (baca langsung tabel `inspeksi` via REST) untuk
+      // mengambil data lengkap per-record. Endpoint itu ditolak Supabase
+      // dengan 401 (RLS pada tabel `inspeksi` tidak mengizinkan SELECT
+      // langsung pakai anon key di luar RPC). Padahal data lengkap yang
+      // sama SUDAH didapat sekali di awal saat proses scan (h._rawRow,
+      // hasil dari action 'getInspeksi' yang lewat RPC fn_get_riwayat_inspeksi
+      // dan sudah diizinkan RLS) — jadi panggilan kedua ini dihapus, cukup
+      // pakai data yang sudah ada.
+      var full = h._rawRow;
+      if (!full) throw new Error('Data baris tidak lengkap (silakan Mulai Audit ulang).');
 
       var payload = _auditBuildEditPayload(h.id, full, h.newDaya, h.newProsen);
       payload.token = s.token;
