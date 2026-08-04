@@ -10320,8 +10320,9 @@ function renderGarduKritisContent() {
 }
 
 // ============================================================
-// ASISTEN AI — chat status gardu (overload/underload/kritis)
-// & pengetahuan umum kelistrikan PLN (transmisi/distribusi/dll).
+// ASISTEN AI — chat status gardu (overload/underload/kritis/
+// overdue & mendekati overdue inspeksi) & pengetahuan umum
+// kelistrikan PLN (transmisi/distribusi/dll).
 // ============================================================
 // KONFIGURASI: AI_PROXY_URL menunjuk ke Supabase Edge Function yang
 // menyimpan API key Claude di server (BUKAN di file ini). Lihat
@@ -10334,6 +10335,8 @@ var AI_PROXY_URL = '';
 
 var AI_OVERLOAD_THRESHOLD  = 80; // % — mengikuti ambang batas fn_get_gardu_kritis yang sudah ada
 var AI_UNDERLOAD_THRESHOLD = 40; // % — asumsi kerja: beban < 40% dianggap underload (silakan sesuaikan)
+var AI_OVERDUE_THRESHOLD      = 90; // hari — sama seperti ambang "Overdue" di fn_get_gardu_kritis & filter status 'overdue' pada halaman Pengukuran
+var AI_NEAR_OVERDUE_THRESHOLD = 60; // hari — ambang "mendekati overdue" (sama seperti label 🟡 "Segera ukur" di halaman Pengukuran, lihat renderGarduList)
 
 var aiChatInited  = false;
 var aiChatHistory = []; // {role:'user'|'assistant', content:'...'}
@@ -10342,7 +10345,36 @@ var aiChatBusy    = false;
 function initAIAsisten() {
   if (aiChatInited) return;
   aiChatInited = true;
-  _aiRenderMessage('bot', 'Halo! Saya bisa bantu cek gardu mana yang overload/underload/kritis, atau jawab pertanyaan seputar transmisi, distribusi, trafo, dan kelistrikan PLN lainnya. Ada yang mau ditanyakan?');
+  _aiRenderMessage('bot', 'Halo! Saya bisa bantu cek gardu mana yang overload/underload/kritis/overdue inspeksi, atau jawab pertanyaan seputar transmisi, distribusi, trafo, dan kelistrikan PLN lainnya. Ada yang mau ditanyakan?');
+}
+
+// ── Pure helpers (dites unit test — lihat test-ai-overdue.js) ──────────────
+// Hitung jumlah hari sejak tanggal inspeksi terakhir. Mengikuti pola yang
+// sudah dipakai di seluruh aplikasi (mis. filter status 'overdue' pada
+// halaman Pengukuran, dan fn_get_gardu_kritis di sisi server): tanggal
+// dinormalisasi ke tengah malam (00:00:00) dulu sebelum dihitung selisihnya,
+// supaya hasilnya konsisten berapa pun jam saat fungsi ini dipanggil.
+function _aiHariSejakDari(tglString, todayDate) {
+  if (!tglString) return null;
+  var d = new Date(tglString);
+  if (isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  var today = todayDate ? new Date(todayDate) : new Date();
+  today.setHours(0, 0, 0, 0);
+  var hari = Math.floor((today - d) / 86400000);
+  return hari < 0 ? 0 : hari; // tanggal di masa depan (input keliru) dianggap 0 hari, bukan negatif
+}
+
+// Klasifikasikan status overdue-inspeksi sebuah gardu berdasarkan hariSejak.
+// hariSejak === null berarti belum pernah diinspeksi sama sekali.
+//   > overdueThreshold hari, ATAU belum pernah diinspeksi  → 'OVERDUE'
+//   > nearThreshold hari s/d overdueThreshold hari         → 'MENDEKATI_OVERDUE'
+//   selainnya                                              → 'OK'
+function _aiKlasifikasiOverdue(hariSejak, overdueThreshold, nearThreshold) {
+  if (hariSejak === null || hariSejak === undefined) return 'OVERDUE';
+  if (hariSejak > overdueThreshold) return 'OVERDUE';
+  if (hariSejak > nearThreshold) return 'MENDEKATI_OVERDUE';
+  return 'OK';
 }
 
 function _aiAutoGrow(el) {
@@ -10443,17 +10475,32 @@ function _aiStopTyping(typingRow) {
   typingRow.remove();
 }
 
-// ── Kumpulkan ringkasan data gardu (overload/underload) untuk konteks AI ──
+// ── Kumpulkan ringkasan data gardu (overload/underload/overdue) untuk konteks AI ──
+// overload  : dari fn_get_gardu_kritis (server), beban > AI_OVERLOAD_THRESHOLD%
+// overdue   : dari fn_get_gardu_kritis (server) — belum pernah diinspeksi ATAU
+//             hariSejak > AI_OVERDUE_THRESHOLD hari (sumber sama dgn halaman "Gardu Kritis")
+// underload / nearOverdue: dihitung di client dari allGardu (_lastBeban / _lastInspeksi),
+//             sama seperti perhitungan yang sudah dipakai di halaman Pengukuran/Daftar.
 function _aiBuildDataContext(cb) {
   var s = getSession();
   var ulpParam = (s && !isFullAccessRole(s.role) && s.ulp) ? s.ulp : null;
 
   apiGet({ action: 'getGarduKritis', ulp: ulpParam }, function(res) {
     var overload = (res.status === 'ok' && res.data && res.data.bebanLebih) ? res.data.bebanLebih : [];
+    var overdue  = (res.status === 'ok' && res.data && res.data.overdue)    ? res.data.overdue    : [];
+
+    // Urutkan overdue dari yang paling lama tak diinspeksi (paling mendesak) — belum pernah (null) dianggap paling mendesak.
+    overdue = overdue.slice().sort(function(a, b) {
+      var ha = (a.hariSejak === null || a.hariSejak === undefined) ? Infinity : parseInt(a.hariSejak, 10);
+      var hb = (b.hariSejak === null || b.hariSejak === undefined) ? Infinity : parseInt(b.hariSejak, 10);
+      return hb - ha;
+    });
 
     function fromList(list) {
       var underload = [];
+      var nearOverdue = [];
       var totalDenganData = 0;
+      var today = new Date();
       list.forEach(function(g) {
         var p = parseFloat(g['_lastBeban']);
         if (!isNaN(p)) {
@@ -10462,14 +10509,23 @@ function _aiBuildDataContext(cb) {
             underload.push({ noGardu: g['NO_GARDU'], ulp: g['ULP'], penyulang: g['PENYULANG'], prosen: p });
           }
         }
+        var hs = _aiHariSejakDari(g['_lastInspeksi'], today);
+        if (_aiKlasifikasiOverdue(hs, AI_OVERDUE_THRESHOLD, AI_NEAR_OVERDUE_THRESHOLD) === 'MENDEKATI_OVERDUE') {
+          nearOverdue.push({ noGardu: g['NO_GARDU'], ulp: g['ULP'], penyulang: g['PENYULANG'], hariSejak: hs, tglUkur: g['_lastInspeksi'] });
+        }
       });
-      cb({ overload: overload, underload: underload, totalGardu: list.length, totalDenganData: totalDenganData });
+      nearOverdue.sort(function(a, b) { return b.hariSejak - a.hariSejak; }); // paling mendesak (paling banyak hari) dulu
+      cb({
+        overload: overload, underload: underload,
+        overdue: overdue, nearOverdue: nearOverdue,
+        totalGardu: list.length, totalDenganData: totalDenganData
+      });
     }
 
     if (allGardu && allGardu.length) {
       fromList(allGardu);
     } else {
-      // allGardu belum dimuat (user belum pernah buka tab Daftar) — muat sekali agar bisa hitung underload
+      // allGardu belum dimuat (user belum pernah buka tab Daftar) — muat sekali agar bisa hitung underload/nearOverdue
       apiGet({ action: 'getDaftarGardu', ulp: ulpParam }, function(res2) {
         fromList((res2.status === 'ok' && res2.data) ? res2.data : []);
       });
@@ -10493,16 +10549,31 @@ function _aiFormatDataContext(d) {
     lines.push(g.noGardu + ' | ' + g.ulp + ' | ' + g.penyulang + ' | ' + g.prosen.toFixed(1) + '%');
   });
   if (d.underload.length > CAP) lines.push('...dan ' + (d.underload.length - CAP) + ' gardu underload lainnya (tidak semua ditampilkan).');
+  lines.push('');
+  lines.push('=== GARDU OVERDUE INSPEKSI (belum pernah diinspeksi ATAU >' + AI_OVERDUE_THRESHOLD + ' hari sejak inspeksi terakhir) — total ' + d.overdue.length + ' ===');
+  d.overdue.slice(0, CAP).forEach(function(g) {
+    var hariNum = (g.hariSejak === null || g.hariSejak === undefined) ? null : parseInt(g.hariSejak, 10);
+    var hariTxt = hariNum === null ? 'belum pernah diinspeksi' : (hariNum + ' hari sejak inspeksi terakhir');
+    lines.push(g.noGardu + ' | ' + g.ulp + ' | ' + g.penyulang + ' | ' + hariTxt + (g.tglUkur ? (' | tgl terakhir: ' + g.tglUkur) : ''));
+  });
+  if (d.overdue.length > CAP) lines.push('...dan ' + (d.overdue.length - CAP) + ' gardu overdue lainnya (tidak semua ditampilkan).');
+  lines.push('');
+  lines.push('=== GARDU MENDEKATI OVERDUE (' + (AI_NEAR_OVERDUE_THRESHOLD + 1) + '-' + AI_OVERDUE_THRESHOLD + ' hari sejak inspeksi terakhir, sudah pernah diinspeksi tapi perlu segera dijadwalkan ulang) — total ' + d.nearOverdue.length + ' ===');
+  d.nearOverdue.slice(0, CAP).forEach(function(g) {
+    lines.push(g.noGardu + ' | ' + g.ulp + ' | ' + g.penyulang + ' | ' + g.hariSejak + ' hari | tgl terakhir: ' + g.tglUkur);
+  });
+  if (d.nearOverdue.length > CAP) lines.push('...dan ' + (d.nearOverdue.length - CAP) + ' gardu mendekati overdue lainnya (tidak semua ditampilkan).');
   return lines.join('\n');
 }
 
 var AI_SYSTEM_PROMPT =
 'Kamu adalah Asisten AI internal aplikasi Manajemen Gardu PLN UP3 Jayapura.\n' +
 'Kamu HANYA boleh menjawab dua jenis pertanyaan:\n' +
-'1) Status gardu (overload/beban lebih, underload/beban rendah, gardu kritis) — jawab berdasarkan DATA RINGKASAN yang disertakan di bawah, jangan mengarang nomor gardu yang tidak ada di data.\n' +
+'1) Status gardu (overload/beban lebih, underload/beban rendah, gardu kritis, OVERDUE inspeksi >' + AI_OVERDUE_THRESHOLD + ' hari atau belum pernah diinspeksi sama sekali, dan gardu yang MENDEKATI OVERDUE yaitu ' + (AI_NEAR_OVERDUE_THRESHOLD + 1) + '-' + AI_OVERDUE_THRESHOLD + ' hari sejak inspeksi terakhir) — jawab berdasarkan DATA RINGKASAN yang disertakan di bawah, jangan mengarang nomor gardu atau angka hari yang tidak ada di data.\n' +
+'   Untuk pertanyaan overdue: jika user hanya menyebut "overdue" tanpa angka hari spesifik, gunakan bagian "GARDU OVERDUE INSPEKSI" (>' + AI_OVERDUE_THRESHOLD + ' hari / belum pernah diinspeksi). Jika user bertanya soal gardu yang "mendekati/akan/hampir overdue" atau minta ambang hari lain, gunakan bagian "GARDU MENDEKATI OVERDUE" dan jelaskan definisinya (' + (AI_NEAR_OVERDUE_THRESHOLD + 1) + '-' + AI_OVERDUE_THRESHOLD + ' hari). Jika user minta ambang hari yang spesifik dan berbeda dari kedua kategori itu (mis. ">120 hari" atau ">30 hari"), saring sendiri dari data hariSejak/hari yang tersedia di kedua daftar itu dan jelaskan jika data yang tersedia hanya sebatas dua kategori tersebut.\n' +
 '2) Pengetahuan umum kelistrikan PLN: transmisi, distribusi, gardu, trafo, proteksi, SAIDI/SAIFI/ENS, K3 kelistrikan, dan istilah teknis kelistrikan lainnya.\n' +
 'Jika pertanyaan di luar dua topik itu (pertanyaan umum/random yang tidak berkaitan kelistrikan atau PLN), TOLAK dengan sopan dan arahkan user kembali ke topik gardu/PLN. Jangan menjawab topik di luar itu walau terlihat tidak berbahaya.\n' +
-'Jika jawabanmu menyebutkan daftar gardu overload/underload/kritis (bukan sekadar pertanyaan pengetahuan umum), AKHIRI jawabanmu dengan satu kalimat natural menawarkan ekspor data tersebut ke Excel atau PDF, misalnya: "Mau saya buatkan file Excel atau PDF dari daftar ini?" — User cukup membalas "excel" atau "pdf" dan sistem akan langsung membuatkan filenya.\n' +
+'Jika jawabanmu menyebutkan daftar gardu overload/underload/overdue/mendekati overdue/kritis (bukan sekadar pertanyaan pengetahuan umum), AKHIRI jawabanmu dengan satu kalimat natural menawarkan ekspor data tersebut ke Excel atau PDF, misalnya: "Mau saya buatkan file Excel atau PDF dari daftar ini?" — User cukup membalas "excel" atau "pdf" dan sistem akan langsung membuatkan filenya untuk SEMUA kategori (overload, underload, overdue, mendekati overdue) sekaligus.\n' +
 'Jawab singkat, jelas, dan gunakan Bahasa Indonesia.';
 
 // ============================================================
@@ -10539,9 +10610,10 @@ function _aiHandleExportRequest(intent) {
     aiChatBusy = false;
     if (sendBtn) sendBtn.disabled = false;
 
-    var hasData = (ctx.overload && ctx.overload.length) || (ctx.underload && ctx.underload.length);
+    var hasData = (ctx.overload && ctx.overload.length) || (ctx.underload && ctx.underload.length) ||
+                  (ctx.overdue && ctx.overdue.length) || (ctx.nearOverdue && ctx.nearOverdue.length);
     if (!hasData) {
-      var noDataMsg = 'Belum ada data gardu overload/underload yang bisa saya ekspor saat ini. Coba tanyakan dulu, misalnya "gardu overload yang mana saja?", baru saya buatkan file-nya.';
+      var noDataMsg = 'Belum ada data gardu overload/underload/overdue yang bisa saya ekspor saat ini. Coba tanyakan dulu, misalnya "gardu overload yang mana saja?" atau "gardu apa saja yang overdue inspeksi?", baru saya buatkan file-nya.';
       _aiRenderMessage('bot', noDataMsg);
       aiChatHistory.push({ role: 'assistant', content: noDataMsg });
       return;
@@ -10666,8 +10738,85 @@ function _aiDoGenerateExcel(ctx, ulpLabel) {
     return ws;
   }
 
+  // ── Sheet berbasis "hari sejak inspeksi" (Overdue / Mendekati Overdue) ──
+  function buildSheetHari(name, tabColor, title, list, kind) {
+    var ws = wb.addWorksheet(name, {
+      pageSetup: { paperSize:9, orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0 },
+      properties: { tabColor: { argb: tabColor } },
+      views: [{ state:'frozen', ySplit:4 }]
+    });
+    ws.columns = [
+      { width:6, key:'no' }, { width:16, key:'nogardu' }, { width:20, key:'ulp' },
+      { width:26, key:'penyulang' }, { width:20, key:'hari' }, { width:16, key:'tgl' }
+    ];
+
+    ws.mergeCells('A1:F1');
+    ws.getCell('A1').value = 'PT. PLN (PERSERO) UP3 JAYAPURA — ' + title;
+    ws.getCell('A1').style = { font:{ bold:true, size:13, color:{argb:C.white}, name:'Calibri' }, fill:{ type:'pattern', pattern:'solid', fgColor:{argb:C.plnBlue} }, alignment:{ horizontal:'center', vertical:'middle' } };
+    ws.getRow(1).height = 26;
+
+    ws.mergeCells('A2:F2');
+    ws.getCell('A2').value = 'Dibuat via Asisten AI | ULP: ' + ulpLabel + ' | Dicetak: ' + tglCetak;
+    ws.getCell('A2').style = { font:{ size:9, color:{argb:C.grayTxt}, name:'Calibri' }, fill:{ type:'pattern', pattern:'solid', fgColor:{argb:C.plnGold} }, alignment:{ horizontal:'center', vertical:'middle' } };
+    ws.getRow(2).height = 16;
+
+    ws.getRow(3).height = 6; // spacer
+
+    var hdr = ['NO', 'NO GARDU', 'ULP', 'PENYULANG', 'HARI SEJAK\nINSPEKSI', 'TGL INSPEKSI\nTERAKHIR'];
+    var rHdr = ws.getRow(4);
+    rHdr.height = 30;
+    hdr.forEach(function(h, i) {
+      var cell = rHdr.getCell(i + 1);
+      cell.value = h;
+      cell.style = {
+        font: { bold:true, size:10, color:{argb:C.white}, name:'Calibri' },
+        fill: { type:'pattern', pattern:'solid', fgColor:{argb:C.plnBlue} },
+        alignment: { horizontal:'center', vertical:'middle', wrapText:true },
+        border: { top:{style:'medium',color:{argb:C.darkBorder}}, bottom:{style:'medium',color:{argb:C.darkBorder}}, left:{style:'thin',color:{argb:'FFFFFFFF'}}, right:{style:'thin',color:{argb:'FFFFFFFF'}} }
+      };
+    });
+
+    if (!list.length) {
+      ws.mergeCells(5, 1, 5, 6);
+      var emptyCell = ws.getCell(5, 1);
+      emptyCell.value = 'Tidak ada data.';
+      emptyCell.style = { font:{ italic:true, size:10, color:{argb:C.grayTxt}, name:'Calibri' }, alignment:{ horizontal:'center', vertical:'middle' } };
+    }
+
+    list.forEach(function(g, idx) {
+      var rNum = 5 + idx;
+      var rRow = ws.getRow(rNum);
+      rRow.height = 16;
+      var isAlt = idx % 2 === 1;
+      var baseBg = kind === 'overdue' ? (isAlt ? 'FFFCE4E4' : C.redBg) : (isAlt ? 'FFFFF8E9' : C.orangeBg);
+      var hariNum = (g.hariSejak === null || g.hariSejak === undefined) ? null : parseInt(g.hariSejak, 10);
+      var hariTxt = hariNum === null ? 'Belum pernah diinspeksi' : (hariNum + ' hari');
+      var vals = [idx + 1, g.noGardu || '—', g.ulp || '—', g.penyulang || '—', hariTxt, g.tglUkur ? formatTgl(g.tglUkur) : '—'];
+      vals.forEach(function(v, ci) {
+        var cell = rRow.getCell(ci + 1);
+        cell.value = v;
+        var font = { size:10, name:'Calibri' };
+        if (ci === 1 || ci === 4) font.bold = true;
+        if (ci === 4) font.color = { argb: kind === 'overdue' ? C.red : C.orange };
+        cell.style = {
+          font: font,
+          fill: { type:'pattern', pattern:'solid', fgColor:{argb:baseBg} },
+          alignment: { horizontal: (ci === 0 || ci === 4 || ci === 5) ? 'center' : 'left', vertical:'middle' },
+          border: { top:{style:'thin',color:{argb:C.border}}, bottom:{style:'thin',color:{argb:C.border}}, left:{style:'thin',color:{argb:C.border}}, right:{style:'thin',color:{argb:C.border}} }
+        };
+      });
+    });
+
+    if (list.length) {
+      ws.autoFilter = { from: { row:4, column:1 }, to: { row: 4 + list.length, column:6 } };
+    }
+    return ws;
+  }
+
   buildSheet('Overload', 'FFC62828', 'GARDU OVERLOAD (BEBAN LEBIH > ' + AI_OVERLOAD_THRESHOLD + '%)', ctx.overload || [], 'overload');
   buildSheet('Underload', 'FFE65100', 'GARDU UNDERLOAD (BEBAN RENDAH < ' + AI_UNDERLOAD_THRESHOLD + '%)', ctx.underload || [], 'underload');
+  buildSheetHari('Overdue', 'FFC62828', 'GARDU OVERDUE INSPEKSI (BELUM PERNAH / > ' + AI_OVERDUE_THRESHOLD + ' HARI)', ctx.overdue || [], 'overdue');
+  buildSheetHari('MendekatiOverdue', 'FFE65100', 'GARDU MENDEKATI OVERDUE (' + (AI_NEAR_OVERDUE_THRESHOLD + 1) + '-' + AI_OVERDUE_THRESHOLD + ' HARI)', ctx.nearOverdue || [], 'near');
 
   wb.xlsx.writeBuffer().then(function(buffer) {
     var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -10675,7 +10824,7 @@ function _aiDoGenerateExcel(ctx, ulpLabel) {
     var a    = document.createElement('a');
     var tglFile = new Date().toISOString().slice(0, 10);
     a.href     = url;
-    a.download = 'AsistenAI_GarduOverloadUnderload_' + tglFile + '.xlsx';
+    a.download = 'AsistenAI_LaporanGardu_' + tglFile + '.xlsx';
     document.body.appendChild(a);
     a.click();
     setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
@@ -10710,10 +10859,32 @@ function _aiGeneratePDF(ctx, ulpLabel) {
     }).join('');
   }
 
+  // ── Baris tabel untuk kategori berbasis "hari sejak inspeksi" (Overdue / Mendekati Overdue) ──
+  function buildRowsHari(list, kind) {
+    if (!list.length) {
+      return '<tr><td colspan="6" style="text-align:center;color:#888;font-style:italic;padding:10px;">Tidak ada data.</td></tr>';
+    }
+    return list.map(function(g, idx) {
+      var clr = kind === 'overdue' ? '#C62828' : '#E65100';
+      var hariNum = (g.hariSejak === null || g.hariSejak === undefined) ? null : parseInt(g.hariSejak, 10);
+      var hariTxt = hariNum === null ? 'Belum pernah' : (hariNum + ' hari');
+      return [
+        '<tr style="background:', (idx % 2 === 1 ? '#F7F7F7' : '#fff'), '">',
+        '<td style="text-align:center;">', (idx + 1), '</td>',
+        '<td>', esc(g.noGardu || '—'), '</td>',
+        '<td>', esc(g.ulp || '—'), '</td>',
+        '<td>', esc(g.penyulang || '—'), '</td>',
+        '<td style="text-align:center;font-weight:700;color:', clr, ';">', esc(hariTxt), '</td>',
+        '<td style="text-align:center;">', (g.tglUkur ? esc(formatTgl(g.tglUkur)) : '—'), '</td>',
+        '</tr>'
+      ].join('');
+    }).join('');
+  }
+
   var parts = [];
   parts.push('<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8">');
   parts.push('<meta name="viewport" content="width=device-width,initial-scale=1">');
-  parts.push('<title>Laporan Gardu Overload & Underload — Asisten AI</title>');
+  parts.push('<title>Laporan Status Gardu — Asisten AI</title>');
   parts.push('<style>');
   parts.push('@media print{@page{size:A4 portrait;margin:14mm;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}');
   parts.push('*{box-sizing:border-box;}');
@@ -10735,10 +10906,10 @@ function _aiGeneratePDF(ctx, ulpLabel) {
   parts.push('<div class="kop"><div class="kop-logo">PLN</div><div class="kop-right">');
   parts.push('<div class="kop-r1">PT. PLN (PERSERO)</div>');
   parts.push('<div class="kop-r2">UNIT PELAKSANA PELAYANAN PELANGGAN (UP3) JAYAPURA</div>');
-  parts.push('<div class="kop-r3">Laporan Gardu Overload &amp; Underload — dibuat via Asisten AI</div>');
+  parts.push('<div class="kop-r3">Laporan Status Gardu — dibuat via Asisten AI</div>');
   parts.push('</div></div>');
 
-  parts.push('<h2>Laporan Gardu Overload &amp; Underload</h2>');
+  parts.push('<h2>Laporan Status Gardu</h2>');
   parts.push('<div class="sub">ULP: ' + esc(ulpLabel) + ' &nbsp;|&nbsp; Dicetak: ' + tglCetak + '</div>');
 
   parts.push('<div class="sec-title" style="background:#C62828;">Gardu Overload / Beban Lebih (&gt;' + AI_OVERLOAD_THRESHOLD + '%) — Total ' + (ctx.overload || []).length + '</div>');
@@ -10748,6 +10919,14 @@ function _aiGeneratePDF(ctx, ulpLabel) {
   parts.push('<div class="sec-title" style="background:#E65100;">Gardu Underload / Beban Rendah (&lt;' + AI_UNDERLOAD_THRESHOLD + '%) — Total ' + (ctx.underload || []).length + '</div>');
   parts.push('<table><thead><tr><th>NO</th><th>NO GARDU</th><th>ULP</th><th>PENYULANG</th><th>BEBAN (%)</th></tr></thead>');
   parts.push('<tbody>' + buildRows(ctx.underload || [], 'underload') + '</tbody></table>');
+
+  parts.push('<div class="sec-title" style="background:#C62828;">Gardu Overdue Inspeksi (Belum Pernah / &gt;' + AI_OVERDUE_THRESHOLD + ' Hari) — Total ' + (ctx.overdue || []).length + '</div>');
+  parts.push('<table><thead><tr><th>NO</th><th>NO GARDU</th><th>ULP</th><th>PENYULANG</th><th>HARI SEJAK INSPEKSI</th><th>TGL TERAKHIR</th></tr></thead>');
+  parts.push('<tbody>' + buildRowsHari(ctx.overdue || [], 'overdue') + '</tbody></table>');
+
+  parts.push('<div class="sec-title" style="background:#E65100;">Gardu Mendekati Overdue (' + (AI_NEAR_OVERDUE_THRESHOLD + 1) + '-' + AI_OVERDUE_THRESHOLD + ' Hari) — Total ' + (ctx.nearOverdue || []).length + '</div>');
+  parts.push('<table><thead><tr><th>NO</th><th>NO GARDU</th><th>ULP</th><th>PENYULANG</th><th>HARI SEJAK INSPEKSI</th><th>TGL TERAKHIR</th></tr></thead>');
+  parts.push('<tbody>' + buildRowsHari(ctx.nearOverdue || [], 'near') + '</tbody></table>');
 
   parts.push('<div class="footer"><span>PT. PLN (PERSERO) UP3 JAYAPURA</span><span>Dicetak: ' + tglCetak + '</span></div>');
   parts.push('</body></html>');
