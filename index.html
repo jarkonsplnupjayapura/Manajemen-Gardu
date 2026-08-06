@@ -3250,9 +3250,10 @@ input[type=number]{-moz-appearance:textfield;}
 
         <!-- Override manual (jika petugas mau isi manual) -->
         <div style="margin-top:var(--sp-sm);">
-          <button type="button" id="fi-toggle-manual" onclick="fiToggleManualCalc()" style="width:100%;background:var(--pln-bg);border:1.5px dashed var(--pln-border);border-radius:var(--radius-xs);padding:8px;font-size:var(--fs-xs);color:var(--pln-text3);cursor:pointer;font-weight:600;font-family:inherit;">
+          <button type="button" id="fi-toggle-manual" class="btn" onclick="fiToggleManualCalc()" style="width:100%;background:var(--pln-biru-pale);border:2px solid var(--pln-biru2);border-radius:var(--radius-sm);color:var(--pln-biru2);font-size:var(--fs-sm);box-shadow:0 1px 3px rgba(16,72,168,.15);">
             ✏️ Isi Manual (Daya Pakai / Prosen / Ketidakseimbangan)
           </button>
+          <div style="text-align:center;font-size:10px;color:var(--pln-text3);margin-top:4px;">👆 Ketuk untuk beralih mode Otomatis / Manual</div>
           <div id="fi-manual-fields" style="display:none;margin-top:var(--sp-sm);">
             <div class="grid2">
               <div class="form-group" style="margin:0;">
@@ -4249,9 +4250,10 @@ input[type=number]{-moz-appearance:textfield;}
 
     <!-- Toggle otomatis/manual -->
     <div style="margin-bottom:var(--sp-sm);">
-      <button type="button" id="ei-toggle-manual" onclick="eiToggleManualCalc()" style="width:100%;background:var(--pln-bg);border:1.5px dashed var(--pln-border);border-radius:var(--radius-xs);padding:8px;font-size:var(--fs-xs);color:var(--pln-text3);cursor:pointer;font-weight:600;font-family:inherit;">
+      <button type="button" id="ei-toggle-manual" class="btn" onclick="eiToggleManualCalc()" style="width:100%;background:var(--pln-biru-pale);border:2px solid var(--pln-biru2);border-radius:var(--radius-sm);color:var(--pln-biru2);font-size:var(--fs-sm);box-shadow:0 1px 3px rgba(16,72,168,.15);">
         🔢 Gunakan Kalkulasi Otomatis
       </button>
+      <div style="text-align:center;font-size:10px;color:var(--pln-text3);margin-top:4px;">👆 Ketuk untuk beralih mode Otomatis / Manual</div>
     </div>
 
     <div id="ei-manual-fields" class="grid2" style="margin-bottom:var(--sp-md);">
