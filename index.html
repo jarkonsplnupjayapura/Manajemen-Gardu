@@ -2597,6 +2597,7 @@ input[type=number]{-moz-appearance:textfield;}
   <div class="topbar">
     <div class="topbar-logo"><img src="icon-baru-192.png" alt="PLN" onerror="this.parentNode.innerHTML='PLN'"></div>
     <div class="topbar-info"><div class="topbar-sub">UP3 Jayapura</div><div class="topbar-title">Asisten AI</div></div>
+    <button class="topbar-action" onclick="mulaiChatBaruAI()" title="Mulai percakapan baru">✚ Chat Baru</button>
   </div>
   <div class="page-body">
     <div class="alert alert-info">🤖 Tanya status gardu (overload/underload/kritis) atau hal seputar kelistrikan PLN (transmisi, distribusi, trafo, K3, dll). Pertanyaan di luar topik ini tidak akan dijawab.</div>
@@ -2726,7 +2727,7 @@ input[type=number]{-moz-appearance:textfield;}
           </select>
         </div>
         <div class="form-group" style="margin:0;">
-          <label class="form-label">Overdue Inspeksi</label>
+          <label class="form-label">Pengukuran Terakhir</label>
           <select class="form-select" id="ukur-filter-overdue" onchange="muatUlangFilterPengukuran()">
             <option value="">Semua</option>
             <option value="60-90">🟡 60–90 Hari</option>
@@ -4695,6 +4696,8 @@ function doLogout() {
   _adminUlpVerified = false;
   allGardu = []; filteredDaftar = []; garduIndex = {}; rekapSudahMuat = false;
   cacheClear(); // O2: clear index
+  // Bersihkan riwayat chat AI agar tidak terbawa ke sesi/user login berikutnya
+  if (typeof resetAIAsisten === 'function') resetAIAsisten();
   var suf = document.getElementById('sidebar-user-footer');
   if (suf) { suf.innerHTML=''; suf.style.display='none'; }
   // Bersihkan konten agar data sesi lama tidak terlihat di sesi baru
@@ -11320,7 +11323,30 @@ var aiChatBusy    = false;
 function initAIAsisten() {
   if (aiChatInited) return;
   aiChatInited = true;
-  _aiRenderMessage('bot', 'Halo! Saya bisa bantu cek gardu mana yang overload/underload/kritis/overdue inspeksi, atau jawab pertanyaan seputar transmisi, distribusi, trafo, dan kelistrikan PLN lainnya. Ada yang mau ditanyakan?');
+  _aiRenderMessage('bot', 'Halo! Saya bisa bantu cek gardu mana yang overload/underload/kritis/overdue, atau jawab pertanyaan seputar transmisi, distribusi, trafo, dan kelistrikan PLN lainnya. Ada yang mau ditanyakan?');
+}
+
+// Reset percakapan AI ke kondisi awal (dipanggil dari tombol "Chat Baru"
+// maupun otomatis saat logout, supaya riwayat chat tidak terbawa ke sesi/user berikutnya).
+function resetAIAsisten() {
+  aiChatHistory = [];
+  aiChatBusy = false;
+  var log = document.getElementById('ai-chat-log');
+  if (log) log.innerHTML = '';
+  aiChatInited = false;
+  initAIAsisten();
+}
+
+// Tombol "Chat Baru" di halaman Asisten AI
+function mulaiChatBaruAI() {
+  if (aiChatBusy) return; // jangan reset saat AI sedang membalas
+  if (!aiChatHistory.length) return; // riwayat sudah kosong
+  bukaModalKonfirmasi({
+    judul: 'Chat Baru', pesan: 'Mulai percakapan baru? Riwayat chat saat ini akan dihapus.',
+    ikon: '✚', labelAksi: 'Mulai Baru', warna: 'var(--pln-biru2)'
+  }, function() {
+    resetAIAsisten();
+  });
 }
 
 // ── Pure helpers (dites unit test — lihat test-ai-overdue.js) ──────────────
@@ -11525,7 +11551,7 @@ function _aiFormatDataContext(d) {
   });
   if (d.underload.length > CAP) lines.push('...dan ' + (d.underload.length - CAP) + ' gardu underload lainnya (tidak semua ditampilkan).');
   lines.push('');
-  lines.push('=== GARDU OVERDUE INSPEKSI (belum pernah diinspeksi ATAU >' + AI_OVERDUE_THRESHOLD + ' hari sejak inspeksi terakhir) — total ' + d.overdue.length + ' ===');
+  lines.push('=== GARDU OVERDUE (belum pernah diinspeksi ATAU >' + AI_OVERDUE_THRESHOLD + ' hari sejak pengukuran terakhir) — total ' + d.overdue.length + ' ===');
   d.overdue.slice(0, CAP).forEach(function(g) {
     var hariNum = (g.hariSejak === null || g.hariSejak === undefined) ? null : parseInt(g.hariSejak, 10);
     var hariTxt = hariNum === null ? 'belum pernah diinspeksi' : (hariNum + ' hari sejak inspeksi terakhir');
@@ -11544,8 +11570,8 @@ function _aiFormatDataContext(d) {
 var AI_SYSTEM_PROMPT =
 'Kamu adalah Asisten AI internal aplikasi Manajemen Gardu PLN UP3 Jayapura.\n' +
 'Kamu HANYA boleh menjawab dua jenis pertanyaan:\n' +
-'1) Status gardu (overload/beban lebih, underload/beban rendah, gardu kritis, OVERDUE inspeksi >' + AI_OVERDUE_THRESHOLD + ' hari atau belum pernah diinspeksi sama sekali, dan gardu yang MENDEKATI OVERDUE yaitu ' + (AI_NEAR_OVERDUE_THRESHOLD + 1) + '-' + AI_OVERDUE_THRESHOLD + ' hari sejak inspeksi terakhir) — jawab berdasarkan DATA RINGKASAN yang disertakan di bawah, jangan mengarang nomor gardu atau angka hari yang tidak ada di data.\n' +
-'   Untuk pertanyaan overdue: jika user hanya menyebut "overdue" tanpa angka hari spesifik, gunakan bagian "GARDU OVERDUE INSPEKSI" (>' + AI_OVERDUE_THRESHOLD + ' hari / belum pernah diinspeksi). Jika user bertanya soal gardu yang "mendekati/akan/hampir overdue" atau minta ambang hari lain, gunakan bagian "GARDU MENDEKATI OVERDUE" dan jelaskan definisinya (' + (AI_NEAR_OVERDUE_THRESHOLD + 1) + '-' + AI_OVERDUE_THRESHOLD + ' hari). Jika user minta ambang hari yang spesifik dan berbeda dari kedua kategori itu (mis. ">120 hari" atau ">30 hari"), saring sendiri dari data hariSejak/hari yang tersedia di kedua daftar itu dan jelaskan jika data yang tersedia hanya sebatas dua kategori tersebut.\n' +
+'1) Status gardu (overload/beban lebih, underload/beban rendah, gardu kritis, OVERDUE >' + AI_OVERDUE_THRESHOLD + ' hari atau belum pernah diinspeksi sama sekali, dan gardu yang MENDEKATI OVERDUE yaitu ' + (AI_NEAR_OVERDUE_THRESHOLD + 1) + '-' + AI_OVERDUE_THRESHOLD + ' hari sejak inspeksi terakhir) — jawab berdasarkan DATA RINGKASAN yang disertakan di bawah, jangan mengarang nomor gardu atau angka hari yang tidak ada di data.\n' +
+'   Untuk pertanyaan overdue: jika user hanya menyebut "overdue" tanpa angka hari spesifik, gunakan bagian "GARDU OVERDUE" (>' + AI_OVERDUE_THRESHOLD + ' hari / belum pernah diinspeksi). Jika user bertanya soal gardu yang "mendekati/akan/hampir overdue" atau minta ambang hari lain, gunakan bagian "GARDU MENDEKATI OVERDUE" dan jelaskan definisinya (' + (AI_NEAR_OVERDUE_THRESHOLD + 1) + '-' + AI_OVERDUE_THRESHOLD + ' hari). Jika user minta ambang hari yang spesifik dan berbeda dari kedua kategori itu (mis. ">120 hari" atau ">30 hari"), saring sendiri dari data hariSejak/hari yang tersedia di kedua daftar itu dan jelaskan jika data yang tersedia hanya sebatas dua kategori tersebut.\n' +
 '2) Pengetahuan umum kelistrikan PLN: transmisi, distribusi, gardu, trafo, proteksi, SAIDI/SAIFI/ENS, K3 kelistrikan, dan istilah teknis kelistrikan lainnya.\n' +
 'Jika pertanyaan di luar dua topik itu (pertanyaan umum/random yang tidak berkaitan kelistrikan atau PLN), TOLAK dengan sopan dan arahkan user kembali ke topik gardu/PLN. Jangan menjawab topik di luar itu walau terlihat tidak berbahaya.\n' +
 'Jika jawabanmu menyebutkan daftar gardu overload/underload/overdue/mendekati overdue/kritis (bukan sekadar pertanyaan pengetahuan umum), AKHIRI jawabanmu dengan satu kalimat natural menawarkan ekspor data tersebut ke Excel atau PDF, misalnya: "Mau saya buatkan file Excel atau PDF dari daftar ini?" — User cukup membalas "excel" atau "pdf" dan sistem akan langsung membuatkan filenya untuk SEMUA kategori (overload, underload, overdue, mendekati overdue) sekaligus.\n' +
@@ -11588,7 +11614,7 @@ function _aiHandleExportRequest(intent) {
     var hasData = (ctx.overload && ctx.overload.length) || (ctx.underload && ctx.underload.length) ||
                   (ctx.overdue && ctx.overdue.length) || (ctx.nearOverdue && ctx.nearOverdue.length);
     if (!hasData) {
-      var noDataMsg = 'Belum ada data gardu overload/underload/overdue yang bisa saya ekspor saat ini. Coba tanyakan dulu, misalnya "gardu overload yang mana saja?" atau "gardu apa saja yang overdue inspeksi?", baru saya buatkan file-nya.';
+      var noDataMsg = 'Belum ada data gardu overload/underload/overdue yang bisa saya ekspor saat ini. Coba tanyakan dulu, misalnya "gardu overload yang mana saja?" atau "gardu apa saja yang overdue?", baru saya buatkan file-nya.';
       _aiRenderMessage('bot', noDataMsg);
       aiChatHistory.push({ role: 'assistant', content: noDataMsg });
       return;
@@ -11790,7 +11816,7 @@ function _aiDoGenerateExcel(ctx, ulpLabel) {
 
   buildSheet('Overload', 'FFC62828', 'GARDU OVERLOAD (BEBAN LEBIH > ' + AI_OVERLOAD_THRESHOLD + '%)', ctx.overload || [], 'overload');
   buildSheet('Underload', 'FFE65100', 'GARDU UNDERLOAD (BEBAN RENDAH < ' + AI_UNDERLOAD_THRESHOLD + '%)', ctx.underload || [], 'underload');
-  buildSheetHari('Overdue', 'FFC62828', 'GARDU OVERDUE INSPEKSI (BELUM PERNAH / > ' + AI_OVERDUE_THRESHOLD + ' HARI)', ctx.overdue || [], 'overdue');
+  buildSheetHari('Overdue', 'FFC62828', 'GARDU OVERDUE (BELUM PERNAH / > ' + AI_OVERDUE_THRESHOLD + ' HARI)', ctx.overdue || [], 'overdue');
   buildSheetHari('MendekatiOverdue', 'FFE65100', 'GARDU MENDEKATI OVERDUE (' + (AI_NEAR_OVERDUE_THRESHOLD + 1) + '-' + AI_OVERDUE_THRESHOLD + ' HARI)', ctx.nearOverdue || [], 'near');
 
   wb.xlsx.writeBuffer().then(function(buffer) {
@@ -11895,7 +11921,7 @@ function _aiGeneratePDF(ctx, ulpLabel) {
   parts.push('<table><thead><tr><th>NO</th><th>NO GARDU</th><th>ULP</th><th>PENYULANG</th><th>BEBAN (%)</th></tr></thead>');
   parts.push('<tbody>' + buildRows(ctx.underload || [], 'underload') + '</tbody></table>');
 
-  parts.push('<div class="sec-title" style="background:#C62828;">Gardu Overdue Inspeksi (Belum Pernah / &gt;' + AI_OVERDUE_THRESHOLD + ' Hari) — Total ' + (ctx.overdue || []).length + '</div>');
+  parts.push('<div class="sec-title" style="background:#C62828;">Gardu Overdue (Belum Pernah / &gt;' + AI_OVERDUE_THRESHOLD + ' Hari) — Total ' + (ctx.overdue || []).length + '</div>');
   parts.push('<table><thead><tr><th>NO</th><th>NO GARDU</th><th>ULP</th><th>PENYULANG</th><th>HARI SEJAK INSPEKSI</th><th>TGL TERAKHIR</th></tr></thead>');
   parts.push('<tbody>' + buildRowsHari(ctx.overdue || [], 'overdue') + '</tbody></table>');
 
