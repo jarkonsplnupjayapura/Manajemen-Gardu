@@ -14442,10 +14442,18 @@ function pbpdLoadGardu(noGardu) {
       .map(function(j) { return j || {}; })
       .filter(function(j) { return j.nama || j.r_total || j.s_total || j.t_total; })
       .map(function(j, idx) {
-        // Nama jurusan ditampilkan generik (Jurusan-1, Jurusan-2, dst) — bukan
-        // nama asli dari data (mis. "Kanan"/"Kiri") — supaya tidak ambigu saat
-        // ada beberapa jurusan dengan nama yang sama persis di gardu yang sama.
-        return { nama: 'Jurusan-'+(idx+1), r: parseFloat(j.r_total)||0, s: parseFloat(j.s_total)||0, t: parseFloat(j.t_total)||0 };
+        // Label = index generik (Jurusan-1, Jurusan-2, dst) — INI yang dipakai
+        // sebagai kunci unik, supaya tidak ambigu walau ada beberapa jurusan
+        // dengan nama asli yang sama persis di gardu yang sama (mis. dua-duanya
+        // "Kanan") — DITAMBAH nama asli + "sidik jari" arus (R/S/T saat ini)
+        // supaya petugas eksekusi di lapangan tetap punya penanda FISIK untuk
+        // mencocokkan kabel mana yang dimaksud, bukan cuma angka indeks yang
+        // cuma bermakna di dalam aplikasi.
+        var rVal = parseFloat(j.r_total)||0, sVal = parseFloat(j.s_total)||0, tVal = parseFloat(j.t_total)||0;
+        var namaAsli = (j.nama || '').toString().trim();
+        var fingerprint = 'R'+rVal.toFixed(1)+'·S'+sVal.toFixed(1)+'·T'+tVal.toFixed(1);
+        var label = 'Jurusan-'+(idx+1)+' ('+(namaAsli ? namaAsli+' · ' : '')+fingerprint+')';
+        return { nama: label, namaAsli: namaAsli || null, r: rVal, s: sVal, t: tVal };
       });
     window._pbpdState = {
       noGardu:  noGardu,
@@ -14532,12 +14540,23 @@ function pbpdSimulasiKombinasi(st, daya, jenis, fasaManual) {
   var pctImb = pbpdPctImbalance(rN, sN, tN);
   var klasImb = pbpdKlasifikasi(pctImb, 'imbalance');
 
+  // Rata-rata tiga fasa SETELAH penambahan — dipakai sebagai basis hitung
+  // ketidakseimbangan PER FASA (beda dari pctImb di atas, yang cuma nilai
+  // TUNGGAL berbasis deviasi TERBESAR di antara ketiga fasa).
+  var avgAfter = (rN + sN + tN) / 3;
+
   var perFasa = ['R','S','T'].map(function(f) {
     var before = f==='R' ? st.rTot : (f==='S' ? st.sTot : st.tTot);
     var after  = f==='R' ? rN      : (f==='S' ? sN      : tN);
     var pct = pbpdPctFasa(after, st.kva);
     var klas = pct !== null ? pbpdKlasifikasi(pct, 'beban') : null;
-    return { fasa:f, before:before, after:after, pct:pct, klas:klas };
+    // Ketidakseimbangan fasa INI secara individual: seberapa jauh arus fasa
+    // ini menyimpang dari rata-rata tiga fasa (bisa positif/negatif — fasa
+    // yang menyimpang PALING JAUH, positif maupun negatif, itulah yang
+    // menentukan nilai pctImb di atas).
+    var devPct = avgAfter > 0 ? ((after - avgAfter) / avgAfter) * 100 : 0;
+    var klasDev = pbpdKlasifikasi(Math.abs(devPct), 'imbalance');
+    return { fasa:f, before:before, after:after, pct:pct, klas:klas, devPct:devPct, klasDev:klasDev };
   });
   var maxFasaLevel = perFasa.reduce(function(m, pf){ return pf.klas ? Math.max(m, pf.klas.level) : m; }, 0);
   var overloadFasa = perFasa.filter(function(pf){ return pf.klas && pf.klas.level >= 3; });
@@ -14595,42 +14614,59 @@ function pbpdRenderDeteksi() {
 // sendirian sebelum PB/PD baru diproses sama sekali.
 function pbpdRenderPerFasaSaatIni(st) {
   if (!st.kva) return '';
+  var avgNow = (st.rTot + st.sTot + st.tTot) / 3;
   var rows = ['R','S','T'].map(function(f) {
     var amp = f==='R' ? st.rTot : (f==='S' ? st.sTot : st.tTot);
     var pct = pbpdPctFasa(amp, st.kva);
     var klas = pct !== null ? pbpdKlasifikasi(pct, 'beban') : null;
-    return { fasa:f, amp:amp, pct:pct, klas:klas };
+    var devPct = avgNow > 0 ? ((amp - avgNow) / avgNow) * 100 : 0;
+    var klasDev = pbpdKlasifikasi(Math.abs(devPct), 'imbalance');
+    return { fasa:f, amp:amp, pct:pct, klas:klas, devPct:devPct, klasDev:klasDev };
   });
-  var html = '<div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-text3);margin-bottom:4px;">BEBAN PER FASA SAAT INI (thd rating trafo)</div>';
+  var html = '<div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-text3);margin-bottom:4px;">BEBAN &amp; UNBALANCE PER FASA SAAT INI</div>';
   html += '<div style="overflow-x:auto;margin-bottom:10px;"><table style="width:100%;border-collapse:collapse;font-size:11px;">';
-  html += '<thead><tr style="background:var(--pln-bg);"><th style="text-align:left;padding:5px 8px;">Fasa</th><th style="padding:5px 4px;">Arus (A)</th><th style="padding:5px 8px;">Beban Fasa</th></tr></thead><tbody>';
+  html += '<thead><tr style="background:var(--pln-bg);"><th style="text-align:left;padding:5px 8px;">Fasa</th><th style="padding:5px 4px;">Arus (A)</th><th style="padding:5px 4px;">Beban Fasa</th><th style="padding:5px 8px;">Unbalance Fasa*</th></tr></thead><tbody>';
   rows.forEach(function(r) {
     var overload = r.klas && r.klas.level >= 3;
-    html += '<tr style="border-top:1px solid var(--pln-border);'+(overload?'background:#FDECEA;':'')+'">';
-    html += '<td style="padding:5px 8px;font-weight:700;">'+r.fasa+(overload?' 🚨':'')+'</td>';
+    // Highlight juga kalau UNBALANCE fasa ini sudah "Kurang"/"Buruk" (level>=2),
+    // bukan cuma kalau overload beban — supaya tidak kelewat kalau petugas scan
+    // cepat cuma cari baris merah (fasa bisa "Baik" secara beban tapi timpang
+    // parah antar fasa).
+    var unbalanceParah = r.klasDev && r.klasDev.level >= 2;
+    var perluSorot = overload || unbalanceParah;
+    html += '<tr style="border-top:1px solid var(--pln-border);'+(perluSorot?'background:#FDECEA;':'')+'">';
+    html += '<td style="padding:5px 8px;font-weight:700;">'+r.fasa+(overload?' 🚨':(unbalanceParah?' ⚡':''))+'</td>';
     html += '<td style="padding:5px 4px;text-align:center;">'+r.amp.toFixed(1)+'</td>';
-    html += '<td style="padding:5px 8px;text-align:center;">'+(r.klas ? '<span class="badge '+r.klas.cls+'" style="padding:2px 6px;">'+r.pct.toFixed(1)+'%</span>' : '—')+'</td>';
+    html += '<td style="padding:5px 4px;text-align:center;">'+(r.klas ? '<span class="badge '+r.klas.cls+'" style="padding:2px 6px;">'+r.pct.toFixed(1)+'%</span>' : '—')+'</td>';
+    html += '<td style="padding:5px 8px;text-align:center;"><span class="badge '+r.klasDev.cls+'" style="padding:2px 6px;">'+(r.devPct>=0?'+':'')+r.devPct.toFixed(1)+'%</span></td>';
     html += '</tr>';
   });
   html += '</tbody></table></div>';
+  html += '<div style="font-size:10px;color:var(--pln-text3);margin-top:-6px;margin-bottom:10px;">*Unbalance Fasa = seberapa jauh arus fasa ini menyimpang dari rata-rata tiga fasa saat ini ((I<sub>fasa</sub>−I<sub>rata-rata</sub>)/I<sub>rata-rata</sub>). Fasa dengan angka paling jauh dari 0% (+/-) adalah yang menentukan status "Ketidakseimbangan Fasa" di atas.</div>';
   return html;
 }
 
 // Tabel beban per fasa SETELAH penambahan (dipakai di hasil rekomendasi/simulasi)
 function pbpdRenderPerFasaTable(detail) {
   var html = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11px;">';
-  html += '<thead><tr style="background:var(--pln-bg);"><th style="text-align:left;padding:5px 8px;">Fasa</th><th style="padding:5px 4px;">Sebelum (A)</th><th style="padding:5px 4px;">Sesudah (A)</th><th style="padding:5px 8px;">Beban Fasa*</th></tr></thead><tbody>';
+  html += '<thead><tr style="background:var(--pln-bg);"><th style="text-align:left;padding:5px 8px;">Fasa</th><th style="padding:5px 4px;">Sebelum (A)</th><th style="padding:5px 4px;">Sesudah (A)</th><th style="padding:5px 4px;">Beban Fasa*</th><th style="padding:5px 8px;">Unbalance Fasa**</th></tr></thead><tbody>';
   detail.perFasa.forEach(function(pf) {
     var overload = pf.klas && pf.klas.level >= 3;
-    html += '<tr style="border-top:1px solid var(--pln-border);'+(overload?'background:#FDECEA;':'')+'">';
-    html += '<td style="padding:5px 8px;font-weight:700;">'+pf.fasa+(overload?' 🚨':'')+'</td>';
+    // Sama seperti tabel "saat ini": highlight juga kalau unbalance fasa ini
+    // sudah "Kurang"/"Buruk" (level>=2) walau bebannya sendiri masih "Baik" —
+    // supaya tidak kelewat saat scan cepat baris merah.
+    var unbalanceParah = pf.klasDev && pf.klasDev.level >= 2;
+    var perluSorot = overload || unbalanceParah;
+    html += '<tr style="border-top:1px solid var(--pln-border);'+(perluSorot?'background:#FDECEA;':'')+'">';
+    html += '<td style="padding:5px 8px;font-weight:700;">'+pf.fasa+(overload?' 🚨':(unbalanceParah?' ⚡':''))+'</td>';
     html += '<td style="padding:5px 4px;text-align:center;color:var(--pln-text2);">'+pf.before.toFixed(1)+'</td>';
     html += '<td style="padding:5px 4px;text-align:center;font-weight:700;">'+pf.after.toFixed(1)+'</td>';
-    html += '<td style="padding:5px 8px;text-align:center;">'+(pf.klas ? '<span class="badge '+pf.klas.cls+'" style="padding:2px 6px;">'+pf.pct.toFixed(1)+'%</span>' : '—')+'</td>';
+    html += '<td style="padding:5px 4px;text-align:center;">'+(pf.klas ? '<span class="badge '+pf.klas.cls+'" style="padding:2px 6px;">'+pf.pct.toFixed(1)+'%</span>' : '—')+'</td>';
+    html += '<td style="padding:5px 8px;text-align:center;"><span class="badge '+pf.klasDev.cls+'" style="padding:2px 6px;">'+(pf.devPct>=0?'+':'')+pf.devPct.toFixed(1)+'%</span></td>';
     html += '</tr>';
   });
   html += '</tbody></table></div>';
-  html += '<div style="font-size:10px;color:var(--pln-text3);margin-top:4px;">*Beban Fasa = arus fasa ÷ arus nominal trafo (I<sub>n</sub>=kVA×1000/(√3×380)), pakai ambang yang sama seperti beban trafo (EDIR 017.E/DIR/2014). Ini menangkap kasus SATU fasa overload walau rata-rata tiga fasa masih terlihat aman.</div>';
+  html += '<div style="font-size:10px;color:var(--pln-text3);margin-top:4px;">*Beban Fasa = arus fasa ÷ arus nominal trafo (I<sub>n</sub>=kVA×1000/(√3×380)), pakai ambang yang sama seperti beban trafo (EDIR 017.E/DIR/2014). Ini menangkap kasus SATU fasa overload walau rata-rata tiga fasa masih terlihat aman.<br>**Unbalance Fasa = seberapa jauh arus fasa ini (SESUDAH penambahan) menyimpang dari rata-rata tiga fasa. Fasa dengan angka paling jauh dari 0% menentukan nilai "Unbalance Keseluruhan" di kartu atas.</div>';
   return html;
 }
 
@@ -14646,8 +14682,8 @@ function pbpdRenderRingkasanCard(detail, meta) {
   html += '<div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-text3);letter-spacing:.3px;margin-bottom:2px;">'+esc(meta.judul)+'</div>';
   html += '<div style="font-size:var(--fs-lg);font-weight:800;line-height:1.25;">'+esc(meta.subjudul)+'</div>';
   html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">';
-  html += '<span class="badge '+detail.klasBebanTrafo.cls+'">Beban Trafo '+detail.pctBebanTrafo.toFixed(1)+'%</span>';
-  html += '<span class="badge '+detail.klasImb.cls+'">Unbalance Keseluruhan '+detail.pctImb.toFixed(1)+'%</span>';
+  html += '<span class="badge '+detail.klasBebanTrafo.cls+'">Beban Trafo '+detail.pctBebanTrafo.toFixed(1)+'% (Setelah Penambahan)</span>';
+  html += '<span class="badge '+detail.klasImb.cls+'">Unbalance Keseluruhan '+detail.pctImb.toFixed(1)+'% (Setelah Penambahan)</span>';
   if (detail.overloadFasa.length) {
     html += '<span class="badge badge-kritis">🚨 Overload Fasa '+detail.overloadFasa.map(function(o){ return o.fasa; }).join('/')+'</span>';
   }
@@ -14884,6 +14920,34 @@ function pbpdSimpanRekomendasi() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Menyimpan...'; }
 
   var d = hasil.detail;
+
+  // ── Snapshot detail per-fasa & per-jurusan ─────────────────────────
+  // Sebelumnya hanya angka RINGKASAN (beban % & unbalance % keseluruhan)
+  // yang tersimpan ke riwayat. Petugas eksekusi (bisa beda hari/orang dari
+  // yang menyimpan rekomendasi) yang buka "Riwayat PB/PD" untuk cek ulang
+  // sebelum kerja jadi tidak lihat breakdown per-fasa (R/S/T) seperti yang
+  // dilihat saat rekomendasi pertama kali dibuat. Simpan snapshot-nya di
+  // sini supaya ikut tersimpan permanen, bukan cuma tersedia sesaat di
+  // layar kalkulasi.
+  var detailFasaSnapshot = {
+    perFasaSetelahPenambahan: (d.perFasa || []).map(function(pf) {
+      return {
+        fasa: pf.fasa,
+        arusSebelum: +pf.before.toFixed(2),
+        arusSesudah: +pf.after.toFixed(2),
+        pctBeban: pf.pct !== null ? +pf.pct.toFixed(2) : null,
+        klasBeban: pf.klas ? pf.klas.label : null,
+        deviasiPct: +pf.devPct.toFixed(2),
+        klasDeviasi: pf.klasDev ? pf.klasDev.label : null
+      };
+    }),
+    arusPerJurusanSaatIni: (st.jurusan || []).map(function(j) {
+      return { nama: j.nama, namaAsli: j.namaAsli || null, r: j.r, s: j.s, t: j.t };
+    }),
+    jurusanTerpilihIdx: (typeof window._pbpdJurusanManualIdx === 'number' && window._pbpdJurusanManualIdx >= 0)
+      ? window._pbpdJurusanManualIdx : null
+  };
+
   var params = {
     action:                'tambahPbpdRiwayat',
     token:                 s.token,
@@ -14898,6 +14962,7 @@ function pbpdSimpanRekomendasi() {
     proyeksiImbalancePct:   d.pctImb,
     klasifikasiBeban:       d.klasBebanTrafo.label,
     klasifikasiImbalance:   d.klasImb.label,
+    detailFasaJson:         JSON.stringify(detailFasaSnapshot),
     catatan:                hasil.mode === 'manual' ? 'Disimpan dari mode eksperimen manual.' : null
   };
 
@@ -15023,6 +15088,7 @@ function pbpdRiwayatMuat(noGardu) {
       html += '<span class="badge '+(PBPD_KLAS_BADGE[row.klasifikasi_beban]||'badge-normal')+'">Beban '+parseFloat(row.proyeksi_beban_pct||0).toFixed(1)+'%</span>';
       html += '<span class="badge '+(PBPD_KLAS_BADGE[row.klasifikasi_imbalance]||'badge-normal')+'">Unbalance '+parseFloat(row.proyeksi_imbalance_pct||0).toFixed(1)+'%</span>';
       html += '</div>';
+      html += pbpdRenderDetailFasaRiwayat(row.detail_fasa);
       if (belumDikerjakan) {
         html += '<div style="display:flex;gap:6px;">';
         html += '<button class="btn" style="flex:1;font-size:11px;padding:6px;background:var(--pln-biru2);color:#fff;border:none;border-radius:6px;font-weight:700;" onclick="pbpdRiwayatMulaiKerja('+row.id+',\''+esc(noGardu)+'\')">▶️ Mulai Kerjakan</button>';
@@ -15038,6 +15104,53 @@ function pbpdRiwayatMuat(noGardu) {
     });
     wrap.innerHTML = html;
   });
+}
+
+// Render breakdown per-fasa (R/S/T) & arus per jurusan yang disimpan bersama
+// riwayat — supaya petugas eksekusi yang cek ulang di hari/waktu berbeda dari
+// yang menyimpan rekomendasi tetap bisa lihat tabel detail, bukan cuma angka
+// ringkasan (Beban XX% / Unbalance XX%). Tersembunyi default (collapsible)
+// supaya kartu riwayat tidak makin panjang di layar.
+function pbpdRenderDetailFasaRiwayat(raw) {
+  if (!raw) return '';
+  var d;
+  try { d = (typeof raw === 'string') ? JSON.parse(raw) : raw; } catch(e) { return ''; }
+  if (!d || (!d.perFasaSetelahPenambahan && !d.arusPerJurusanSaatIni)) return '';
+
+  var html = '<details style="margin-bottom:8px;"><summary style="cursor:pointer;font-weight:700;font-size:11px;color:var(--pln-biru2);padding:2px 0;">📊 Lihat detail per-fasa &amp; per-jurusan</summary><div style="margin-top:6px;">';
+
+  var perFasa = d.perFasaSetelahPenambahan || [];
+  if (perFasa.length) {
+    html += '<div style="font-size:10px;color:var(--pln-text3);margin-bottom:4px;">Proyeksi per fasa setelah PB/PD ini:</div>';
+    html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:10.5px;margin-bottom:8px;">';
+    html += '<thead><tr style="background:var(--pln-bg);"><th style="text-align:left;padding:4px 6px;">Fasa</th><th style="padding:4px 6px;">Sebelum</th><th style="padding:4px 6px;">Sesudah</th><th style="padding:4px 6px;">Beban</th><th style="padding:4px 6px;">Deviasi</th></tr></thead><tbody>';
+    perFasa.forEach(function(pf) {
+      html += '<tr style="border-top:1px solid var(--pln-border);"><td style="padding:4px 6px;font-weight:700;">'+esc(pf.fasa||'—')+'</td>'+
+        '<td style="padding:4px 6px;text-align:center;">'+(pf.arusSebelum!=null?pf.arusSebelum.toFixed(1):'—')+'A</td>'+
+        '<td style="padding:4px 6px;text-align:center;">'+(pf.arusSesudah!=null?pf.arusSesudah.toFixed(1):'—')+'A</td>'+
+        '<td style="padding:4px 6px;text-align:center;">'+(pf.pctBeban!=null?pf.pctBeban.toFixed(1)+'% ('+(pf.klasBeban||'—')+')':'—')+'</td>'+
+        '<td style="padding:4px 6px;text-align:center;">'+(pf.deviasiPct!=null?pf.deviasiPct.toFixed(1)+'%':'—')+'</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  var jur = d.arusPerJurusanSaatIni || [];
+  if (jur.length) {
+    html += '<div style="font-size:10px;color:var(--pln-text3);margin-bottom:4px;">Arus per jurusan saat rekomendasi disimpan:</div>';
+    html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:10.5px;">';
+    html += '<thead><tr style="background:var(--pln-bg);"><th style="text-align:left;padding:4px 6px;">Jurusan</th><th style="padding:4px 6px;">R</th><th style="padding:4px 6px;">S</th><th style="padding:4px 6px;">T</th></tr></thead><tbody>';
+    jur.forEach(function(j, idx) {
+      var terpilih = (d.jurusanTerpilihIdx === idx);
+      html += '<tr style="border-top:1px solid var(--pln-border);'+(terpilih?'background:#F6FFED;':'')+'"><td style="padding:4px 6px;font-weight:600;">'+esc(j.nama||'—')+(terpilih?' ⭐':'')+'</td>'+
+        '<td style="padding:4px 6px;text-align:center;">'+(parseFloat(j.r)||0).toFixed(1)+'</td>'+
+        '<td style="padding:4px 6px;text-align:center;">'+(parseFloat(j.s)||0).toFixed(1)+'</td>'+
+        '<td style="padding:4px 6px;text-align:center;">'+(parseFloat(j.t)||0).toFixed(1)+'</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  html += '</div></details>';
+  return html;
 }
 
 // Petugas eksekusi menekan ini setelah cek ulang rekomendasi & siap mulai kerja

@@ -1488,6 +1488,7 @@ async function _tambahPbpdRiwayat(p, signal) {
     p_proyeksi_imbalance_pct: p.proyeksiImbalancePct  || null,
     p_klasifikasi_beban:      p.klasifikasiBeban      || null,
     p_klasifikasi_imbalance:  p.klasifikasiImbalance  || null,
+    p_detail_fasa:            p.detailFasaJson        || null,
     p_catatan:                p.catatan               || null
   }, signal);
 
