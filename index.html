@@ -3605,6 +3605,7 @@ input[type=number]{-moz-appearance:textfield;}
               <th style="padding:8px;text-align:left;">Tgl Inspeksi</th>
               <th style="padding:8px;text-align:right;">Daya Lama→Baru</th>
               <th style="padding:8px;text-align:right;">Prosen Lama→Baru</th>
+              <th style="padding:8px;text-align:center;">Mode</th>
             </tr>
           </thead>
           <tbody id="audit-prosen-tbody"></tbody>
@@ -3612,6 +3613,7 @@ input[type=number]{-moz-appearance:textfield;}
       </div>
       <div style="margin-top:var(--sp-md);display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <button class="btn btn-blue" id="btn-audit-perbaiki" onclick="auditPerbaikiTerpilih()">✅ Perbaiki Data Terpilih</button>
+        <button class="btn btn-outline" id="btn-audit-export" onclick="exportAuditProsenExcel()">📊 Export Excel</button>
         <span id="audit-prosen-progress" style="font-size:var(--fs-xs);color:var(--pln-text3);"></span>
       </div>
       <div id="audit-prosen-log" style="margin-top:var(--sp-sm);max-height:140px;overflow:auto;font-size:11px;color:var(--pln-text3);font-family:monospace;white-space:pre-wrap;"></div>
@@ -3670,7 +3672,9 @@ input[type=number]{-moz-appearance:textfield;}
               <th style="padding:8px;text-align:left;">Tgl Inspeksi</th>
               <th style="padding:8px;text-align:right;">Arus R/S/T (A)</th>
               <th style="padding:8px;text-align:right;">Daya Pakai Tersimpan→Fisik</th>
+              <th style="padding:8px;text-align:right;">Prosen Lama→Baru</th>
               <th style="padding:8px;text-align:right;">Selisih</th>
+              <th style="padding:8px;text-align:center;">Mode</th>
             </tr>
           </thead>
           <tbody id="audit-fisik-tbody"></tbody>
@@ -3678,6 +3682,7 @@ input[type=number]{-moz-appearance:textfield;}
       </div>
       <div style="margin-top:var(--sp-md);display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <button class="btn btn-blue" id="btn-audit-fisik-perbaiki" onclick="auditFisikPerbaikiTerpilih()">✅ Perbaiki Data Terpilih</button>
+        <button class="btn btn-outline" id="btn-audit-fisik-export" onclick="exportAuditFisikExcel()">📊 Export Excel</button>
         <span id="audit-fisik-progress" style="font-size:var(--fs-xs);color:var(--pln-text3);"></span>
       </div>
       <div id="audit-fisik-log" style="margin-top:var(--sp-sm);max-height:140px;overflow:auto;font-size:11px;color:var(--pln-text3);font-family:monospace;white-space:pre-wrap;"></div>
@@ -8890,6 +8895,23 @@ function simpanEditInspeksi() {
     okEl.textContent = '✅ Data berhasil diperbarui!';
     okEl.style.display = 'block';
     rekapSudahMuat = false; // FIX: statistik inspeksi berubah, tandai rekap basi
+    // FIX (stale-data): berbeda dari Tambah Inspeksi (yang menimpa cache
+    // garduIndex[...]._lastBeban secara manual), Edit Inspeksi sebelumnya TIDAK
+    // menyegarkan apa pun setelah simpan — akibatnya daftar gardu/badge beban
+    // yang sudah ter-cache di memori (garduIndex/allGardu) tetap menampilkan
+    // Daya Pakai & Prosen LAMA walau baris di database sudah diperbarui admin
+    // ULP. Force-refresh daftar gardu di sini supaya cache selalu sinkron
+    // dengan hasil edit, sama seperti yang sudah dilakukan Audit Massal.
+    var _eiNoGardu = (function() {
+      var sub = (document.getElementById('edit-inspeksi-subtitle') || {}).textContent || '';
+      var m = sub.match(/Gardu:\s*([^|]+)\|/);
+      return m ? m[1].trim() : '';
+    })();
+    if (_eiNoGardu && garduIndex[_eiNoGardu]) {
+      var _eiNewProsen = gv('ei-prosen');
+      if (_eiNewProsen !== null) garduIndex[_eiNoGardu]['_lastBeban'] = String(_eiNewProsen);
+    }
+    if (typeof muatDaftarGardu === 'function') muatDaftarGardu(true);
     setTimeout(function() {
       document.getElementById('modal-edit-inspeksi').style.display = 'none';
       var pagesEl = document.getElementById('ei-jur-pages');
@@ -9046,13 +9068,23 @@ function auditRenderHasil() {
 
   var fmt = function(n) { return (n == null || isNaN(n)) ? '—' : n.toFixed(1); };
   var tbody = document.getElementById('audit-prosen-tbody');
+  // FIX: Daya Baru & Prosen Baru sebelumnya HANYA hasil hitung otomatis
+  // (tidak bisa disunting) — padahal Daya Pakai & Prosen pada dasarnya
+  // bukan nilai yang selalu bisa dipastikan benar oleh sistem semata
+  // (sama seperti di form Tambah/Edit Inspeksi). Sekarang nilai "Baru"
+  // dibuat editable: default-nya tetap hasil kalkulasi otomatis, tapi
+  // admin bisa menimpanya secara manual sebelum menekan "Perbaiki Data
+  // Terpilih" — kalkulasi otomatis dan input manual sama-sama dipakai
+  // seperti pola "⚙️ Kalkulasi Otomatis / ✏️ Isi Manual" di form inspeksi.
   tbody.innerHTML = _auditProsenHasil.map(function(h, i) {
+    h._manual = h._manual || false;
     return '<tr style="border-top:1px solid var(--pln-border);">' +
       '<td style="padding:6px 8px;"><input type="checkbox" checked onchange="_auditProsenHasil[' + i + '].selected=this.checked"></td>' +
       '<td style="padding:6px 8px;font-weight:700;">' + h.noGardu + '</td>' +
       '<td style="padding:6px 8px;">' + (h.tgl || '—') + '</td>' +
-      '<td style="padding:6px 8px;text-align:right;">' + fmt(h.oldDaya) + ' → <strong>' + fmt(h.newDaya) + '</strong> kVA</td>' +
-      '<td style="padding:6px 8px;text-align:right;">' + fmt(h.oldProsen) + '% → <strong style="color:var(--pln-biru2);">' + fmt(h.newProsen) + '%</strong></td>' +
+      '<td style="padding:6px 8px;text-align:right;white-space:nowrap;">' + fmt(h.oldDaya) + ' → <input type="number" step="any" id="ap-newdaya-' + i + '" value="' + (isNaN(h.newDaya) ? '' : h.newDaya) + '" oninput="_apRecalcFromDaya(' + i + ')" style="width:70px;text-align:right;border:1px solid var(--pln-border);border-radius:4px;padding:2px 4px;font-size:var(--fs-xs);font-family:inherit;"> kVA</td>' +
+      '<td style="padding:6px 8px;text-align:right;white-space:nowrap;">' + fmt(h.oldProsen) + '% → <input type="number" step="any" id="ap-newprosen-' + i + '" value="' + (isNaN(h.newProsen) ? '' : h.newProsen) + '" oninput="_apMarkManual(' + i + ')" style="width:64px;text-align:right;border:1px solid var(--pln-biru-muda);border-radius:4px;padding:2px 4px;font-size:var(--fs-xs);font-family:inherit;color:var(--pln-biru2);font-weight:700;"> %</td>' +
+      '<td style="padding:6px 8px;text-align:center;font-size:11px;white-space:nowrap;"><span id="ap-mode-' + i + '" style="color:var(--pln-text3);">🔢 Otomatis</span> <button type="button" onclick="_apResetAuto(' + i + ')" title="Kembalikan ke hasil kalkulasi otomatis" style="font-size:10px;padding:2px 6px;border:1px solid var(--pln-border);border-radius:4px;background:var(--pln-bg);cursor:pointer;font-family:inherit;">↺</button></td>' +
       '</tr>';
   }).join('');
 }
@@ -9060,6 +9092,44 @@ function auditRenderHasil() {
 function auditToggleSemua(val) {
   _auditProsenHasil.forEach(function(h) { h.selected = val; });
   auditRenderHasil();
+}
+
+// ── Recalc/mark manual untuk kolom Daya Baru & Prosen Baru (Audit Prosen) ──
+// Mengubah Daya Baru otomatis menghitung ulang Prosen Baru (Daya Pakai ÷ Daya
+// Baru × 100) — sama seperti relasi Daya/Daya Pakai/Prosen di form inspeksi.
+// Mengubah Prosen Baru sendiri (tanpa mengubah Daya) dianggap override manual.
+function _apRecalcFromDaya(i) {
+  var h = _auditProsenHasil[i];
+  var domDaya   = document.getElementById('ap-newdaya-' + i);
+  var domProsen = document.getElementById('ap-newprosen-' + i);
+  var full = h._rawRow || {};
+  var dayaPakai = (full['DAYA PAKAI'] !== '' && full['DAYA PAKAI'] != null) ? parseFloat(full['DAYA PAKAI']) : null;
+  var newDayaVal = parseFloat(domDaya.value);
+  if (!isNaN(newDayaVal) && dayaPakai != null && newDayaVal > 0) {
+    domProsen.value = (dayaPakai / newDayaVal * 100).toFixed(2);
+  }
+  h._manual = true;
+  _apUpdateModeBadge(i);
+}
+
+function _apMarkManual(i) {
+  _auditProsenHasil[i]._manual = true;
+  _apUpdateModeBadge(i);
+}
+
+function _apUpdateModeBadge(i) {
+  var el = document.getElementById('ap-mode-' + i);
+  if (el) el.textContent = _auditProsenHasil[i]._manual ? '✏️ Manual' : '🔢 Otomatis';
+}
+
+function _apResetAuto(i) {
+  var h = _auditProsenHasil[i];
+  var domDaya   = document.getElementById('ap-newdaya-' + i);
+  var domProsen = document.getElementById('ap-newprosen-' + i);
+  if (domDaya)   domDaya.value   = isNaN(h.newDaya)   ? '' : h.newDaya;
+  if (domProsen) domProsen.value = isNaN(h.newProsen) ? '' : h.newProsen;
+  h._manual = false;
+  _apUpdateModeBadge(i);
 }
 
 // Bangun payload editInspeksi LENGKAP dari record penuh (getInspeksiById),
@@ -9111,29 +9181,31 @@ function _auditLog(msg) {
 function auditPerbaikiTerpilih() {
   var s = getSession();
   if (!s || !s.token) { window.showAlert('❌ Sesi tidak valid.'); return; }
-  var terpilih = _auditProsenHasil.filter(function(h) { return h.selected; });
-  if (!terpilih.length) { window.showAlert('⚠️ Tidak ada data yang dipilih.'); return; }
+  var idxTerpilih = [];
+  _auditProsenHasil.forEach(function(h, i) { if (h.selected) idxTerpilih.push(i); });
+  if (!idxTerpilih.length) { window.showAlert('⚠️ Tidak ada data yang dipilih.'); return; }
 
   // FIX: pakai modal konfirmasi in-app (showConfirm), bukan confirm() bawaan
   // browser yang tampil sebagai popup terpisah di luar tampilan aplikasi.
   window.showConfirm(
-    'Perbaiki ' + terpilih.length + ' data inspeksi sekarang? Tindakan ini akan menimpa nilai Daya & Prosen Beban yang tersimpan dengan nilai yang sudah dihitung ulang.',
+    'Perbaiki ' + idxTerpilih.length + ' data inspeksi sekarang? Tindakan ini akan menimpa nilai Daya & Prosen Beban yang tersimpan dengan nilai yang ditampilkan di kolom "Baru" (otomatis, kecuali sudah Anda ubah manual).',
     'Perbaiki Data Terpilih?',
     '✅',
-    function() { _auditJalankanPerbaikan(terpilih); }
+    function() { _auditJalankanPerbaikan(idxTerpilih); }
   );
 }
 
-async function _auditJalankanPerbaikan(terpilih) {
+async function _auditJalankanPerbaikan(idxTerpilih) {
   var s = getSession();
   var btn = document.getElementById('btn-audit-perbaiki');
   btn.disabled = true;
   var progEl = document.getElementById('audit-prosen-progress');
   var ok = 0, fail = 0;
 
-  for (var i = 0; i < terpilih.length; i++) {
-    var h = terpilih[i];
-    progEl.textContent = 'Memproses ' + (i + 1) + ' / ' + terpilih.length + '…';
+  for (var k = 0; k < idxTerpilih.length; k++) {
+    var i = idxTerpilih[k];
+    var h = _auditProsenHasil[i];
+    progEl.textContent = 'Memproses ' + (k + 1) + ' / ' + idxTerpilih.length + '…';
     try {
       // FIX (401): sebelumnya di sini ada panggilan tambahan ke action
       // 'getInspeksiById' (baca langsung tabel `inspeksi` via REST) untuk
@@ -9147,7 +9219,16 @@ async function _auditJalankanPerbaikan(terpilih) {
       var full = h._rawRow;
       if (!full) throw new Error('Data baris tidak lengkap (silakan Mulai Audit ulang).');
 
-      var payload = _auditBuildEditPayload(h.id, full, h.newDaya, h.newProsen);
+      // Ambil nilai TERKINI dari kolom "Baru" — bisa hasil kalkulasi
+      // otomatis atau hasil override manual admin (lihat _apRecalcFromDaya /
+      // _apMarkManual), persis pola auto+manual di form Tambah/Edit Inspeksi.
+      var domDaya   = document.getElementById('ap-newdaya-' + i);
+      var domProsen = document.getElementById('ap-newprosen-' + i);
+      var newDaya   = domDaya   ? parseFloat(domDaya.value)   : h.newDaya;
+      var newProsen = domProsen ? parseFloat(domProsen.value) : h.newProsen;
+      if (isNaN(newDaya) || isNaN(newProsen)) throw new Error('Nilai Daya/Prosen Baru tidak valid — periksa kembali.');
+
+      var payload = _auditBuildEditPayload(h.id, full, newDaya, newProsen);
       payload.token = s.token;
 
       var saveRes = await new Promise(function(resolve) {
@@ -9156,7 +9237,7 @@ async function _auditJalankanPerbaikan(terpilih) {
 
       if (saveRes && saveRes.status === 'ok') {
         ok++;
-        _auditLog('✅ ' + h.noGardu + ' (' + h.tgl + '): Daya ' + h.oldDaya + '→' + h.newDaya + ' kVA, Prosen ' + h.oldProsen + '%→' + h.newProsen + '%');
+        _auditLog('✅ ' + h.noGardu + ' (' + h.tgl + '): Daya ' + h.oldDaya + '→' + newDaya + ' kVA, Prosen ' + h.oldProsen + '%→' + newProsen + '%' + (h._manual ? ' [Manual]' : ' [Otomatis]'));
       } else {
         fail++;
         _auditLog('❌ ' + h.noGardu + ' (' + h.tgl + '): ' + ((saveRes && saveRes.message) || 'gagal disimpan'));
@@ -9274,14 +9355,22 @@ function auditFisikRenderHasil() {
 
   var fmt = function(n) { return (n == null || isNaN(n)) ? '—' : n.toFixed(1); };
   var tbody = document.getElementById('audit-fisik-tbody');
+  // FIX: Daya Pakai Baru & Prosen Baru sebelumnya HANYA hasil hitung
+  // otomatis dari rumus fisik (S=√3×V×I) — sekarang dibuat editable,
+  // default tetap hasil kalkulasi otomatis, tapi admin bisa menimpanya
+  // manual sebelum "Perbaiki Data Terpilih" — sama seperti pola
+  // auto+manual pada Daya Pakai/Prosen di form Tambah/Edit Inspeksi.
   tbody.innerHTML = _auditFisikHasil.map(function(h, i) {
+    h._manual = h._manual || false;
     return '<tr style="border-top:1px solid var(--pln-border);">' +
       '<td style="padding:6px 8px;"><input type="checkbox" checked onchange="_auditFisikHasil[' + i + '].selected=this.checked"></td>' +
       '<td style="padding:6px 8px;font-weight:700;">' + h.noGardu + '</td>' +
       '<td style="padding:6px 8px;">' + (h.tgl || '—') + '</td>' +
       '<td style="padding:6px 8px;text-align:right;">' + fmt(h.rA) + ' / ' + fmt(h.sA) + ' / ' + fmt(h.tA) + '</td>' +
-      '<td style="padding:6px 8px;text-align:right;">' + fmt(h.dayaPakaiLama) + ' → <strong style="color:var(--pln-biru2);">' + fmt(h.dayaPakaiBaru) + '</strong> kVA</td>' +
+      '<td style="padding:6px 8px;text-align:right;white-space:nowrap;">' + fmt(h.dayaPakaiLama) + ' → <input type="number" step="any" id="af-newdp-' + i + '" value="' + (isNaN(h.dayaPakaiBaru) ? '' : h.dayaPakaiBaru) + '" oninput="_afRecalcFromDP(' + i + ')" style="width:70px;text-align:right;border:1px solid var(--pln-border);border-radius:4px;padding:2px 4px;font-size:var(--fs-xs);font-family:inherit;"> kVA</td>' +
+      '<td style="padding:6px 8px;text-align:right;white-space:nowrap;">' + fmt(h.prosenLama) + '% → <input type="number" step="any" id="af-newprosen-' + i + '" value="' + (isNaN(h.prosenBaru) ? '' : h.prosenBaru) + '" oninput="_afMarkManual(' + i + ')" style="width:64px;text-align:right;border:1px solid var(--pln-biru-muda);border-radius:4px;padding:2px 4px;font-size:var(--fs-xs);font-family:inherit;color:var(--pln-biru2);font-weight:700;"> %</td>' +
       '<td style="padding:6px 8px;text-align:right;color:var(--pln-red);font-weight:700;">' + fmt(h.selisihPersen) + '%</td>' +
+      '<td style="padding:6px 8px;text-align:center;font-size:11px;white-space:nowrap;"><span id="af-mode-' + i + '" style="color:var(--pln-text3);">🔢 Otomatis</span> <button type="button" onclick="_afResetAuto(' + i + ')" title="Kembalikan ke hasil kalkulasi otomatis" style="font-size:10px;padding:2px 6px;border:1px solid var(--pln-border);border-radius:4px;background:var(--pln-bg);cursor:pointer;font-family:inherit;">↺</button></td>' +
       '</tr>';
   }).join('');
 }
@@ -9289,6 +9378,44 @@ function auditFisikRenderHasil() {
 function auditFisikToggleSemua(val) {
   _auditFisikHasil.forEach(function(h) { h.selected = val; });
   auditFisikRenderHasil();
+}
+
+// ── Recalc/mark manual untuk kolom Daya Pakai Baru & Prosen Baru (Audit Fisik) ──
+// Mengubah Daya Pakai Baru otomatis menghitung ulang Prosen Baru
+// (Daya Pakai Baru ÷ Daya kapasitas × 100). Mengubah Prosen Baru sendiri
+// dianggap override manual (Daya kapasitas TIDAK diubah oleh alat ini).
+function _afRecalcFromDP(i) {
+  var h = _auditFisikHasil[i];
+  var domDP     = document.getElementById('af-newdp-' + i);
+  var domProsen = document.getElementById('af-newprosen-' + i);
+  var full = h._rawRow || {};
+  var daya = (full['DAYA'] !== '' && full['DAYA'] != null) ? parseFloat(full['DAYA']) : null;
+  var dpVal = parseFloat(domDP.value);
+  if (!isNaN(dpVal) && daya != null && daya > 0) {
+    domProsen.value = (dpVal / daya * 100).toFixed(2);
+  }
+  h._manual = true;
+  _afUpdateModeBadge(i);
+}
+
+function _afMarkManual(i) {
+  _auditFisikHasil[i]._manual = true;
+  _afUpdateModeBadge(i);
+}
+
+function _afUpdateModeBadge(i) {
+  var el = document.getElementById('af-mode-' + i);
+  if (el) el.textContent = _auditFisikHasil[i]._manual ? '✏️ Manual' : '🔢 Otomatis';
+}
+
+function _afResetAuto(i) {
+  var h = _auditFisikHasil[i];
+  var domDP     = document.getElementById('af-newdp-' + i);
+  var domProsen = document.getElementById('af-newprosen-' + i);
+  if (domDP)     domDP.value     = isNaN(h.dayaPakaiBaru) ? '' : h.dayaPakaiBaru;
+  if (domProsen) domProsen.value = isNaN(h.prosenBaru)    ? '' : h.prosenBaru;
+  h._manual = false;
+  _afUpdateModeBadge(i);
 }
 
 // Bangun payload editInspeksi LENGKAP dari row asli — hanya menimpa
@@ -9339,33 +9466,44 @@ function _auditFisikLog(msg) {
 function auditFisikPerbaikiTerpilih() {
   var s = getSession();
   if (!s || !s.token) { window.showAlert('❌ Sesi tidak valid.'); return; }
-  var terpilih = _auditFisikHasil.filter(function(h) { return h.selected; });
-  if (!terpilih.length) { window.showAlert('⚠️ Tidak ada data yang dipilih.'); return; }
+  var idxTerpilih = [];
+  _auditFisikHasil.forEach(function(h, i) { if (h.selected) idxTerpilih.push(i); });
+  if (!idxTerpilih.length) { window.showAlert('⚠️ Tidak ada data yang dipilih.'); return; }
 
   window.showConfirm(
-    'Perbaiki ' + terpilih.length + ' data inspeksi sekarang? Tindakan ini akan menimpa nilai Daya Pakai & Prosen ' +
-    'Beban yang tersimpan dengan nilai fisik hasil hitung ulang dari Arus R/S/T (Daya/kapasitas kVA TIDAK diubah).',
+    'Perbaiki ' + idxTerpilih.length + ' data inspeksi sekarang? Tindakan ini akan menimpa nilai Daya Pakai & Prosen ' +
+    'Beban yang tersimpan dengan nilai pada kolom "Baru" (otomatis dari hitung ulang Arus R/S/T, kecuali sudah ' +
+    'Anda ubah manual). Daya/kapasitas kVA TIDAK diubah.',
     'Perbaiki Data Terpilih?',
     '✅',
-    function() { _auditFisikJalankanPerbaikan(terpilih); }
+    function() { _auditFisikJalankanPerbaikan(idxTerpilih); }
   );
 }
 
-async function _auditFisikJalankanPerbaikan(terpilih) {
+async function _auditFisikJalankanPerbaikan(idxTerpilih) {
   var s = getSession();
   var btn = document.getElementById('btn-audit-fisik-perbaiki');
   btn.disabled = true;
   var progEl = document.getElementById('audit-fisik-progress');
   var ok = 0, fail = 0;
 
-  for (var i = 0; i < terpilih.length; i++) {
-    var h = terpilih[i];
-    progEl.textContent = 'Memproses ' + (i + 1) + ' / ' + terpilih.length + '…';
+  for (var k = 0; k < idxTerpilih.length; k++) {
+    var i = idxTerpilih[k];
+    var h = _auditFisikHasil[i];
+    progEl.textContent = 'Memproses ' + (k + 1) + ' / ' + idxTerpilih.length + '…';
     try {
       var full = h._rawRow;
       if (!full) throw new Error('Data baris tidak lengkap (silakan Mulai Audit ulang).');
 
-      var payload = _auditFisikBuildEditPayload(h.id, full, h.dayaPakaiBaru, h.prosenBaru);
+      // Ambil nilai TERKINI dari kolom "Baru" — otomatis atau override
+      // manual admin (lihat _afRecalcFromDP / _afMarkManual).
+      var domDP     = document.getElementById('af-newdp-' + i);
+      var domProsen = document.getElementById('af-newprosen-' + i);
+      var dayaPakaiBaru = domDP     ? parseFloat(domDP.value)     : h.dayaPakaiBaru;
+      var prosenBaru    = domProsen ? parseFloat(domProsen.value) : h.prosenBaru;
+      if (isNaN(dayaPakaiBaru) || isNaN(prosenBaru)) throw new Error('Nilai Daya Pakai/Prosen Baru tidak valid — periksa kembali.');
+
+      var payload = _auditFisikBuildEditPayload(h.id, full, dayaPakaiBaru, prosenBaru);
       payload.token = s.token;
 
       var saveRes = await new Promise(function(resolve) {
@@ -9374,7 +9512,7 @@ async function _auditFisikJalankanPerbaikan(terpilih) {
 
       if (saveRes && saveRes.status === 'ok') {
         ok++;
-        _auditFisikLog('✅ ' + h.noGardu + ' (' + h.tgl + '): Daya Pakai ' + h.dayaPakaiLama + '→' + h.dayaPakaiBaru + ' kVA, Prosen ' + h.prosenLama + '%→' + h.prosenBaru + '%');
+        _auditFisikLog('✅ ' + h.noGardu + ' (' + h.tgl + '): Daya Pakai ' + h.dayaPakaiLama + '→' + dayaPakaiBaru + ' kVA, Prosen ' + h.prosenLama + '%→' + prosenBaru + '%' + (h._manual ? ' [Manual]' : ' [Otomatis]'));
       } else {
         fail++;
         _auditFisikLog('❌ ' + h.noGardu + ' (' + h.tgl + '): ' + ((saveRes && saveRes.message) || 'gagal disimpan'));
@@ -9389,6 +9527,298 @@ async function _auditFisikJalankanPerbaikan(terpilih) {
   progEl.textContent = 'Selesai: ' + ok + ' berhasil, ' + fail + ' gagal.';
   rekapSudahMuat = false; // data beban berubah → rekap harus dimuat ulang
   muatDaftarGardu(true);  // refresh daftar gardu agar badge beban ikut ter-update
+}
+
+// ══════════════════════════════════════════════════════════════
+// EXPORT EXCEL — HASIL AUDIT (Prosen Massal & Fisik)
+// ──────────────────────────────────────────────────────────────
+// Kolom "data lengkap pengukuran" di sini IDENTIK dengan kolom yang
+// dipakai exportPengukuranExcel() (Data Lengkap: base 27 kolom + 6 blok
+// jurusan x 22 kolom), supaya admin bisa cross-check hasil audit terhadap
+// baris pengukuran aslinya (arus, tegangan, THD, jurusan, dst.) tanpa
+// perlu membuka file terpisah. Sumber datanya h._rawRow — row lengkap
+// yang sudah didapat sekali saat proses "Mulai Audit" (lihat catatan di
+// _auditFetchSemuaInspeksi), jadi tidak perlu fetch ulang saat export.
+// ══════════════════════════════════════════════════════════════
+function _auditFullColHeaders() {
+  var hdrs = [
+    'DAYA\n(kVA)','FASA','DAYA\nPAKAI','BEBAN\n(%)','TDK\nSEIMBANG\n(%)','JAM\nUKUR','PETUGAS',
+    'IR\nTOTAL','IS\nTOTAL','IT\nTOTAL','IN\nTOTAL',
+    'VR-N\n(V)','VS-N\n(V)','VT-N\n(V)',
+    'VR-S\n(V)','VS-T\n(V)','VR-T\n(V)',
+    'THD-R\n(%)','THD-S\n(%)','THD-T\n(%)',
+    'IPEAK\n-R','IPEAK\n-S','IPEAK\n-T',
+    'TPF-R','TPF-S','TPF-T',
+    'URUTAN\nFASA'
+  ];
+  for (var j = 1; j <= 6; j++) {
+    hdrs = hdrs.concat([
+      'JUR'+j+'\nNAMA','JUR'+j+'\nTITIK UKUR',
+      'JUR'+j+'\nIR','JUR'+j+'\nIS','JUR'+j+'\nIT','JUR'+j+'\nIN',
+      'JUR'+j+'\nVR-N','JUR'+j+'\nVS-N','JUR'+j+'\nVT-N',
+      'JUR'+j+'\nVR-S','JUR'+j+'\nVS-T','JUR'+j+'\nVR-T',
+      'JUR'+j+'\nTHD-R','JUR'+j+'\nTHD-S','JUR'+j+'\nTHD-T',
+      'JUR'+j+'\nIPEAK-R','JUR'+j+'\nIPEAK-S','JUR'+j+'\nIPEAK-T',
+      'JUR'+j+'\nTPF-R','JUR'+j+'\nTPF-S','JUR'+j+'\nTPF-T',
+      'JUR'+j+'\nTITIK_UKUR'
+    ]);
+  }
+  return hdrs;
+}
+
+function _auditFullColWidths() {
+  var w = [
+    {width:10},{width:6},{width:10},{width:9},{width:11},{width:9},{width:22},
+    {width:10},{width:10},{width:10},{width:10},
+    {width:10},{width:10},{width:10},
+    {width:9},{width:9},{width:9},
+    {width:8},{width:8},{width:8},
+    {width:8},{width:8},{width:8},
+    {width:7},{width:7},{width:7},
+    {width:9}
+  ];
+  for (var j = 0; j < 6; j++) {
+    w = w.concat([
+      {width:18},{width:20},
+      {width:9},{width:9},{width:9},{width:9},
+      {width:9},{width:9},{width:9},
+      {width:9},{width:9},{width:9},
+      {width:8},{width:8},{width:8},
+      {width:8},{width:8},{width:8},
+      {width:7},{width:7},{width:7},
+      {width:20}
+    ]);
+  }
+  return w;
+}
+
+// Nilai lengkap dari row inspeksi mentah (r) — identik dengan yang
+// dipakai exportPengukuranExcel (Data Lengkap), kecuali NO_GARDU/ULP/
+// PENYULANG/ALAMAT/TGLUKUR yang sudah ditampilkan terpisah oleh
+// masing-masing alat audit lewat kolom hasil scan-nya sendiri.
+function _auditFullRowVals(r) {
+  r = r || {};
+  var vals = [
+    r['DAYA'] || r['KAPASITAS_KVA'] || '',
+    r['FASA'] || '',
+    r['DAYA PAKAI'] || '',
+    r['PROSEN'] || '',
+    r['TDKSEIMBANG'] || r['TDK SEIMBANG'] || '',
+    r['JAM UKUR'] || '',
+    r['PETUGAS'] || '',
+    r['R TOTAL'] || '', r['S TOTAL'] || '', r['T TOTAL'] || '', r['N TOTAL'] || '',
+    r['R - N'] || '', r['S - N'] || '', r['T - N'] || '',
+    r['R - S'] || '', r['S - T'] || '', r['R - T'] || '',
+    r['THD-R'] || '', r['THD-S'] || '', r['THD-T'] || '',
+    r['IPEAK-R'] || r['IPEAK_R'] || '', r['IPEAK-S'] || r['IPEAK_S'] || '', r['IPEAK-T'] || r['IPEAK_T'] || '',
+    r['TPF-R'] || '', r['TPF-S'] || '', r['TPF-T'] || '',
+    r['PHASE_SEQUENCE'] || ''
+  ];
+  for (var j = 1; j <= 6; j++) {
+    vals = vals.concat([
+      r['JURUSAN ' + j] || '',
+      r['JUR' + j + '_TITIK_UKUR'] || '',
+      r['JUR' + j + '_R_TOTAL'] || r['JUR' + j + '_R TOTAL'] || '0',
+      r['JUR' + j + '_S_TOTAL'] || r['JUR' + j + '_S TOTAL'] || '0',
+      r['JUR' + j + '_T_TOTAL'] || r['JUR' + j + '_T TOTAL'] || '0',
+      r['JUR' + j + '_N_TOTAL'] || r['JUR' + j + '_N TOTAL'] || '0',
+      r['JUR' + j + '_R-N'] || r['JUR' + j + '_R - N'] || '0',
+      r['JUR' + j + '_S-N'] || r['JUR' + j + '_S - N'] || '0',
+      r['JUR' + j + '_T-N'] || r['JUR' + j + '_T - N'] || '0',
+      r['JUR' + j + '_R-S'] || r['JUR' + j + '_R - S'] || '0',
+      r['JUR' + j + '_S-T'] || r['JUR' + j + '_S - T'] || '0',
+      r['JUR' + j + '_R-T'] || r['JUR' + j + '_R - T'] || '0',
+      r['JUR' + j + '_THD-R'] || '0',
+      r['JUR' + j + '_THD-S'] || '0',
+      r['JUR' + j + '_THD-T'] || '0',
+      r['JUR' + j + '_IPEAK-R'] || '0',
+      r['JUR' + j + '_IPEAK-S'] || '0',
+      r['JUR' + j + '_IPEAK-T'] || '0',
+      r['JUR' + j + '_TPF-R'] || '0',
+      r['JUR' + j + '_TPF-S'] || '0',
+      r['JUR' + j + '_TPF-T'] || '0',
+      r['JUR' + j + '_TITIK_UKUR'] || ''
+    ]);
+  }
+  return vals;
+}
+
+var _AUDIT_XLS_C = {
+  plnBlue: 'FF003B7B', plnGold: 'FFF5A300', white: 'FFFFFFFF', grayTxt: 'FF757575',
+  altRow: 'FFF5F9FF', border: 'FFBDBDBD', darkBorder: 'FF003B7B',
+  red: 'FFC62828', green: 'FF2E7D32', orange: 'FFE65100', jurBg: 'FF1565C0'
+};
+
+function _colLetterAudit(n) { var s=''; while(n>0){ n--; s=String.fromCharCode(65+n%26)+s; n=Math.floor(n/26); } return s; }
+
+function _auditWriteSheetTitle(ws, lastColLetter, judul, subjudul) {
+  var C = _AUDIT_XLS_C;
+  ws.mergeCells('A1:' + lastColLetter + '1');
+  ws.getCell('A1').value = 'PT. PLN (PERSERO) UP3 JAYAPURA — ' + judul;
+  ws.getCell('A1').style = { font:{bold:true,size:13,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnBlue}}, alignment:{horizontal:'center',vertical:'middle'} };
+  ws.getRow(1).height = 26;
+  ws.mergeCells('A2:' + lastColLetter + '2');
+  ws.getCell('A2').value = subjudul;
+  ws.getCell('A2').style = { font:{size:9,color:{argb:C.grayTxt},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:C.plnGold}}, alignment:{horizontal:'center',vertical:'middle'} };
+  ws.getRow(2).height = 16;
+  ws.getRow(3).height = 6;
+}
+
+// ── Export hasil "Audit & Perbaiki Prosen Massal" ──────────────
+function exportAuditProsenExcel() {
+  if (!_auditProsenHasil.length) { window.showAlert('⚠️ Tidak ada hasil audit untuk diekspor. Jalankan "Mulai Audit" terlebih dahulu.'); return; }
+  var btn = document.getElementById('btn-audit-export');
+  var _reset = function() { if (btn) { btn.disabled = false; btn.textContent = '📊 Export Excel'; } };
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Menyiapkan...'; }
+
+  _waitExcelJS().then(function() {
+    try {
+      var C = _AUDIT_XLS_C;
+      var now = new Date();
+      var tglCetak = now.toLocaleDateString('id-ID', {day:'2-digit', month:'long', year:'numeric'});
+      var dateFile = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+
+      var wb = new ExcelJS.Workbook();
+      wb.creator = 'PT. PLN UP3 Jayapura'; wb.created = now;
+
+      var fixedHdrs = ['NO','GARDU','TGL\nINSPEKSI','DAYA LAMA\n(kVA)','DAYA BARU\n(kVA)','PROSEN LAMA\n(%)','PROSEN BARU\n(%)','MODE'];
+      var fullHdrs  = _auditFullColHeaders();
+      var colHdrs   = fixedHdrs.concat(fullHdrs);
+      var lastCol   = _colLetterAudit(colHdrs.length);
+
+      var ws = wb.addWorksheet('Hasil Audit Prosen', {
+        pageSetup: { paperSize:9, orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0 },
+        properties: { tabColor:{argb:C.plnBlue} },
+        views: [{ state:'frozen', ySplit:4 }]
+      });
+      ws.columns = [{width:5},{width:14},{width:13},{width:11},{width:11},{width:11},{width:11},{width:11}].concat(_auditFullColWidths());
+
+      _auditWriteSheetTitle(ws, lastCol,
+        'HASIL AUDIT & PERBAIKI PROSEN MASSAL',
+        'Dicetak: ' + tglCetak + '  |  Total data: ' + _auditProsenHasil.length + '  |  Kolom data pengukuran identik dengan hasil pengukuran asli gardu');
+
+      var rHdr = ws.getRow(4); rHdr.height = 44;
+      colHdrs.forEach(function(h, i) {
+        var cell = rHdr.getCell(i+1);
+        cell.value = h;
+        cell.style = { font:{bold:true,size:9,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:i<8?C.plnBlue:C.jurBg}}, alignment:{horizontal:'center',vertical:'middle',wrapText:true}, border:{top:{style:'medium',color:{argb:C.darkBorder}},bottom:{style:'medium',color:{argb:C.darkBorder}},left:{style:'thin',color:{argb:C.white}},right:{style:'thin',color:{argb:C.white}}} };
+      });
+
+      var fmt = function(n) { return (n == null || isNaN(n)) ? '' : n; };
+      _auditProsenHasil.forEach(function(h, i) {
+        var rNum = 5 + i;
+        var rRow = ws.getRow(rNum); rRow.height = 16;
+        var isAlt = i % 2 === 1;
+        var bg = isAlt ? C.altRow : C.white;
+        var domDaya   = document.getElementById('ap-newdaya-' + i);
+        var domProsen = document.getElementById('ap-newprosen-' + i);
+        var curDaya   = domDaya   ? parseFloat(domDaya.value)   : h.newDaya;
+        var curProsen = domProsen ? parseFloat(domProsen.value) : h.newProsen;
+        var mode = h._manual ? 'Manual' : 'Otomatis';
+        var vals = [i+1, h.noGardu, h.tgl || '', fmt(h.oldDaya), fmt(curDaya), fmt(h.oldProsen), fmt(curProsen), mode].concat(_auditFullRowVals(h._rawRow));
+        vals.forEach(function(v, ci) {
+          var cell = rRow.getCell(ci+1);
+          cell.value = v;
+          cell.style = { font:{size:9,name:'Calibri',bold:ci===1}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:bg}}, alignment:{horizontal:(ci===0?'center':(ci===1||ci===2||ci===7?'left':'right')),vertical:'middle'}, border:{top:{style:'thin',color:{argb:C.border}},bottom:{style:'thin',color:{argb:C.border}},left:{style:'thin',color:{argb:C.border}},right:{style:'thin',color:{argb:C.border}}} };
+          if (ci === 7) cell.style.font.color = { argb: h._manual ? C.orange : C.green };
+        });
+      });
+
+      ws.autoFilter = { from:{row:4,column:1}, to:{row:4,column:colHdrs.length} };
+
+      wb.xlsx.writeBuffer().then(function(buf) {
+        var blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = 'Audit_Prosen_Massal_' + dateFile + '.xlsx';
+        document.body.appendChild(a); a.click();
+        setTimeout(function(){ URL.revokeObjectURL(url); document.body.removeChild(a); _reset(); }, 300);
+      }).catch(function(e) { window.showAlert('❌ Gagal membuat file: ' + e.message); _reset(); });
+
+    } catch (e) {
+      window.showAlert('❌ Gagal export: ' + e.message);
+      _reset();
+    }
+  }).catch(function(e) { window.showAlert('❌ ' + e.message); _reset(); });
+}
+
+// ── Export hasil "Audit Fisik Daya Pakai vs Arus" ──────────────
+function exportAuditFisikExcel() {
+  if (!_auditFisikHasil.length) { window.showAlert('⚠️ Tidak ada hasil audit untuk diekspor. Jalankan "Mulai Audit" terlebih dahulu.'); return; }
+  var btn = document.getElementById('btn-audit-fisik-export');
+  var _reset = function() { if (btn) { btn.disabled = false; btn.textContent = '📊 Export Excel'; } };
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Menyiapkan...'; }
+
+  _waitExcelJS().then(function() {
+    try {
+      var C = _AUDIT_XLS_C;
+      var now = new Date();
+      var tglCetak = now.toLocaleDateString('id-ID', {day:'2-digit', month:'long', year:'numeric'});
+      var dateFile = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+
+      var wb = new ExcelJS.Workbook();
+      wb.creator = 'PT. PLN UP3 Jayapura'; wb.created = now;
+
+      var fixedHdrs = ['NO','GARDU','TGL\nINSPEKSI','ARUS R\n(A)','ARUS S\n(A)','ARUS T\n(A)','DAYA PAKAI\nLAMA (kVA)','DAYA PAKAI\nBARU (kVA)','PROSEN\nLAMA (%)','PROSEN\nBARU (%)','SELISIH\n(%)','MODE'];
+      var fullHdrs  = _auditFullColHeaders();
+      var colHdrs   = fixedHdrs.concat(fullHdrs);
+      var lastCol   = _colLetterAudit(colHdrs.length);
+
+      var ws = wb.addWorksheet('Hasil Audit Fisik', {
+        pageSetup: { paperSize:9, orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0 },
+        properties: { tabColor:{argb:C.plnBlue} },
+        views: [{ state:'frozen', ySplit:4 }]
+      });
+      ws.columns = [{width:5},{width:14},{width:13},{width:9},{width:9},{width:9},{width:12},{width:12},{width:11},{width:11},{width:10},{width:11}].concat(_auditFullColWidths());
+
+      _auditWriteSheetTitle(ws, lastCol,
+        'HASIL AUDIT FISIK DAYA PAKAI vs ARUS',
+        'Dicetak: ' + tglCetak + '  |  Total data: ' + _auditFisikHasil.length + '  |  Kolom data pengukuran identik dengan hasil pengukuran asli gardu');
+
+      var rHdr = ws.getRow(4); rHdr.height = 44;
+      colHdrs.forEach(function(h, i) {
+        var cell = rHdr.getCell(i+1);
+        cell.value = h;
+        cell.style = { font:{bold:true,size:9,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:i<12?C.plnBlue:C.jurBg}}, alignment:{horizontal:'center',vertical:'middle',wrapText:true}, border:{top:{style:'medium',color:{argb:C.darkBorder}},bottom:{style:'medium',color:{argb:C.darkBorder}},left:{style:'thin',color:{argb:C.white}},right:{style:'thin',color:{argb:C.white}}} };
+      });
+
+      var fmt = function(n) { return (n == null || isNaN(n)) ? '' : n; };
+      _auditFisikHasil.forEach(function(h, i) {
+        var rNum = 5 + i;
+        var rRow = ws.getRow(rNum); rRow.height = 16;
+        var isAlt = i % 2 === 1;
+        var bg = isAlt ? C.altRow : C.white;
+        var domDP     = document.getElementById('af-newdp-' + i);
+        var domProsen = document.getElementById('af-newprosen-' + i);
+        var curDP     = domDP     ? parseFloat(domDP.value)     : h.dayaPakaiBaru;
+        var curProsen = domProsen ? parseFloat(domProsen.value) : h.prosenBaru;
+        var mode = h._manual ? 'Manual' : 'Otomatis';
+        var vals = [i+1, h.noGardu, h.tgl || '', fmt(h.rA), fmt(h.sA), fmt(h.tA), fmt(h.dayaPakaiLama), fmt(curDP), fmt(h.prosenLama), fmt(curProsen), fmt(h.selisihPersen), mode].concat(_auditFullRowVals(h._rawRow));
+        vals.forEach(function(v, ci) {
+          var cell = rRow.getCell(ci+1);
+          cell.value = v;
+          cell.style = { font:{size:9,name:'Calibri',bold:ci===1}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:bg}}, alignment:{horizontal:(ci===0?'center':(ci===1||ci===2||ci===11?'left':'right')),vertical:'middle'}, border:{top:{style:'thin',color:{argb:C.border}},bottom:{style:'thin',color:{argb:C.border}},left:{style:'thin',color:{argb:C.border}},right:{style:'thin',color:{argb:C.border}}} };
+          if (ci === 10) cell.style.font.color = { argb: C.red };
+          if (ci === 11) cell.style.font.color = { argb: h._manual ? C.orange : C.green };
+        });
+      });
+
+      ws.autoFilter = { from:{row:4,column:1}, to:{row:4,column:colHdrs.length} };
+
+      wb.xlsx.writeBuffer().then(function(buf) {
+        var blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = 'Audit_Fisik_DayaPakai_' + dateFile + '.xlsx';
+        document.body.appendChild(a); a.click();
+        setTimeout(function(){ URL.revokeObjectURL(url); document.body.removeChild(a); _reset(); }, 300);
+      }).catch(function(e) { window.showAlert('❌ Gagal membuat file: ' + e.message); _reset(); });
+
+    } catch (e) {
+      window.showAlert('❌ Gagal export: ' + e.message);
+      _reset();
+    }
+  }).catch(function(e) { window.showAlert('❌ ' + e.message); _reset(); });
 }
 
 // ── Konteks pemanggil edit inspeksi (detail gardu / pengukuran) ──
