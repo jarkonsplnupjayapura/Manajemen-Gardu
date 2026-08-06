@@ -3672,9 +3672,7 @@ input[type=number]{-moz-appearance:textfield;}
               <th style="padding:8px;text-align:left;">Tgl Inspeksi</th>
               <th style="padding:8px;text-align:right;">Arus R/S/T (A)</th>
               <th style="padding:8px;text-align:right;">Daya Pakai Tersimpan→Fisik</th>
-              <th style="padding:8px;text-align:right;">Prosen Lama→Baru</th>
               <th style="padding:8px;text-align:right;">Selisih</th>
-              <th style="padding:8px;text-align:center;">Mode</th>
             </tr>
           </thead>
           <tbody id="audit-fisik-tbody"></tbody>
@@ -4225,11 +4223,38 @@ input[type=number]{-moz-appearance:textfield;}
 
     <!-- Daya -->
     <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:var(--pln-biru-pale);border-radius:6px;">🔋 Daya</div>
-    <div class="grid2" style="margin-bottom:var(--sp-md);">
-      <div class="form-group" style="margin:0;">
-        <label class="form-label">Daya (kVA)</label>
-        <input type="number" id="ei-daya" class="form-input" placeholder="0" step="any" min="0">
+    <div class="form-group" style="margin-bottom:var(--sp-md);">
+      <label class="form-label">Daya (kVA)</label>
+      <input type="number" id="ei-daya" class="form-input" placeholder="0" step="any" min="0">
+    </div>
+
+    <!-- Kalkulasi Otomatis (tampilan, sama seperti form Tambah Inspeksi) -->
+    <div id="ei-calc-section" style="display:none;margin-bottom:var(--sp-sm);border:1.5px dashed var(--pln-border);border-radius:var(--radius-xs);padding:var(--sp-sm);">
+      <div style="font-size:var(--fs-xs);color:var(--pln-text3);font-weight:700;margin-bottom:var(--sp-sm);text-transform:uppercase;letter-spacing:.5px;">⚙️ Kalkulasi Otomatis</div>
+      <div class="grid2">
+        <div>
+          <div class="lbl">Daya Pakai (kW)</div>
+          <div class="val" id="ei-calc-dayapakai" style="color:var(--pln-biru2);font-size:var(--fs-md);">—</div>
+        </div>
+        <div>
+          <div class="lbl">Pembebanan (%)</div>
+          <div class="val" id="ei-calc-prosen" style="font-size:var(--fs-md);">—</div>
+        </div>
       </div>
+      <div style="margin-top:var(--sp-sm);">
+        <div class="lbl">Ketidakseimbangan Fasa (%)</div>
+        <div class="val" id="ei-calc-seimbang" style="font-size:var(--fs-sm);">—</div>
+      </div>
+    </div>
+
+    <!-- Toggle otomatis/manual -->
+    <div style="margin-bottom:var(--sp-sm);">
+      <button type="button" id="ei-toggle-manual" onclick="eiToggleManualCalc()" style="width:100%;background:var(--pln-bg);border:1.5px dashed var(--pln-border);border-radius:var(--radius-xs);padding:8px;font-size:var(--fs-xs);color:var(--pln-text3);cursor:pointer;font-weight:600;font-family:inherit;">
+        🔢 Gunakan Kalkulasi Otomatis
+      </button>
+    </div>
+
+    <div id="ei-manual-fields" class="grid2" style="margin-bottom:var(--sp-md);">
       <div class="form-group" style="margin:0;">
         <label class="form-label">Daya Pakai (kW)</label>
         <input type="number" id="ei-dayapakai" class="form-input" placeholder="0.0" step="any" min="0">
@@ -8367,6 +8392,7 @@ function tutupModalEditInspeksi() {
 // 136.3% padahal harusnya 54.5%. Fungsi ini menyamakan perilaku form Edit
 // dengan form Tambah Inspeksi (fiUpdateCalc), yaitu Prosen = Daya Pakai / Daya * 100.
 function eiRecalcProsen() {
+  if (!_eiManualCalc) return; // mode otomatis punya jalur kalkulasinya sendiri (eiUpdateCalcAuto)
   var dayaEl     = document.getElementById('ei-daya');
   var dayaPakaiEl = document.getElementById('ei-dayapakai');
   var prosenEl   = document.getElementById('ei-prosen');
@@ -8412,9 +8438,100 @@ function eiCekFisikDayaPakai() {
     cek.fisikKva + ' kVA, selisih ' + cek.selisihPersen + '%). Sama seperti kasus STN070 — periksa kembali sebelum menyimpan.';
 }
 
-// Pasang listener input pada Daya & Daya Pakai supaya Prosen otomatis
-// ter-update tiap kali salah satu diubah. Dipasang sekali saja (guard via
-// dataset flag) karena bukaEditInspeksi() bisa dipanggil berulang kali.
+// ── Toggle Otomatis/Manual untuk Daya Pakai/Prosen/Tdk Seimbang di Edit Inspeksi ──
+// Sama seperti pola "⚙️ Kalkulasi Otomatis / ✏️ Isi Manual" di form Tambah
+// Inspeksi (fiToggleManualCalc). Default saat modal dibuka = Manual, supaya
+// nilai tersimpan di database langsung terlihat (tidak diam-diam ditimpa
+// hasil hitung ulang). Admin bisa pindah ke Otomatis kalau mau nilainya
+// dihitung ulang dari Arus R/S/T & Daya (kVA) — sama seperti Audit Fisik.
+var _eiManualCalc = true;
+
+function eiSetCalcMode(manual) {
+  _eiManualCalc = manual;
+  var mf   = document.getElementById('ei-manual-fields');
+  var cs   = document.getElementById('ei-calc-section');
+  var btn  = document.getElementById('ei-toggle-manual');
+  var dpEl = document.getElementById('ei-dayapakai');
+  var prEl = document.getElementById('ei-prosen');
+  var tsEl = document.getElementById('ei-tdkseimbang');
+  if (mf) mf.style.display = manual ? '' : 'none';
+  if (cs) cs.style.display = manual ? 'none' : '';
+  if (btn) btn.textContent = manual
+    ? '🔢 Gunakan Kalkulasi Otomatis'
+    : '✏️ Isi Manual (Daya Pakai / Prosen / Ketidakseimbangan)';
+  [dpEl, prEl, tsEl].forEach(function(el){ if (el) el.readOnly = !manual; });
+  if (manual) {
+    eiCekFisikDayaPakai();
+  } else {
+    eiUpdateCalcAuto();
+  }
+}
+
+function eiToggleManualCalc() {
+  eiSetCalcMode(!_eiManualCalc);
+}
+
+// ── Kalkulasi otomatis Daya Pakai/Prosen/Tdk Seimbang (mode Otomatis) ──────
+// Rumus identik dengan fiUpdateCalc() di form Tambah Inspeksi. Hasilnya
+// ditulis langsung ke field ei-dayapakai/ei-prosen/ei-tdkseimbang (readonly
+// selama mode Otomatis aktif) supaya simpanEditInspeksi() yang sudah ada
+// (gv('ei-dayapakai') dst.) tidak perlu diubah sama sekali.
+function eiUpdateCalcAuto() {
+  if (_eiManualCalc) return;
+  var rA  = parseFloat(document.getElementById('ei-r').value)    || 0;
+  var sA  = parseFloat(document.getElementById('ei-s').value)    || 0;
+  var tA  = parseFloat(document.getElementById('ei-t').value)    || 0;
+  var kva = parseFloat(document.getElementById('ei-daya').value) || 0;
+
+  var dayaPakai = hitungDayaPakaiFisik(rA, sA, tA);
+  var prosen = (dayaPakai !== null && kva > 0) ? parseFloat((dayaPakai / kva * 100).toFixed(2)) : null;
+
+  var seimbang = null;
+  if (rA > 0 && sA > 0 && tA > 0) {
+    var avg3   = (rA + sA + tA) / 3;
+    var maxDev = Math.max(Math.abs(rA-avg3), Math.abs(sA-avg3), Math.abs(tA-avg3));
+    seimbang   = parseFloat((maxDev / avg3 * 100).toFixed(2));
+  }
+
+  var dpEl = document.getElementById('ei-dayapakai');
+  var prEl = document.getElementById('ei-prosen');
+  var tsEl = document.getElementById('ei-tdkseimbang');
+  if (dpEl) dpEl.value = dayaPakai !== null ? dayaPakai : '';
+  if (prEl) prEl.value = prosen    !== null ? prosen    : '';
+  if (tsEl) tsEl.value = seimbang  !== null ? seimbang  : '';
+
+  var dpDisp = document.getElementById('ei-calc-dayapakai');
+  var prDisp = document.getElementById('ei-calc-prosen');
+  var sbDisp = document.getElementById('ei-calc-seimbang');
+  if (dpDisp) dpDisp.textContent = dayaPakai !== null ? dayaPakai + ' kW' : '—';
+  if (prDisp) {
+    if (prosen !== null) {
+      var prosenColor = prosen > 80 ? 'var(--pln-red)' : prosen > 60 ? 'var(--pln-orange)' : 'var(--pln-green)';
+      prDisp.innerHTML = '<span style="color:'+prosenColor+';font-weight:800;">'+prosen.toFixed(1)+'%</span>';
+    } else { prDisp.textContent = '—'; }
+  }
+  if (sbDisp) {
+    if (seimbang !== null) {
+      var kSeimbang  = pbpdKlasifikasi(seimbang, 'imbalance');
+      var sbColorMap = { 0:'var(--pln-green)', 1:'var(--pln-orange)', 2:'#C2410C', 3:'var(--pln-red)' };
+      sbDisp.innerHTML = '<span style="color:'+sbColorMap[kSeimbang.level]+';font-weight:700;">'+seimbang.toFixed(2)+'% — '+kSeimbang.label+'</span>';
+    } else { sbDisp.textContent = '—'; }
+  }
+
+  eiCekFisikDayaPakai();
+}
+
+// Dipanggil saat Daya (kVA) atau Arus R/S/T berubah: di mode Otomatis nilai
+// dihitung ulang penuh, di mode Manual cuma Prosen yang ikut ter-update
+// (perilaku lama) plus pengecekan kewajaran fisik.
+function eiOnDayaOrArusChanged() {
+  if (_eiManualCalc) { eiRecalcProsen(); } else { eiUpdateCalcAuto(); }
+}
+
+// Pasang listener input pada Daya, Daya Pakai & Arus R/S/T supaya Prosen/
+// kalkulasi otomatis ter-update tiap kali salah satu diubah. Dipasang sekali
+// saja (guard via dataset flag) karena bukaEditInspeksi() bisa dipanggil
+// berulang kali.
 function eiBindAutoRecalcProsen() {
   var dayaEl      = document.getElementById('ei-daya');
   var dayaPakaiEl = document.getElementById('ei-dayapakai');
@@ -8422,9 +8539,9 @@ function eiBindAutoRecalcProsen() {
   if (!dayaEl || !dayaPakaiEl) return;
   if (dayaEl.dataset.autoProsenBound) return;
 
-  dayaEl.addEventListener('input', eiRecalcProsen);
+  dayaEl.addEventListener('input', eiOnDayaOrArusChanged);
   dayaPakaiEl.addEventListener('input', eiRecalcProsen);
-  [rEl, sEl, tEl].forEach(function(el){ if (el) el.addEventListener('input', eiCekFisikDayaPakai); });
+  [rEl, sEl, tEl].forEach(function(el){ if (el) el.addEventListener('input', eiOnDayaOrArusChanged); });
   dayaEl.dataset.autoProsenBound = '1';
 }
 
@@ -8481,6 +8598,11 @@ function bukaEditInspeksi(id, r) {
   document.getElementById('ei-s').value = r['S TOTAL'] || '';
   document.getElementById('ei-t').value = r['T TOTAL'] || '';
   document.getElementById('ei-n').value = r['N TOTAL'] || '';
+
+  // Reset mode Daya Pakai/Prosen/Tdk Seimbang ke Manual (tampilkan nilai
+  // tersimpan) setiap kali modal dibuka, supaya mode Otomatis dari sesi
+  // edit sebelumnya tidak "bocor" ke sesi berikutnya.
+  eiSetCalcMode(true);
 
   // Tegangan Fasa-Netral
   document.getElementById('ei-vrn').value = r['R - N'] || '';
@@ -9355,22 +9477,14 @@ function auditFisikRenderHasil() {
 
   var fmt = function(n) { return (n == null || isNaN(n)) ? '—' : n.toFixed(1); };
   var tbody = document.getElementById('audit-fisik-tbody');
-  // FIX: Daya Pakai Baru & Prosen Baru sebelumnya HANYA hasil hitung
-  // otomatis dari rumus fisik (S=√3×V×I) — sekarang dibuat editable,
-  // default tetap hasil kalkulasi otomatis, tapi admin bisa menimpanya
-  // manual sebelum "Perbaiki Data Terpilih" — sama seperti pola
-  // auto+manual pada Daya Pakai/Prosen di form Tambah/Edit Inspeksi.
   tbody.innerHTML = _auditFisikHasil.map(function(h, i) {
-    h._manual = h._manual || false;
     return '<tr style="border-top:1px solid var(--pln-border);">' +
       '<td style="padding:6px 8px;"><input type="checkbox" checked onchange="_auditFisikHasil[' + i + '].selected=this.checked"></td>' +
       '<td style="padding:6px 8px;font-weight:700;">' + h.noGardu + '</td>' +
       '<td style="padding:6px 8px;">' + (h.tgl || '—') + '</td>' +
       '<td style="padding:6px 8px;text-align:right;">' + fmt(h.rA) + ' / ' + fmt(h.sA) + ' / ' + fmt(h.tA) + '</td>' +
-      '<td style="padding:6px 8px;text-align:right;white-space:nowrap;">' + fmt(h.dayaPakaiLama) + ' → <input type="number" step="any" id="af-newdp-' + i + '" value="' + (isNaN(h.dayaPakaiBaru) ? '' : h.dayaPakaiBaru) + '" oninput="_afRecalcFromDP(' + i + ')" style="width:70px;text-align:right;border:1px solid var(--pln-border);border-radius:4px;padding:2px 4px;font-size:var(--fs-xs);font-family:inherit;"> kVA</td>' +
-      '<td style="padding:6px 8px;text-align:right;white-space:nowrap;">' + fmt(h.prosenLama) + '% → <input type="number" step="any" id="af-newprosen-' + i + '" value="' + (isNaN(h.prosenBaru) ? '' : h.prosenBaru) + '" oninput="_afMarkManual(' + i + ')" style="width:64px;text-align:right;border:1px solid var(--pln-biru-muda);border-radius:4px;padding:2px 4px;font-size:var(--fs-xs);font-family:inherit;color:var(--pln-biru2);font-weight:700;"> %</td>' +
+      '<td style="padding:6px 8px;text-align:right;">' + fmt(h.dayaPakaiLama) + ' → <strong style="color:var(--pln-biru2);">' + fmt(h.dayaPakaiBaru) + '</strong> kVA</td>' +
       '<td style="padding:6px 8px;text-align:right;color:var(--pln-red);font-weight:700;">' + fmt(h.selisihPersen) + '%</td>' +
-      '<td style="padding:6px 8px;text-align:center;font-size:11px;white-space:nowrap;"><span id="af-mode-' + i + '" style="color:var(--pln-text3);">🔢 Otomatis</span> <button type="button" onclick="_afResetAuto(' + i + ')" title="Kembalikan ke hasil kalkulasi otomatis" style="font-size:10px;padding:2px 6px;border:1px solid var(--pln-border);border-radius:4px;background:var(--pln-bg);cursor:pointer;font-family:inherit;">↺</button></td>' +
       '</tr>';
   }).join('');
 }
@@ -9378,44 +9492,6 @@ function auditFisikRenderHasil() {
 function auditFisikToggleSemua(val) {
   _auditFisikHasil.forEach(function(h) { h.selected = val; });
   auditFisikRenderHasil();
-}
-
-// ── Recalc/mark manual untuk kolom Daya Pakai Baru & Prosen Baru (Audit Fisik) ──
-// Mengubah Daya Pakai Baru otomatis menghitung ulang Prosen Baru
-// (Daya Pakai Baru ÷ Daya kapasitas × 100). Mengubah Prosen Baru sendiri
-// dianggap override manual (Daya kapasitas TIDAK diubah oleh alat ini).
-function _afRecalcFromDP(i) {
-  var h = _auditFisikHasil[i];
-  var domDP     = document.getElementById('af-newdp-' + i);
-  var domProsen = document.getElementById('af-newprosen-' + i);
-  var full = h._rawRow || {};
-  var daya = (full['DAYA'] !== '' && full['DAYA'] != null) ? parseFloat(full['DAYA']) : null;
-  var dpVal = parseFloat(domDP.value);
-  if (!isNaN(dpVal) && daya != null && daya > 0) {
-    domProsen.value = (dpVal / daya * 100).toFixed(2);
-  }
-  h._manual = true;
-  _afUpdateModeBadge(i);
-}
-
-function _afMarkManual(i) {
-  _auditFisikHasil[i]._manual = true;
-  _afUpdateModeBadge(i);
-}
-
-function _afUpdateModeBadge(i) {
-  var el = document.getElementById('af-mode-' + i);
-  if (el) el.textContent = _auditFisikHasil[i]._manual ? '✏️ Manual' : '🔢 Otomatis';
-}
-
-function _afResetAuto(i) {
-  var h = _auditFisikHasil[i];
-  var domDP     = document.getElementById('af-newdp-' + i);
-  var domProsen = document.getElementById('af-newprosen-' + i);
-  if (domDP)     domDP.value     = isNaN(h.dayaPakaiBaru) ? '' : h.dayaPakaiBaru;
-  if (domProsen) domProsen.value = isNaN(h.prosenBaru)    ? '' : h.prosenBaru;
-  h._manual = false;
-  _afUpdateModeBadge(i);
 }
 
 // Bangun payload editInspeksi LENGKAP dari row asli — hanya menimpa
@@ -9472,8 +9548,7 @@ function auditFisikPerbaikiTerpilih() {
 
   window.showConfirm(
     'Perbaiki ' + idxTerpilih.length + ' data inspeksi sekarang? Tindakan ini akan menimpa nilai Daya Pakai & Prosen ' +
-    'Beban yang tersimpan dengan nilai pada kolom "Baru" (otomatis dari hitung ulang Arus R/S/T, kecuali sudah ' +
-    'Anda ubah manual). Daya/kapasitas kVA TIDAK diubah.',
+    'Beban yang tersimpan dengan hasil hitung ulang dari Arus R/S/T. Daya/kapasitas kVA TIDAK diubah.',
     'Perbaiki Data Terpilih?',
     '✅',
     function() { _auditFisikJalankanPerbaikan(idxTerpilih); }
@@ -9495,12 +9570,8 @@ async function _auditFisikJalankanPerbaikan(idxTerpilih) {
       var full = h._rawRow;
       if (!full) throw new Error('Data baris tidak lengkap (silakan Mulai Audit ulang).');
 
-      // Ambil nilai TERKINI dari kolom "Baru" — otomatis atau override
-      // manual admin (lihat _afRecalcFromDP / _afMarkManual).
-      var domDP     = document.getElementById('af-newdp-' + i);
-      var domProsen = document.getElementById('af-newprosen-' + i);
-      var dayaPakaiBaru = domDP     ? parseFloat(domDP.value)     : h.dayaPakaiBaru;
-      var prosenBaru    = domProsen ? parseFloat(domProsen.value) : h.prosenBaru;
+      var dayaPakaiBaru = h.dayaPakaiBaru;
+      var prosenBaru    = h.prosenBaru;
       if (isNaN(dayaPakaiBaru) || isNaN(prosenBaru)) throw new Error('Nilai Daya Pakai/Prosen Baru tidak valid — periksa kembali.');
 
       var payload = _auditFisikBuildEditPayload(h.id, full, dayaPakaiBaru, prosenBaru);
@@ -9512,7 +9583,7 @@ async function _auditFisikJalankanPerbaikan(idxTerpilih) {
 
       if (saveRes && saveRes.status === 'ok') {
         ok++;
-        _auditFisikLog('✅ ' + h.noGardu + ' (' + h.tgl + '): Daya Pakai ' + h.dayaPakaiLama + '→' + dayaPakaiBaru + ' kVA, Prosen ' + h.prosenLama + '%→' + prosenBaru + '%' + (h._manual ? ' [Manual]' : ' [Otomatis]'));
+        _auditFisikLog('✅ ' + h.noGardu + ' (' + h.tgl + '): Daya Pakai ' + h.dayaPakaiLama + '→' + dayaPakaiBaru + ' kVA, Prosen ' + h.prosenLama + '%→' + prosenBaru + '%');
       } else {
         fail++;
         _auditFisikLog('❌ ' + h.noGardu + ' (' + h.tgl + '): ' + ((saveRes && saveRes.message) || 'gagal disimpan'));
@@ -9759,7 +9830,7 @@ function exportAuditFisikExcel() {
       var wb = new ExcelJS.Workbook();
       wb.creator = 'PT. PLN UP3 Jayapura'; wb.created = now;
 
-      var fixedHdrs = ['NO','GARDU','TGL\nINSPEKSI','ARUS R\n(A)','ARUS S\n(A)','ARUS T\n(A)','DAYA PAKAI\nLAMA (kVA)','DAYA PAKAI\nBARU (kVA)','PROSEN\nLAMA (%)','PROSEN\nBARU (%)','SELISIH\n(%)','MODE'];
+      var fixedHdrs = ['NO','GARDU','TGL\nINSPEKSI','ARUS R\n(A)','ARUS S\n(A)','ARUS T\n(A)','DAYA PAKAI\nLAMA (kVA)','DAYA PAKAI\nBARU (kVA)','PROSEN\nLAMA (%)','PROSEN\nBARU (%)','SELISIH\n(%)'];
       var fullHdrs  = _auditFullColHeaders();
       var colHdrs   = fixedHdrs.concat(fullHdrs);
       var lastCol   = _colLetterAudit(colHdrs.length);
@@ -9769,7 +9840,7 @@ function exportAuditFisikExcel() {
         properties: { tabColor:{argb:C.plnBlue} },
         views: [{ state:'frozen', ySplit:4 }]
       });
-      ws.columns = [{width:5},{width:14},{width:13},{width:9},{width:9},{width:9},{width:12},{width:12},{width:11},{width:11},{width:10},{width:11}].concat(_auditFullColWidths());
+      ws.columns = [{width:5},{width:14},{width:13},{width:9},{width:9},{width:9},{width:12},{width:12},{width:11},{width:11},{width:10}].concat(_auditFullColWidths());
 
       _auditWriteSheetTitle(ws, lastCol,
         'HASIL AUDIT FISIK DAYA PAKAI vs ARUS',
@@ -9779,7 +9850,7 @@ function exportAuditFisikExcel() {
       colHdrs.forEach(function(h, i) {
         var cell = rHdr.getCell(i+1);
         cell.value = h;
-        cell.style = { font:{bold:true,size:9,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:i<12?C.plnBlue:C.jurBg}}, alignment:{horizontal:'center',vertical:'middle',wrapText:true}, border:{top:{style:'medium',color:{argb:C.darkBorder}},bottom:{style:'medium',color:{argb:C.darkBorder}},left:{style:'thin',color:{argb:C.white}},right:{style:'thin',color:{argb:C.white}}} };
+        cell.style = { font:{bold:true,size:9,color:{argb:C.white},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:i<11?C.plnBlue:C.jurBg}}, alignment:{horizontal:'center',vertical:'middle',wrapText:true}, border:{top:{style:'medium',color:{argb:C.darkBorder}},bottom:{style:'medium',color:{argb:C.darkBorder}},left:{style:'thin',color:{argb:C.white}},right:{style:'thin',color:{argb:C.white}}} };
       });
 
       var fmt = function(n) { return (n == null || isNaN(n)) ? '' : n; };
@@ -9788,18 +9859,12 @@ function exportAuditFisikExcel() {
         var rRow = ws.getRow(rNum); rRow.height = 16;
         var isAlt = i % 2 === 1;
         var bg = isAlt ? C.altRow : C.white;
-        var domDP     = document.getElementById('af-newdp-' + i);
-        var domProsen = document.getElementById('af-newprosen-' + i);
-        var curDP     = domDP     ? parseFloat(domDP.value)     : h.dayaPakaiBaru;
-        var curProsen = domProsen ? parseFloat(domProsen.value) : h.prosenBaru;
-        var mode = h._manual ? 'Manual' : 'Otomatis';
-        var vals = [i+1, h.noGardu, h.tgl || '', fmt(h.rA), fmt(h.sA), fmt(h.tA), fmt(h.dayaPakaiLama), fmt(curDP), fmt(h.prosenLama), fmt(curProsen), fmt(h.selisihPersen), mode].concat(_auditFullRowVals(h._rawRow));
+        var vals = [i+1, h.noGardu, h.tgl || '', fmt(h.rA), fmt(h.sA), fmt(h.tA), fmt(h.dayaPakaiLama), fmt(h.dayaPakaiBaru), fmt(h.prosenLama), fmt(h.prosenBaru), fmt(h.selisihPersen)].concat(_auditFullRowVals(h._rawRow));
         vals.forEach(function(v, ci) {
           var cell = rRow.getCell(ci+1);
           cell.value = v;
-          cell.style = { font:{size:9,name:'Calibri',bold:ci===1}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:bg}}, alignment:{horizontal:(ci===0?'center':(ci===1||ci===2||ci===11?'left':'right')),vertical:'middle'}, border:{top:{style:'thin',color:{argb:C.border}},bottom:{style:'thin',color:{argb:C.border}},left:{style:'thin',color:{argb:C.border}},right:{style:'thin',color:{argb:C.border}}} };
+          cell.style = { font:{size:9,name:'Calibri',bold:ci===1}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:bg}}, alignment:{horizontal:(ci===0?'center':(ci===1||ci===2?'left':'right')),vertical:'middle'}, border:{top:{style:'thin',color:{argb:C.border}},bottom:{style:'thin',color:{argb:C.border}},left:{style:'thin',color:{argb:C.border}},right:{style:'thin',color:{argb:C.border}}} };
           if (ci === 10) cell.style.font.color = { argb: C.red };
-          if (ci === 11) cell.style.font.color = { argb: h._manual ? C.orange : C.green };
         });
       });
 
