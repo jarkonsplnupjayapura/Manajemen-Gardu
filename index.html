@@ -13754,12 +13754,16 @@ function hapusPemeliharaanById(id, noGardu) {
 
 var _ukurAllData = [];
 var _ukurSudahMuat = false;
+// Dataset ke-2: 1 baris per gardu dari pengukuran PALING BARU (bukan beban
+// terbesar). Dipakai KHUSUS saat filter Overdue aktif — lihat _ukurDedupTerbaru().
+var _ukurAllDataTerbaru = [];
 
 // ── Ambil 1 baris per gardu: baris dengan PROSEN (persen beban) TERBESAR ──
 // Kalau 1 gardu punya beberapa pengukuran (siang/malam, atau beberapa
 // kunjungan dalam rentang tanggal), yang ditampilkan HANYA baris utuh
 // (bukan gabungan field) dari pengukuran dengan beban tertinggi. Ini
 // memastikan skenario terburuk (beban puncak) yang dilaporkan per gardu.
+// Dipakai sebagai default (saat filter Overdue TIDAK aktif).
 function _ukurDedupTerbesar(data) {
   var bestRow = {}, bestVal = {};
   (data || []).forEach(function(r) {
@@ -13770,6 +13774,30 @@ function _ukurDedupTerbesar(data) {
     if (!(key in bestVal) || prosen > bestVal[key]) {
       bestVal[key] = prosen;
       bestRow[key] = r;
+    }
+  });
+  return Object.keys(bestRow).map(function(k) { return bestRow[k]; });
+}
+
+// ── Ambil 1 baris per gardu: baris dengan TANGGAL UKUR PALING BARU ──
+// Dipakai KHUSUS saat filter Overdue aktif, supaya baris yang ditampilkan
+// (TGL UKUR, PROSEN, JAM UKUR, dst) adalah kondisi TERKINI gardu tsb — dan
+// filter lain yang dikombinasikan (mis. Status Beban) otomatis konsisten
+// dengan alasan gardu itu overdue/tidak, karena semuanya merujuk baris yang
+// SAMA. Beda dengan _ukurDedupTerbesar yang bisa memilih baris lama kalau
+// beban di baris itu kebetulan lebih tinggi.
+function _ukurDedupTerbaru(data) {
+  var bestRow = {}, bestHari = {};
+  (data || []).forEach(function(r) {
+    var key = (r['NO_GARDU'] || r['NOGARDU'] || '').trim().toUpperCase();
+    if (!key) return;
+    var hari = _hariSejakUkur(r['TGLUKUR']);
+    if (!(key in bestRow)) { bestRow[key] = r; bestHari[key] = hari; return; }
+    var curHari = bestHari[key];
+    // Utamakan tanggal valid & lebih baru (hari lebih kecil = lebih baru).
+    // Kalau tanggal baris saat ini tidak valid (null), pertahankan pilihan lama.
+    if (hari !== null && (curHari === null || hari < curHari)) {
+      bestRow[key] = r; bestHari[key] = hari;
     }
   });
   return Object.keys(bestRow).map(function(k) { return bestRow[k]; });
@@ -13837,9 +13865,9 @@ function muatDataPengukuran(force) {
         if (!r['ALAMAT']    && gInfo['ALAMAT'])    r['ALAMAT']    = gInfo['ALAMAT'];
         if (!r['ULP']       && gInfo['ULP'])       r['ULP']       = gInfo['ULP'];
       });
-      // Ringkas ke 1 baris per gardu: ambil pengukuran dengan beban (PROSEN)
-      // TERBESAR saja (baris utuh, bukan campuran siang/malam).
+      // Bangun 2 dataset: beban terbesar (default) & pengukuran terbaru (khusus filter Overdue)
       _ukurAllData = _ukurDedupTerbesar(rawData);
+      _ukurAllDataTerbaru = _ukurDedupTerbaru(rawData);
       renderDataPengukuran(statusBeban, waktuFilter, kepemilikanFilter, overdueFilter);
     }
     // Jika garduIndex belum ada (user langsung buka tab Pengukuran tanpa muat Daftar),
@@ -13904,11 +13932,32 @@ function muatUlangFilterPengukuran() {
 
 // Ambang overdue inspeksi — konsisten dgn AI_OVERDUE_THRESHOLD (90) &
 // AI_NEAR_OVERDUE_THRESHOLD (60) yang dipakai di modul AI Chat & gardu kritis.
+// PENTING: TGLUKUR di riwayat pengukuran bisa berformat yyyy-mm-dd (data baru)
+// ATAU dd/mm/yyyy (data lama) — sama seperti yang ditangani formatTgl(). Kalau
+// langsung di-parse dgn `new Date(raw)`, string dd/mm/yyyy salah dibaca browser
+// sebagai mm/dd/yyyy (format AS) saat tanggal & bulannya sama-sama <=12,
+// sehingga tanggal ukur hari ini bisa keliru terhitung mundur puluhan hari
+// (contoh: "06/08/2026" / 6 Agustus terbaca jadi 8 Juni) dan salah masuk
+// kategori overdue. Maka format-nya dinormalisasi dulu (sama persis dgn
+// formatTgl) sebelum dihitung selisih harinya.
 function _hariSejakUkur(tglUkurRaw) {
   if (!tglUkurRaw) return null;
-  var d = new Date(tglUkurRaw);
-  if (isNaN(d.getTime())) return null;
-  return Math.floor((new Date() - d) / 86400000);
+  var s = String(tglUkurRaw).trim();
+  if (!s || s === '-' || s === '—') return null;
+  var d;
+  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);       // yyyy-mm-dd (output server terbaru)
+  if (m) {
+    d = new Date(+m[1], +m[2] - 1, +m[3]);
+  } else {
+    var m2 = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);   // dd/mm/yyyy (data lama)
+    d = m2 ? new Date(+m2[3], +m2[2] - 1, +m2[1]) : new Date(s);
+  }
+  if (!d || isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+  var hari = Math.floor((today - d) / 86400000);
+  return hari < 0 ? 0 : hari; // tanggal di masa depan (input keliru) dianggap 0 hari, bukan negatif
 }
 
 function renderDataPengukuran(statusFilter, waktuFilter, kepemilikanFilter, overdueFilter) {
@@ -13926,7 +13975,13 @@ function renderDataPengukuran(statusFilter, waktuFilter, kepemilikanFilter, over
   var tdkBuruk  = !!(document.getElementById('ukur-filter-tdk-buruk')  || {}).checked;
   var adaFilterTdk = tdkBaik || tdkCukup || tdkKurang || tdkBuruk;
 
-  var data = _ukurAllData.filter(function(r) {
+  // Sumber data per gardu: default baris beban-terbesar, TAPI kalau filter
+  // Overdue aktif, pakai baris pengukuran TERBARU supaya TGL UKUR/PROSEN yang
+  // tampil & filter lain (mis. Status Beban) konsisten dgn kondisi terkini —
+  // sesuai kondisi gardu tsb saat ini, bukan campur dgn beban puncak lama.
+  var dataSource = overdueFilter ? _ukurAllDataTerbaru : _ukurAllData;
+
+  var data = dataSource.filter(function(r) {
     var prosen = r['PROSEN'] !== '' && r['PROSEN'] !== null && r['PROSEN'] !== undefined ? parseFloat(r['PROSEN']) : null;
     // Status beban (4 tingkat: Underload <40%, Normal 40–60%, Perlu Perhatian 60–80%, Kritis >80%)
     if (statusFilter === 'underload' && !(prosen !== null && prosen < 40)) return false;
@@ -13947,8 +14002,9 @@ function renderDataPengukuran(statusFilter, waktuFilter, kepemilikanFilter, over
       if (kepemilikanFilter === 'PLN' && kep !== 'PLN') return false;
       if (kepemilikanFilter === 'NON PLN' && kep === 'PLN') return false;
     }
-    // Overdue inspeksi — dihitung dari TGLUKUR (tanggal pengukuran terakhir baris ini):
-    // 60–90 hari = Mendekati Overdue, >90 hari = Overdue (sama seperti ambang di modul AI & gardu kritis)
+    // Overdue inspeksi — r di sini sudah pasti baris pengukuran PALING BARU
+    // (lihat dataSource di atas), jadi tanggalnya langsung dari TGLUKUR baris ini.
+    // 60–90 hari = Mendekati Overdue, >90 hari = Overdue.
     if (overdueFilter) {
       var hariSejakUkur = _hariSejakUkur(r['TGLUKUR']);
       if (hariSejakUkur === null) return false;
