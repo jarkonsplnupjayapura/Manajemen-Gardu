@@ -14441,8 +14441,11 @@ function pbpdLoadGardu(noGardu) {
     var jur = (latest._jurusanRaw || [])
       .map(function(j) { return j || {}; })
       .filter(function(j) { return j.nama || j.r_total || j.s_total || j.t_total; })
-      .map(function(j) {
-        return { nama: j.nama || '(tanpa nama)', r: parseFloat(j.r_total)||0, s: parseFloat(j.s_total)||0, t: parseFloat(j.t_total)||0 };
+      .map(function(j, idx) {
+        // Nama jurusan ditampilkan generik (Jurusan-1, Jurusan-2, dst) — bukan
+        // nama asli dari data (mis. "Kanan"/"Kiri") — supaya tidak ambigu saat
+        // ada beberapa jurusan dengan nama yang sama persis di gardu yang sama.
+        return { nama: 'Jurusan-'+(idx+1), r: parseFloat(j.r_total)||0, s: parseFloat(j.s_total)||0, t: parseFloat(j.t_total)||0 };
       });
     window._pbpdState = {
       noGardu:  noGardu,
@@ -14644,7 +14647,7 @@ function pbpdRenderRingkasanCard(detail, meta) {
   html += '<div style="font-size:var(--fs-lg);font-weight:800;line-height:1.25;">'+esc(meta.subjudul)+'</div>';
   html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">';
   html += '<span class="badge '+detail.klasBebanTrafo.cls+'">Beban Trafo '+detail.pctBebanTrafo.toFixed(1)+'%</span>';
-  html += '<span class="badge '+detail.klasImb.cls+'">Imbalance Keseluruhan '+detail.pctImb.toFixed(1)+'%</span>';
+  html += '<span class="badge '+detail.klasImb.cls+'">Unbalance Keseluruhan '+detail.pctImb.toFixed(1)+'%</span>';
   if (detail.overloadFasa.length) {
     html += '<span class="badge badge-kritis">🚨 Overload Fasa '+detail.overloadFasa.map(function(o){ return o.fasa; }).join('/')+'</span>';
   }
@@ -14670,6 +14673,36 @@ function pbpdRenderRingkasanCard(detail, meta) {
 // ketidakseimbangan trafo — mode "auto" membandingkan semua kombinasi
 // jurusan × fasa dan memilih yang terbaik; mode "manual" cuma menghitung
 // SATU kombinasi yang dipilih sendiri oleh pengguna (eksperimen).
+// Cek kondisi gardu SAAT INI (sebelum PB/PD baru disimulasikan): apakah
+// trafo/fasa sudah overload dan/atau fasa sudah unbalance — dipakai sebagai
+// gerbang keras di pbpdRecalc() supaya tidak ada rekomendasi yang malah
+// memperparah kondisi yang sudah buruk.
+function pbpdCekGerbangSaatIni(st) {
+  var bebanTrafo = pbpdPctBeban((st.rTot+st.sTot+st.tTot)/3, st.kva);
+  var overloadTrafo = bebanTrafo >= 100;
+
+  var overloadFasaNow = [];
+  var overloadFasaPct = 0;
+  ['R','S','T'].forEach(function(f) {
+    var amp = f==='R' ? st.rTot : (f==='S' ? st.sTot : st.tTot);
+    var pct = pbpdPctFasa(amp, st.kva);
+    if (pct !== null && pct >= 100) { overloadFasaNow.push(f); overloadFasaPct = Math.max(overloadFasaPct, pct); }
+  });
+
+  var imbTotal = pbpdPctImbalance(st.rTot, st.sTot, st.tTot);
+  var unbalance = imbTotal >= 25;
+
+  return {
+    overload: overloadTrafo || overloadFasaNow.length > 0,
+    overloadTrafo: overloadTrafo,
+    overloadFasaNow: overloadFasaNow,
+    overloadFasaPct: overloadFasaPct,
+    bebanTrafo: bebanTrafo,
+    unbalance: unbalance,
+    imbTotal: imbTotal
+  };
+}
+
 function pbpdRecalc() {
   var st = window._pbpdState;
   var hasilEl = document.getElementById('pbpd-hasil');
@@ -14686,11 +14719,26 @@ function pbpdRecalc() {
   }
 
   var jenis = window._pbpdJenis;
-  var bebanSaatIni = pbpdPctBeban((st.rTot+st.sTot+st.tTot)/3, st.kva);
 
-  // Gerbang keras: gardu sudah "Buruk" (>=100%) → tidak direkomendasikan sama sekali
-  if (bebanSaatIni >= 100) {
-    hasilEl.innerHTML = '<div class="alert alert-err" style="margin:0;"><span class="alert-icon">🚫</span><span class="alert-text"><b>PB/PD TIDAK DIREKOMENDASIKAN.</b> Trafo sudah pada kondisi Buruk (beban ≥100%, EDIR 017.E/DIR/2014). Penambahan beban apa pun akan memperparah overload. Perlu penguatan/uprating trafo terlebih dahulu sebelum PB/PD baru dapat diproses di gardu ini.</span></div>';
+  // Gerbang keras: gardu SAAT INI (sebelum PB/PD baru ditambahkan) sudah
+  // overload (trafo rata-rata ≥100% ATAU salah satu fasa individual ≥100%)
+  // dan/atau sudah unbalance (ketidakseimbangan fasa "Buruk", ≥25%) →
+  // langsung ditolak, tidak perlu hitung simulasi penambahan daya sama sekali.
+  var gerbang = pbpdCekGerbangSaatIni(st);
+  if (gerbang.overload || gerbang.unbalance) {
+    var sebab = [];
+    var tindakan = [];
+    if (gerbang.overload) {
+      sebab.push(gerbang.overloadTrafo
+        ? 'beban trafo rata-rata sudah Buruk ('+gerbang.bebanTrafo.toFixed(1)+'% ≥100%)'
+        : 'fasa '+gerbang.overloadFasaNow.join('/')+' sudah overload individual ('+gerbang.overloadFasaPct.toFixed(1)+'%)');
+      tindakan.push('<b>Overload:</b> Kalau ada trafo lain berjarak &lt;500 m dari gardu ini, arahkan pemasangan ke trafo tersebut. Kalau tidak ada trafo lain dalam radius 500 m, ajukan pasang gardu baru atau uprating trafo ini.');
+    }
+    if (gerbang.unbalance) {
+      sebab.push('ketidakseimbangan fasa sudah Buruk ('+gerbang.imbTotal.toFixed(1)+'% ≥25%)');
+      tindakan.push('<b>Unbalance:</b> Segera lakukan penyeimbangan beban antar fasa/jurusan.');
+    }
+    hasilEl.innerHTML = '<div class="alert alert-err" style="margin:0;"><span class="alert-icon">🚫</span><span class="alert-text"><b>PB/PD TIDAK DIREKOMENDASIKAN.</b> Kondisi gardu saat ini: '+esc(sebab.join(' &amp; '))+' (EDIR 017.E/DIR/2014). Penambahan beban apa pun akan memperparah kondisi ini.<br><br>'+tindakan.join('<br>')+'</span></div>';
     return;
   }
 
@@ -14762,7 +14810,7 @@ function pbpdRecalcAuto(st, daya, jenis, hasilEl) {
     html += '<div class="card" style="padding:0;overflow:hidden;">';
     html += '<table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px;">';
     html += '<colgroup><col style="width:24%;"><col style="width:30%;"><col style="width:22%;"><col style="width:24%;"></colgroup>';
-    html += '<thead><tr style="background:var(--pln-bg);"><th style="text-align:left;padding:6px 4px 6px 8px;">Fasa</th><th style="text-align:left;padding:6px 4px;">Jurusan</th><th style="padding:6px 4px;">Imbalance</th><th style="padding:6px 8px 6px 4px;">Overload?</th></tr></thead><tbody>';
+    html += '<thead><tr style="background:var(--pln-bg);"><th style="text-align:left;padding:6px 4px 6px 8px;">Fasa</th><th style="text-align:left;padding:6px 4px;">Jurusan</th><th style="padding:6px 4px;">Unbalance</th><th style="padding:6px 8px 6px 4px;">Overload?</th></tr></thead><tbody>';
     opsi.forEach(function(o, idx) {
       var jr = o.jurusan.length ? o.jurusan[0] : null;
       html += '<tr style="border-top:1px solid var(--pln-border);'+(idx===0?'background:#F6FFED;':'')+'">';
@@ -14774,7 +14822,7 @@ function pbpdRecalcAuto(st, daya, jenis, hasilEl) {
     });
     html += '</tbody></table></div>';
   } else {
-    html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-bottom:8px;">Untuk 3 fasa, beban &amp; ketidakseimbangan proyeksi sama di jurusan manapun (<b>Beban '+terbaik.detail.pctBebanTrafo.toFixed(1)+'% · Imbalance '+terbaik.detail.pctImb.toFixed(1)+'%</b>, sudah tampil di kartu atas) — tidak dipengaruhi pilihan jurusan. Yang membedakan cuma jurusan mana yang saat ini paling punya sisa kapasitas:</div>';
+    html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-bottom:8px;">Untuk 3 fasa, beban &amp; ketidakseimbangan proyeksi sama di jurusan manapun (<b>Beban '+terbaik.detail.pctBebanTrafo.toFixed(1)+'% · Unbalance '+terbaik.detail.pctImb.toFixed(1)+'%</b>, sudah tampil di kartu atas) — tidak dipengaruhi pilihan jurusan. Yang membedakan cuma jurusan mana yang saat ini paling punya sisa kapasitas:</div>';
     html += '<div class="card" style="padding:0;overflow:hidden;">';
     html += '<table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px;">';
     html += '<colgroup><col style="width:60%;"><col></colgroup>';
@@ -14857,7 +14905,9 @@ function pbpdSimpanRekomendasi() {
     if (btn) { btn.disabled = false; btn.textContent = hasil.mode === 'manual' ? '💾 Catat & Simpan Hasil Simulasi Ini' : '💾 Catat & Simpan Rekomendasi Ini'; }
     if (!msgEl) return;
     if (res.status === 'ok') {
-      msgEl.innerHTML = '<div class="alert alert-ok" style="margin-top:8px;"><span class="alert-icon">✅</span><span class="alert-text">Tersimpan sebagai catatan proses PB/PD. Bisa dilihat di Detail Gardu, bagian "Riwayat Proses PB/PD".</span></div>';
+      var jamSimpan = new Date().toLocaleString('id-ID', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+      msgEl.innerHTML = '<div class="alert alert-ok" style="margin-top:8px;"><span class="alert-icon">✅</span><span class="alert-text">Tersimpan sebagai catatan proses PB/PD pada <b>'+esc(jamSimpan)+'</b> oleh <b>'+esc(params.petugas||'—')+'</b>. Bisa dilihat di Detail Gardu, bagian "Riwayat Proses PB/PD".</span></div>';
+      if (typeof pbpdRiwayatMuat === 'function') pbpdRiwayatMuat(st.noGardu);
     } else {
       msgEl.innerHTML = '<div class="alert alert-err" style="margin-top:8px;"><span class="alert-icon">❌</span><span class="alert-text">Gagal menyimpan: '+esc(res.message||'Terjadi kesalahan.')+'</span></div>';
     }
@@ -14931,6 +14981,7 @@ function pbpdRunSelfTest() {
 // ── Riwayat Proses PB/PD di Detail Gardu ──────────────────────
 var PBPD_STATUS_BADGE = {
   'Menunggu Eksekusi Vendor': 'badge-perlu',
+  'Sedang Dikerjakan':        'badge-edir-kurang',
   'Selesai Terpasang':        'badge-normal',
   'Dibatalkan':                'badge-nonaktif'
 };
@@ -14954,19 +15005,30 @@ function pbpdRiwayatMuat(noGardu) {
     var html = '';
     rows.forEach(function(row) {
       var statusCls = PBPD_STATUS_BADGE[row.status] || 'badge-perlu';
-      var bisaUbahStatus = row.status !== 'Selesai Terpasang' && row.status !== 'Dibatalkan';
+      var belumDikerjakan = row.status === 'Menunggu Eksekusi Vendor';
+      var sedangDikerjakan = row.status === 'Sedang Dikerjakan';
+      var bisaUbahStatus = belumDikerjakan || sedangDikerjakan;
       html += '<div class="card" style="margin-bottom:var(--sp-sm);">';
       html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">';
       html += '<div><div style="font-weight:700;font-size:var(--fs-sm);">'+(row.jenis_sambungan==='3fasa'?'3 Fasa':'1 Fasa')+' — '+Number(row.daya_va||0).toLocaleString('id-ID')+' VA</div>';
-      html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);">'+esc(formatTgl(row.tanggal)||row.tanggal||'—')+(row.petugas?' · oleh '+esc(row.petugas):'')+'</div></div>';
+      html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);">💾 Disimpan '+esc(formatTgl(row.tanggal)||row.tanggal||'—')+(formatJam(row.tanggal)?' '+esc(formatJam(row.tanggal)):'')+(row.petugas?' · oleh '+esc(row.petugas):'')+'</div>';
+      if (row.waktu_mulai_kerja) {
+        html += '<div style="font-size:var(--fs-xs);color:var(--pln-text3);">▶️ Mulai dikerjakan '+esc(formatTgl(row.waktu_mulai_kerja)||'—')+(formatJam(row.waktu_mulai_kerja)?' '+esc(formatJam(row.waktu_mulai_kerja)):'')+(row.petugas_mulai_kerja?' · oleh '+esc(row.petugas_mulai_kerja):'')+'</div>';
+      }
+      html += '</div>';
       html += '<span class="badge '+statusCls+'" style="white-space:nowrap;">'+esc(row.status)+'</span>';
       html += '</div>';
       html += '<div style="font-size:var(--fs-xs);color:var(--pln-text2);margin-bottom:6px;">Rekomendasi: <b>Fasa '+esc(row.fasa_rekomendasi||'—')+'</b>'+(row.jurusan_rekomendasi?' — '+esc(row.jurusan_rekomendasi)+'':'')+'</div>';
       html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:'+(bisaUbahStatus?'8px':'0')+';">';
       html += '<span class="badge '+(PBPD_KLAS_BADGE[row.klasifikasi_beban]||'badge-normal')+'">Beban '+parseFloat(row.proyeksi_beban_pct||0).toFixed(1)+'%</span>';
-      html += '<span class="badge '+(PBPD_KLAS_BADGE[row.klasifikasi_imbalance]||'badge-normal')+'">Imbalance '+parseFloat(row.proyeksi_imbalance_pct||0).toFixed(1)+'%</span>';
+      html += '<span class="badge '+(PBPD_KLAS_BADGE[row.klasifikasi_imbalance]||'badge-normal')+'">Unbalance '+parseFloat(row.proyeksi_imbalance_pct||0).toFixed(1)+'%</span>';
       html += '</div>';
-      if (bisaUbahStatus) {
+      if (belumDikerjakan) {
+        html += '<div style="display:flex;gap:6px;">';
+        html += '<button class="btn" style="flex:1;font-size:11px;padding:6px;background:var(--pln-biru2);color:#fff;border:none;border-radius:6px;font-weight:700;" onclick="pbpdRiwayatMulaiKerja('+row.id+',\''+esc(noGardu)+'\')">▶️ Mulai Kerjakan</button>';
+        html += '<button class="btn btn-outline" style="flex:1;font-size:11px;padding:6px;" onclick="pbpdRiwayatUpdateStatus('+row.id+',\'Dibatalkan\',\''+esc(noGardu)+'\')">✕ Batalkan</button>';
+        html += '</div>';
+      } else if (sedangDikerjakan) {
         html += '<div style="display:flex;gap:6px;">';
         html += '<button class="btn btn-outline" style="flex:1;font-size:11px;padding:6px;" onclick="pbpdRiwayatUpdateStatus('+row.id+',\'Selesai Terpasang\',\''+esc(noGardu)+'\')">✅ Tandai Selesai</button>';
         html += '<button class="btn btn-outline" style="flex:1;font-size:11px;padding:6px;" onclick="pbpdRiwayatUpdateStatus('+row.id+',\'Dibatalkan\',\''+esc(noGardu)+'\')">✕ Batalkan</button>';
@@ -14975,6 +15037,21 @@ function pbpdRiwayatMuat(noGardu) {
       html += '</div>';
     });
     wrap.innerHTML = html;
+  });
+}
+
+// Petugas eksekusi menekan ini setelah cek ulang rekomendasi & siap mulai kerja
+// di lapangan — mencatat jam + siapa yang memulai (terpisah dari yang menyimpan
+// rekomendasinya, karena bisa jadi petugas yang berbeda / hari berikutnya).
+function pbpdRiwayatMulaiKerja(id, noGardu) {
+  var s = getSession();
+  if (!s) { showAlert('Sesi berakhir, silakan login kembali.'); return; }
+  apiGet({ action:'mulaiKerjaPbpd', token:s.token, id:id, petugas: s.nama || s.username || '' }, function(res) {
+    if (res.status === 'ok') {
+      pbpdRiwayatMuat(noGardu);
+    } else {
+      showAlert('❌ Gagal mencatat mulai kerja: '+(res.message||'Terjadi kesalahan.'));
+    }
   });
 }
 
