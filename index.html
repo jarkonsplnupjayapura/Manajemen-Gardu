@@ -2604,7 +2604,6 @@ input[type=number]{-moz-appearance:textfield;}
       <div class="ai-chip" onclick="kirimPesanAI('Gardu mana saja yang underload?')">🔋 Gardu underload?</div>
       <div class="ai-chip" onclick="kirimPesanAI('Berapa jumlah gardu kritis saat ini?')">🚨 Jumlah gardu kritis</div>
       <div class="ai-chip" onclick="kirimPesanAI('Apa bedanya jaringan transmisi dan distribusi?')">📚 Transmisi vs distribusi</div>
-      <div class="ai-chip" onclick="kirimPesanAI('Gardu mana saja yang sudah overdue > 90 hari?')">📚 Gardu Overdue > 90 hari</div>
     </div>
 
     <div id="ai-chat-log"></div>
@@ -3269,6 +3268,7 @@ input[type=number]{-moz-appearance:textfield;}
                 <input type="number" class="form-input" id="fi-tdk-seimbang" placeholder="Hitung otomatis" inputmode="decimal" min="0" step="any">
               </div>
             </div>
+            <div id="fi-manual-fisik-warn" style="display:none;margin-top:var(--sp-sm);padding:8px 10px;border-radius:var(--radius-xs);font-size:var(--fs-xs);font-weight:600;background:#FDECEA;color:#A8071A;border:1.5px solid #C0392B;"></div>
           </div>
         </div>
       </div><!-- /fi-pengukuran-section -->
@@ -3561,6 +3561,7 @@ input[type=number]{-moz-appearance:textfield;}
       <button class="btn btn-outline" id="apbtn-pin"      onclick="tutupPanelAdmin();bukaModalSetPin()">🔑 Set / Ganti PIN User</button>
       <button class="btn btn-outline" id="apbtn-import"   onclick="tutupPanelAdmin();bukaModalCsvImport()">📥 Import Inspeksi</button>
       <button class="btn btn-outline" id="apbtn-audit"    onclick="tutupPanelAdmin();bukaModalAuditProsen()">🔍 Audit &amp; Perbaiki Prosen Massal</button>
+      <button class="btn btn-outline" id="apbtn-audit-fisik" onclick="tutupPanelAdmin();bukaModalAuditFisik()">⚡ Audit Fisik Daya Pakai vs Arus</button>
       <button class="btn btn-red"     id="apbtn-logout"   onclick="doLogout()">🚪 Logout</button>
     </div>
   </div>
@@ -3618,6 +3619,72 @@ input[type=number]{-moz-appearance:textfield;}
 
     <div id="audit-prosen-kosong" style="display:none;padding:var(--sp-md) 0;font-size:var(--fs-sm);color:var(--pln-green);font-weight:600;">
       ✅ Semua data sudah sinkron. Tidak ada yang perlu diperbaiki.
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AUDIT FISIK DAYA PAKAI vs ARUS (SUPER ADMIN ONLY) -->
+<!-- Kelas bug BERBEDA dari Audit Prosen di atas: Audit Prosen mengecek
+     Daya (kapasitas kVA) vs Prosen basi setelah upgrade trafo. Audit Fisik
+     ini mengecek Daya Pakai (kVA) vs ARUS R/S/T yang tersimpan di baris
+     yang sama — menangkap kasus seperti STN070 (Daya Pakai 286.04 kVA /
+     286% pembebanan tersimpan, padahal arus terukur saat itu secara fisik
+     hanya setara ±35 kVA) yang TIDAK tertangkap oleh Audit Prosen karena
+     Daya-nya sendiri tidak berubah. -->
+<div id="modal-audit-fisik" style="display:none;position:fixed;inset:0;z-index:9200;background:rgba(0,0,0,.55);align-items:flex-start;justify-content:center;padding:var(--sp-md);overflow-y:auto;">
+  <div style="background:var(--pln-card);border-radius:var(--radius);padding:var(--sp-lg);width:100%;max-width:960px;margin:auto;box-shadow:var(--shadow-lg);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-sm);">
+      <div style="font-size:var(--fs-md);font-weight:700;">⚡ Audit Fisik Daya Pakai vs Arus</div>
+      <button onclick="document.getElementById('modal-audit-fisik').style.display='none'" style="background:var(--pln-bg);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;">✕</button>
+    </div>
+    <div style="font-size:var(--fs-xs);color:var(--pln-text3);margin-bottom:var(--sp-md);line-height:1.5;">
+      Mencari semua data inspeksi yang <strong>Daya Pakai (kVA)</strong>-nya tidak konsisten secara fisik dengan
+      <strong>Arus R/S/T</strong> yang tersimpan di baris yang sama (rumus: S = √3 × 380V × I_rata-rata / 1000).
+      Ini biasanya terjadi karena Daya Pakai diisi manual (typo, salah satuan, atau salah tempel) tanpa dicek ulang
+      terhadap arus — seperti kasus <strong>STN070</strong> yang tersimpan dengan pembebanan 286% padahal arusnya normal.
+      Ambang deteksi: selisih ≥25% <em>dan</em> ≥3 kVA sekaligus.
+    </div>
+
+    <div id="audit-fisik-idle">
+      <button class="btn btn-blue" id="btn-audit-fisik-mulai" onclick="auditFisikMulaiScan()">▶️ Mulai Audit</button>
+    </div>
+
+    <div id="audit-fisik-loading" style="display:none;padding:var(--sp-md) 0;font-size:var(--fs-sm);color:var(--pln-text2);">
+      ⏳ <span id="audit-fisik-loading-text">Memindai data…</span>
+    </div>
+
+    <div id="audit-fisik-hasil" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:var(--sp-md) 0 var(--sp-sm);flex-wrap:wrap;gap:8px;">
+        <div style="font-size:var(--fs-sm);font-weight:700;" id="audit-fisik-ringkasan">—</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline" style="padding:6px 12px;font-size:var(--fs-xs);" onclick="auditFisikToggleSemua(true)">Pilih Semua</button>
+          <button class="btn btn-outline" style="padding:6px 12px;font-size:var(--fs-xs);" onclick="auditFisikToggleSemua(false)">Batal Semua</button>
+        </div>
+      </div>
+      <div style="max-height:360px;overflow:auto;border:1px solid var(--pln-border);border-radius:var(--radius-xs);">
+        <table style="width:100%;border-collapse:collapse;font-size:var(--fs-xs);">
+          <thead style="position:sticky;top:0;background:var(--pln-bg);">
+            <tr>
+              <th style="padding:8px;text-align:left;"></th>
+              <th style="padding:8px;text-align:left;">Gardu</th>
+              <th style="padding:8px;text-align:left;">Tgl Inspeksi</th>
+              <th style="padding:8px;text-align:right;">Arus R/S/T (A)</th>
+              <th style="padding:8px;text-align:right;">Daya Pakai Tersimpan→Fisik</th>
+              <th style="padding:8px;text-align:right;">Selisih</th>
+            </tr>
+          </thead>
+          <tbody id="audit-fisik-tbody"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:var(--sp-md);display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-blue" id="btn-audit-fisik-perbaiki" onclick="auditFisikPerbaikiTerpilih()">✅ Perbaiki Data Terpilih</button>
+        <span id="audit-fisik-progress" style="font-size:var(--fs-xs);color:var(--pln-text3);"></span>
+      </div>
+      <div id="audit-fisik-log" style="margin-top:var(--sp-sm);max-height:140px;overflow:auto;font-size:11px;color:var(--pln-text3);font-family:monospace;white-space:pre-wrap;"></div>
+    </div>
+
+    <div id="audit-fisik-kosong" style="display:none;padding:var(--sp-md) 0;font-size:var(--fs-sm);color:var(--pln-green);font-weight:600;">
+      ✅ Semua data sudah konsisten secara fisik. Tidak ada yang perlu diperbaiki.
     </div>
   </div>
 </div>
@@ -4171,6 +4238,7 @@ input[type=number]{-moz-appearance:textfield;}
         <input type="number" id="ei-tdkseimbang" class="form-input" placeholder="0.0" step="any" min="0">
       </div>
     </div>
+    <div id="ei-dayapakai-fisik-warn" style="display:none;margin-bottom:var(--sp-md);padding:8px 10px;border-radius:var(--radius-xs);font-size:var(--fs-xs);font-weight:600;background:#FDECEA;color:#A8071A;border:1.5px solid #C0392B;"></div>
 
     <!-- Arus -->
     <div style="font-size:var(--fs-xs);font-weight:700;color:var(--pln-biru2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:var(--pln-biru-pale);border-radius:6px;">⚡ Arus Fasa (Ampere)</div>
@@ -7042,6 +7110,7 @@ var _fiGardu = null;        // object gardu yg sedang diinspeksi
 var _fiJurusanCount = 0;   // jumlah jurusan aktif (max 6)
 var _fiManualCalc = false;  // apakah kalkulasi manual diaktifkan
 var _fiConfirmedZeroIds = null; // {id:true,...} field kosong yg sudah dikonfirmasi user utk disimpan sebagai 0
+var _fiFisikOverrideConfirmedKey = null; // key 'dayaPakai|R|S|T' yang sudah dikonfirmasi lolos guard fisik manual
 
 // Field pengukuran yang BOLEH kosong secara teknis (mis. gardu 1 fasa
 // tidak punya arus S/T, sensor tertentu tidak dipakai di lokasi tsb),
@@ -7145,6 +7214,7 @@ function bukaFormInspeksi(noGardu) {
   _fiJurusanCount = 0;
   _fiManualCalc = false;
   _fiConfirmedZeroIds = null; // reset konfirmasi field-kosong dari sesi form sebelumnya
+  _fiFisikOverrideConfirmedKey = null; // reset konfirmasi guard fisik Daya Pakai dari sesi form sebelumnya
 
   // Isi info gardu (readonly display)
   document.getElementById('fi-topbar-title').textContent = noGardu;
@@ -7440,7 +7510,37 @@ function fiToggleManualCalc() {
   btn.textContent = _fiManualCalc
     ? '🔢 Gunakan Kalkulasi Otomatis'
     : '✏️ Isi Manual (Daya Pakai / Prosen / Ketidakseimbangan)';
-  if (!_fiManualCalc) fiUpdateCalc();
+  if (!_fiManualCalc) {
+    fiUpdateCalc();
+    document.getElementById('fi-manual-fisik-warn').style.display = 'none';
+  } else {
+    fiCekFisikManualLive();
+  }
+}
+
+// ── Peringatan real-time (bukan blocking) saat mode manual aktif ──
+// Berbeda dari guard di submitFormInspeksi (yang menahan submit dan
+// minta konfirmasi eksplisit): ini murni indikator visual yang update
+// setiap kali petugas mengetik, supaya ketidaksesuaian terlihat SEBELUM
+// mereka menekan tombol Simpan, bukan sesudahnya.
+function fiCekFisikManualLive() {
+  var warnEl = document.getElementById('fi-manual-fisik-warn');
+  if (!warnEl) return;
+  if (!_fiManualCalc) { warnEl.style.display = 'none'; return; }
+
+  var rA = parseFloat(document.getElementById('fi-r-total').value);
+  var sA = parseFloat(document.getElementById('fi-s-total').value);
+  var tA = parseFloat(document.getElementById('fi-t-total').value);
+  var dp = document.getElementById('fi-daya-pakai').value;
+
+  if (isNaN(rA) || isNaN(sA) || isNaN(tA) || dp === '') { warnEl.style.display = 'none'; return; }
+
+  var cek = cekKonsistensiFisikDayaPakai(dp, rA, sA, tA);
+  if (!cek.isAnomali) { warnEl.style.display = 'none'; return; }
+
+  warnEl.style.display = 'block';
+  warnEl.innerHTML = '⚡ <b>Tidak wajar secara fisik:</b> Daya Pakai ' + cek.input + ' kVA vs estimasi dari arus ' +
+    cek.fisikKva + ' kVA (selisih ' + cek.selisihPersen + '%). Periksa kembali sebelum menyimpan.';
 }
 
 // ── Bind real-time listeners ──────────────────────────────────
@@ -7456,6 +7556,15 @@ function fiBindListeners() {
     el.addEventListener('input', _fiMarkDirty);
   });
 
+  // Peringatan fisik Daya Pakai manual: R/S/T total dan field manual
+  // Daya Pakai sama-sama perlu memicu re-cek setiap kali berubah.
+  ['fi-r-total','fi-s-total','fi-t-total','fi-daya-pakai'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.removeEventListener('input', fiCekFisikManualLive);
+    el.addEventListener('input', fiCekFisikManualLive);
+  });
+
   // MED-11 FIX: Pasang dirty listener ke semua input/select/textarea dalam form inspeksi
   var formEl = document.getElementById('form-inspeksi-view');
   if (formEl && !formEl._dirtyListenerBound) {
@@ -7463,6 +7572,54 @@ function fiBindListeners() {
     formEl.addEventListener('change', _fiMarkDirty, { capture: false });
     formEl._dirtyListenerBound = true;
   }
+}
+
+// ══════════════════════════════════════════════════════════════
+// VALIDASI FISIK "DAYA PAKAI" vs ARUS TERUKUR
+// ──────────────────────────────────────────────────────────────
+// Kasus nyata yang memicu ini: STN070 (05/08/26) tersimpan dengan
+// Daya Pakai = 286.04 kVA / 286% pembebanan, padahal arus terukur
+// saat itu (R=49.37A, S=61.2A, T=51.23A @ ~380V antar-fasa) secara
+// fisik hanya setara ±35–36 kVA (~35–36% dari kapasitas 100 kVA).
+// Root cause: form Tambah/Edit Inspeksi mengizinkan Daya Pakai diisi
+// MANUAL (mode "✏️ Isi Manual" di Tambah Inspeksi, dan field
+// "Daya Pakai" yang selalu manual-editable di Edit Inspeksi) TANPA
+// ada pengecekan silang terhadap arus R/S/T yang juga tersimpan di
+// baris yang sama. Ini beda kelas dari bug "KVA capacity sync" yang
+// sudah diperbaiki lewat Audit Prosen (itu mengecek Daya vs Prosen;
+// ini mengecek Daya Pakai vs Arus — keduanya independen dan salah
+// satu bisa benar sementara yang lain salah).
+//
+// hitungDayaPakaiFisik(): rumus daya 3-fasa standar S = √3×V_LL×I/1000,
+// dipakai konsisten di SATU tempat ini saja (fiUpdateCalc, validasi
+// manual, dan Audit Fisik semuanya memanggil fungsi yang sama supaya
+// tidak ada rumus ganda yang bisa saling menyimpang lagi).
+function hitungDayaPakaiFisik(rA, sA, tA, vLL) {
+  rA = parseFloat(rA); sA = parseFloat(sA); tA = parseFloat(tA);
+  if (isNaN(rA) || isNaN(sA) || isNaN(tA)) return null;
+  if (rA <= 0 && sA <= 0 && tA <= 0) return null;
+  var avgArus = (Math.max(rA,0) + Math.max(sA,0) + Math.max(tA,0)) / 3;
+  if (avgArus <= 0) return null;
+  var v = (typeof vLL === 'number' && vLL > 0) ? vLL : 380; // asumsi tegangan nominal TR
+  return parseFloat((v * avgArus * 1.732 / 1000).toFixed(2));
+}
+
+// Ambang deteksi: relatif ≥25% DAN selisih absolut ≥3 kVA (dua syarat
+// sekaligus supaya nilai kecil yang wajar berfluktuasi secara persentase
+// besar — mis. gardu hampir tanpa beban — tidak jadi false positive).
+var FISIK_DAYAPAKAI_TOL_PERSEN = 25;
+var FISIK_DAYAPAKAI_TOL_ABS_KVA = 3;
+
+function cekKonsistensiFisikDayaPakai(dayaPakaiInput, rA, sA, tA, vLL) {
+  var fisikKva = hitungDayaPakaiFisik(rA, sA, tA, vLL);
+  var input = parseFloat(dayaPakaiInput);
+  if (fisikKva === null || isNaN(input) || input < 0) {
+    return { fisikKva: fisikKva, input: isNaN(input) ? null : input, selisihKva: null, selisihPersen: null, isAnomali: false };
+  }
+  var selisihKva = parseFloat((input - fisikKva).toFixed(2));
+  var selisihPersen = fisikKva > 0 ? parseFloat((Math.abs(selisihKva) / fisikKva * 100).toFixed(1)) : (input > 0 ? Infinity : 0);
+  var isAnomali = Math.abs(selisihKva) >= FISIK_DAYAPAKAI_TOL_ABS_KVA && selisihPersen >= FISIK_DAYAPAKAI_TOL_PERSEN;
+  return { fisikKva: fisikKva, input: input, selisihKva: selisihKva, selisihPersen: selisihPersen, isAnomali: isAnomali };
 }
 
 // ── Kalkulasi otomatis (daya pakai, prosen, seimbang) ─────────
@@ -7474,11 +7631,11 @@ function fiUpdateCalc() {
   var tA = parseFloat(document.getElementById('fi-t-total').value)||0;
   var kva = parseFloat(document.getElementById('fi-daya').value)||0;
 
-  // Daya pakai (kW) = I_avg * V_rated * sqrt(3) / 1000 (asumsi Vfasa=220V, PF=1 — aproksimasi field)
-  // Rumus PLN: Daya Pakai (kVA) = (R+S+T)/3 * 220 * 3 / 1000 = (R+S+T) * 0.66 / 1000 ... 
-  // Lebih presisi: daya 3-fasa = V_LL * I_avg * sqrt(3) = 380 * avg(R,S,T) * 1.732 / 1000
+  // Daya pakai (kVA) = rumus daya 3-fasa standar, lihat hitungDayaPakaiFisik()
+  // di atas — dipusatkan satu tempat supaya auto-calc, validasi manual, dan
+  // Audit Fisik selalu memakai rumus yang identik.
   var avgArus = (rA + sA + tA) / 3;
-  var dayaPakai = avgArus > 0 ? parseFloat((380 * avgArus * 1.732 / 1000).toFixed(2)) : null;
+  var dayaPakai = hitungDayaPakaiFisik(rA, sA, tA);
 
   // Prosen pembebanan = daya_pakai / kva * 100
   var prosen = (dayaPakai !== null && kva > 0) ? parseFloat((dayaPakai / kva * 100).toFixed(2)) : null;
@@ -7993,13 +8150,48 @@ function submitFormInspeksi() {
     prosen      = getV('fi-prosen');
     tdkSeimbang = getV('fi-tdk-seimbang');
   } else {
-    dayaPakai   = avgArus > 0 ? parseFloat((380 * avgArus * 1.732 / 1000).toFixed(4)) : null;
+    dayaPakai   = hitungDayaPakaiFisik(rA, sA, tA);
     prosen      = (dayaPakai && kva > 0) ? parseFloat((dayaPakai / kva * 100).toFixed(4)) : null;
     if (rA > 0 && sA > 0 && tA > 0) {
       var avg3 = (rA+sA+tA)/3;
       var maxDev = Math.max(Math.abs(rA-avg3),Math.abs(sA-avg3),Math.abs(tA-avg3));
       tdkSeimbang = parseFloat((maxDev/avg3*100).toFixed(4));
     } else { tdkSeimbang = null; }
+  }
+
+  // ── GUARD: Daya Pakai manual tidak konsisten secara fisik dengan Arus ──
+  // Mencegah kasus STN070 (Daya Pakai 286.04 kVA diinput manual padahal
+  // arus terukur secara fisik hanya ±35 kVA) tersimpan tanpa disadari.
+  // Hanya relevan saat mode manual DAN arus R/S/T sudah diisi. Petugas
+  // tetap bisa lanjut menyimpan jika memang yakin (mis. alat ukur kVA
+  // meter terpisah yang lebih akurat dari estimasi arus), tapi harus
+  // konfirmasi eksplisit dulu — sama seperti pola konfirmasi field kosong
+  // di atas (_fiConfirmedZeroIds), supaya sekali submitFormInspeksi()
+  // dipanggil ulang, guard ini tidak muncul lagi selama arus & daya
+  // pakai yang dikonfirmasi tidak berubah.
+  if (_fiManualCalc && dayaPakai !== null && rA > 0 && sA > 0 && tA > 0) {
+    var _fisikCek = cekKonsistensiFisikDayaPakai(dayaPakai, rA, sA, tA);
+    var _fisikKey = dayaPakai + '|' + rA + '|' + sA + '|' + tA;
+    if (_fisikCek.isAnomali && _fiFisikOverrideConfirmedKey !== _fisikKey) {
+      bukaModalKonfirmasi({
+        warna:      '#C0392B',
+        ikon:       '⚡',
+        judul:      'Daya Pakai Tidak Wajar Secara Fisik',
+        pesan:      'Daya Pakai yang diisi manual (<b>' + _fisikCek.input + ' kVA</b>) berbeda jauh dari estimasi ' +
+                    'fisik berdasarkan arus R/S/T terukur (<b>' + _fisikCek.fisikKva + ' kVA</b>, dari rata-rata arus ' +
+                    ((rA+sA+tA)/3).toFixed(1) + ' A @ 380V). Selisih <b>' + _fisikCek.selisihPersen + '%</b> ' +
+                    '(' + (_fisikCek.selisihKva >= 0 ? '+' : '') + _fisikCek.selisihKva + ' kVA).<br><br>' +
+                    'Ini persis pola yang menyebabkan data gardu STN070 tersimpan dengan pembebanan 286% padahal ' +
+                    'arusnya normal. Periksa kembali satuan/angka yang diketik. Jika Daya Pakai memang benar ' +
+                    '(mis. dari kVA meter terpisah), lanjutkan simpan.',
+        labelAksi:  'Ya, Nilai Ini Sudah Benar',
+        labelBatal: 'Periksa Kembali'
+      }, function() {
+        _fiFisikOverrideConfirmedKey = _fisikKey;
+        submitFormInspeksi(); // ulangi submit — guard ini sudah dikonfirmasi untuk kombinasi nilai ini
+      });
+      return;
+    }
   }
 
   // Jurusan
@@ -8184,6 +8376,35 @@ function eiRecalcProsen() {
   }
   // Jika Daya atau Daya Pakai kosong/tidak valid, Prosen tidak diubah paksa —
   // biarkan admin mengisi manual (mendukung kasus input dari alat ukur langsung).
+
+  eiCekFisikDayaPakai();
+}
+
+// ── FIX: Validasi fisik Daya Pakai vs Arus di form Edit Inspeksi ──────────
+// Kasus nyata: STN070 tersimpan dengan Daya Pakai 286.04 kVA meski arus
+// R/S/T terukur secara fisik hanya setara ±35 kVA — karena field "Daya
+// Pakai" di form ini SELALU manual-editable tanpa pengecekan silang
+// terhadap Arus. Fungsi ini menampilkan peringatan visual real-time
+// (non-blocking) memakai rumus yang sama dengan hitungDayaPakaiFisik()
+// di form Tambah Inspeksi, supaya admin melihat ketidaksesuaian SEBELUM
+// menekan Simpan. Guard yang benar-benar menahan submit ada di
+// simpanEditInspeksi().
+function eiCekFisikDayaPakai() {
+  var warnEl = document.getElementById('ei-dayapakai-fisik-warn');
+  if (!warnEl) return;
+  var rEl = document.getElementById('ei-r'), sEl = document.getElementById('ei-s'), tEl = document.getElementById('ei-t');
+  var dpEl = document.getElementById('ei-dayapakai');
+  if (!rEl || !sEl || !tEl || !dpEl) { warnEl.style.display = 'none'; return; }
+
+  var rA = parseFloat(rEl.value), sA = parseFloat(sEl.value), tA = parseFloat(tEl.value);
+  if (isNaN(rA) || isNaN(sA) || isNaN(tA) || dpEl.value === '') { warnEl.style.display = 'none'; return; }
+
+  var cek = cekKonsistensiFisikDayaPakai(dpEl.value, rA, sA, tA);
+  if (!cek.isAnomali) { warnEl.style.display = 'none'; return; }
+
+  warnEl.style.display = 'block';
+  warnEl.innerHTML = '⚡ <b>Tidak wajar secara fisik:</b> Daya Pakai ' + cek.input + ' kVA vs estimasi dari arus R/S/T (' +
+    cek.fisikKva + ' kVA, selisih ' + cek.selisihPersen + '%). Sama seperti kasus STN070 — periksa kembali sebelum menyimpan.';
 }
 
 // Pasang listener input pada Daya & Daya Pakai supaya Prosen otomatis
@@ -8192,11 +8413,13 @@ function eiRecalcProsen() {
 function eiBindAutoRecalcProsen() {
   var dayaEl      = document.getElementById('ei-daya');
   var dayaPakaiEl = document.getElementById('ei-dayapakai');
+  var rEl = document.getElementById('ei-r'), sEl = document.getElementById('ei-s'), tEl = document.getElementById('ei-t');
   if (!dayaEl || !dayaPakaiEl) return;
   if (dayaEl.dataset.autoProsenBound) return;
 
   dayaEl.addEventListener('input', eiRecalcProsen);
   dayaPakaiEl.addEventListener('input', eiRecalcProsen);
+  [rEl, sEl, tEl].forEach(function(el){ if (el) el.addEventListener('input', eiCekFisikDayaPakai); });
   dayaEl.dataset.autoProsenBound = '1';
 }
 
@@ -8204,6 +8427,7 @@ function bukaEditInspeksi(id, r) {
 
   var s = getSession();
   if (!s || !s.token) { alert('Sesi tidak valid. Silakan login ulang.'); return; }
+  _eiFisikOverrideConfirmedKey = null; // reset konfirmasi guard fisik dari sesi edit sebelumnya
   document.getElementById('edit-inspeksi-id').value = id;
   document.getElementById('edit-inspeksi-subtitle').textContent =
     'Gardu: ' + (r['NO_GARDU'] || r['NOGARDU'] || '—') + '  |  ID: ' + id;
@@ -8591,6 +8815,28 @@ function simpanEditInspeksi() {
   }
 
   if (!petugas) { errEl.textContent = '⚠️ Nama petugas wajib diisi.'; errEl.style.display = 'block'; return; }
+
+  // ── GUARD: cegah kasus STN070 terulang — Daya Pakai vs Arus tidak sinkron ──
+  var _eiR = parseFloat(document.getElementById('ei-r').value);
+  var _eiS = parseFloat(document.getElementById('ei-s').value);
+  var _eiT = parseFloat(document.getElementById('ei-t').value);
+  var _eiDP = document.getElementById('ei-dayapakai').value;
+  if (!isNaN(_eiR) && !isNaN(_eiS) && !isNaN(_eiT) && _eiDP !== '') {
+    var _eiCek = cekKonsistensiFisikDayaPakai(_eiDP, _eiR, _eiS, _eiT);
+    var _eiFisikKey = _eiDP + '|' + _eiR + '|' + _eiS + '|' + _eiT;
+    if (_eiCek.isAnomali && _eiFisikOverrideConfirmedKey !== _eiFisikKey) {
+      window.showConfirm(
+        'Daya Pakai yang diisi (' + _eiCek.input + ' kVA) berbeda jauh dari estimasi fisik berdasarkan arus R/S/T ' +
+        '(' + _eiCek.fisikKva + ' kVA, selisih ' + _eiCek.selisihPersen + '%). Ini pola yang sama dengan kasus ' +
+        'STN070 yang tersimpan dengan pembebanan 286%. Tetap simpan nilai ini?',
+        '⚡ Daya Pakai Tidak Wajar Secara Fisik',
+        '⚠️',
+        function() { _eiFisikOverrideConfirmedKey = _eiFisikKey; simpanEditInspeksi(); }
+      );
+      return;
+    }
+  }
+
   var btn = document.getElementById('btn-simpan-edit-inspeksi');
   btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
   var gv = function(id) { var el = document.getElementById(id); return el && el.value !== '' ? el.value : null; };
@@ -8705,8 +8951,12 @@ function _auditFetchSemuaGardu() {
   });
 }
 
-// Ambil SEMUA record inspeksi (paginated, lintas ULP)
-function _auditFetchSemuaInspeksi() {
+// Ambil SEMUA record inspeksi (paginated, lintas ULP).
+// onProgress(text) opsional — dipanggil setiap halaman selesai dimuat,
+// supaya pemanggil (Audit Prosen, Audit Fisik, atau alat audit lain di
+// masa depan) bisa update indikator loading masing-masing tanpa saling
+// bergantung pada DOM id milik alat audit lain.
+function _auditFetchSemuaInspeksi(onProgress) {
   return new Promise(function(resolve, reject) {
     var s = getSession();
     var PAGE = 500;
@@ -8725,7 +8975,8 @@ function _auditFetchSemuaInspeksi() {
         if (!res || res.status !== 'ok') { reject(new Error((res && res.message) || 'Gagal memuat data inspeksi.')); return; }
         var rows = res.data || [];
         all = all.concat(rows);
-        _auditSetLoading('Memindai data inspeksi… (' + all.length + (res.total ? ' / ' + res.total : '') + ')');
+        var progText = 'Memindai data inspeksi… (' + all.length + (res.total ? ' / ' + res.total : '') + ')';
+        if (onProgress) { onProgress(progText); } else { _auditSetLoading(progText); }
         if (rows.length < PAGE) { resolve(all); return; }
         offset += PAGE;
         nextPage();
@@ -8922,8 +9173,227 @@ async function _auditJalankanPerbaikan(terpilih) {
   muatDaftarGardu(true);  // refresh daftar gardu agar badge beban ikut ter-update
 }
 
+// ══════════════════════════════════════════════════════════════
+// AUDIT FISIK DAYA PAKAI vs ARUS (Super Admin)
+// ──────────────────────────────────────────────────────────────
+// Ditambahkan setelah ditemukan kasus STN070 (05/08/26): Daya Pakai
+// tersimpan 286.04 kVA / 286% pembebanan, padahal arus terukur R/S/T
+// saat itu secara fisik (S = √3×380V×I_avg/1000) hanya setara ±35 kVA.
+// Audit Prosen di atas TIDAK menangkap kasus ini karena Daya (kapasitas
+// kVA gardu) tidak berubah — yang salah adalah Daya Pakai itu sendiri
+// relatif terhadap Arus, bukan Daya Pakai relatif terhadap Daya. Dua
+// kelas bug yang independen, jadi dua alat audit yang terpisah.
+// Memakai kembali _auditFetchSemuaInspeksi() (generik, sudah ada di atas)
+// dan rumus hitungDayaPakaiFisik() yang SAMA dipakai form Tambah/Edit
+// Inspeksi, supaya definisi "wajar secara fisik" konsisten di seluruh app.
+// ══════════════════════════════════════════════════════════════
+var _auditFisikHasil = []; // {id, noGardu, tgl, rA, sA, tA, dayaLama, dayaBaru, prosenLama, prosenBaru, selisihPersen, selected}
+
+function bukaModalAuditFisik() {
+  var s = getSession();
+  if (!s || !s.token || !isFullAccessRole(s.role)) { alert('Fitur ini khusus Super Admin.'); return; }
+  document.getElementById('audit-fisik-idle').style.display    = '';
+  document.getElementById('audit-fisik-loading').style.display = 'none';
+  document.getElementById('audit-fisik-hasil').style.display   = 'none';
+  document.getElementById('audit-fisik-kosong').style.display  = 'none';
+  document.getElementById('audit-fisik-log').textContent = '';
+  document.getElementById('audit-fisik-progress').textContent = '';
+  _auditFisikHasil = [];
+  document.getElementById('modal-audit-fisik').style.display = 'flex';
+}
+
+function _auditFisikSetLoading(text) {
+  document.getElementById('audit-fisik-idle').style.display    = 'none';
+  document.getElementById('audit-fisik-loading').style.display = '';
+  document.getElementById('audit-fisik-loading-text').textContent = text;
+}
+
+async function auditFisikMulaiScan() {
+  var s = getSession();
+  if (!s || !s.token) { alert('Sesi tidak valid.'); return; }
+  _auditFisikSetLoading('Memuat data inspeksi…');
+  try {
+    // Reuse fungsi generik yang sama dipakai Audit Prosen, dengan progress
+    // callback sendiri supaya kedua alat audit tetap independen dan tidak
+    // saling menimpa DOM/state milik satu sama lain.
+    var rows = await _auditFetchSemuaInspeksi(_auditFisikSetLoading);
+
+    var hasil = [];
+    rows.forEach(function(r) {
+      var rA = parseFloat(r['R TOTAL']);
+      var sA = parseFloat(r['S TOTAL']);
+      var tA = parseFloat(r['T TOTAL']);
+      if (isNaN(rA) || isNaN(sA) || isNaN(tA)) return; // arus tidak lengkap → lewati, tidak bisa dinilai fisiknya
+
+      var dayaPakaiLama = (r['DAYA PAKAI'] !== '' && r['DAYA PAKAI'] != null) ? parseFloat(r['DAYA PAKAI']) : null;
+      if (dayaPakaiLama == null) return;
+
+      var cek = cekKonsistensiFisikDayaPakai(dayaPakaiLama, rA, sA, tA);
+      if (!cek.isAnomali) return;
+
+      var daya = (r['DAYA'] !== '' && r['DAYA'] != null) ? parseFloat(r['DAYA']) : null;
+      var prosenLama = (r['PROSEN'] !== '' && r['PROSEN'] != null) ? parseFloat(r['PROSEN']) : null;
+      var prosenBaru = (daya && daya > 0) ? parseFloat((cek.fisikKva / daya * 100).toFixed(2)) : prosenLama;
+
+      hasil.push({
+        id:            r['_id'],
+        noGardu:       r['NO_GARDU'] || r['NOGARDU'] || '',
+        tgl:           r['TGLUKUR'] || '',
+        rA: rA, sA: sA, tA: tA,
+        dayaPakaiLama: dayaPakaiLama,
+        dayaPakaiBaru: cek.fisikKva,
+        prosenLama:    prosenLama,
+        prosenBaru:    prosenBaru,
+        selisihPersen: cek.selisihPersen,
+        selected:      true,
+        _rawRow:       r
+      });
+    });
+
+    // Urutkan dari selisih terbesar (paling mencolok, mis. STN070) ke terkecil
+    hasil.sort(function(a, b) { return b.selisihPersen - a.selisihPersen; });
+
+    _auditFisikHasil = hasil;
+    auditFisikRenderHasil();
+  } catch (e) {
+    document.getElementById('audit-fisik-idle').style.display    = '';
+    document.getElementById('audit-fisik-loading').style.display = 'none';
+    alert('❌ Audit gagal: ' + e.message);
+  }
+}
+
+function auditFisikRenderHasil() {
+  document.getElementById('audit-fisik-loading').style.display = 'none';
+  if (!_auditFisikHasil.length) {
+    document.getElementById('audit-fisik-kosong').style.display = '';
+    return;
+  }
+  document.getElementById('audit-fisik-hasil').style.display = '';
+  document.getElementById('audit-fisik-ringkasan').textContent =
+    'Ditemukan ' + _auditFisikHasil.length + ' data yang tidak konsisten secara fisik.';
+
+  var fmt = function(n) { return (n == null || isNaN(n)) ? '—' : n.toFixed(1); };
+  var tbody = document.getElementById('audit-fisik-tbody');
+  tbody.innerHTML = _auditFisikHasil.map(function(h, i) {
+    return '<tr style="border-top:1px solid var(--pln-border);">' +
+      '<td style="padding:6px 8px;"><input type="checkbox" checked onchange="_auditFisikHasil[' + i + '].selected=this.checked"></td>' +
+      '<td style="padding:6px 8px;font-weight:700;">' + h.noGardu + '</td>' +
+      '<td style="padding:6px 8px;">' + (h.tgl || '—') + '</td>' +
+      '<td style="padding:6px 8px;text-align:right;">' + fmt(h.rA) + ' / ' + fmt(h.sA) + ' / ' + fmt(h.tA) + '</td>' +
+      '<td style="padding:6px 8px;text-align:right;">' + fmt(h.dayaPakaiLama) + ' → <strong style="color:var(--pln-biru2);">' + fmt(h.dayaPakaiBaru) + '</strong> kVA</td>' +
+      '<td style="padding:6px 8px;text-align:right;color:var(--pln-red);font-weight:700;">' + fmt(h.selisihPersen) + '%</td>' +
+      '</tr>';
+  }).join('');
+}
+
+function auditFisikToggleSemua(val) {
+  _auditFisikHasil.forEach(function(h) { h.selected = val; });
+  auditFisikRenderHasil();
+}
+
+// Bangun payload editInspeksi LENGKAP dari row asli — hanya menimpa
+// dayaPakai & prosen (nilai fisik baru), field lain (termasuk arus,
+// tegangan, THD, jurusan, dan DAYA/kapasitas) dipertahankan persis sama.
+function _auditFisikBuildEditPayload(id, row, dayaPakaiBaru, prosenBaru) {
+  return {
+    action:        'editInspeksi',
+    id:            id,
+    tglUkur:       row['TGLUKUR']     || null,
+    jamUkur:       row['JAM UKUR']    || null,
+    petugas:       row['PETUGAS']     || null,
+    fasa:          row['FASA']        || null,
+    daya:          row['DAYA']        || null,
+    dayaPakai:     dayaPakaiBaru,
+    prosen:        prosenBaru,
+    tdkSeimbang:   row['TDKSEIMBANG'] || null,
+    rTotal:        row['R TOTAL']     || null,
+    sTotal:        row['S TOTAL']     || null,
+    tTotal:        row['T TOTAL']     || null,
+    nTotal:        row['N TOTAL']     || null,
+    vRN:           row['R - N']       || null,
+    vSN:           row['S - N']       || null,
+    vTN:           row['T - N']       || null,
+    vRS:           row['R - S']       || null,
+    vST:           row['S - T']       || null,
+    vRT:           row['R - T']       || null,
+    thdR:          row['THD-R']       || null,
+    thdS:          row['THD-S']       || null,
+    thdT:          row['THD-T']       || null,
+    ipeakR:        row['IPEAK-R']     || null,
+    ipeakS:        row['IPEAK-S']     || null,
+    ipeakT:        row['IPEAK-T']     || null,
+    tpfR:          row['TPF-R']       || null,
+    tpfS:          row['TPF-S']       || null,
+    tpfT:          row['TPF-T']       || null,
+    phaseSequence: row['PHASE_SEQUENCE'] || null,
+    jurusan:       row._jurusanRaw    || null
+  };
+}
+
+function _auditFisikLog(msg) {
+  var el = document.getElementById('audit-fisik-log');
+  el.textContent += msg + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+
+function auditFisikPerbaikiTerpilih() {
+  var s = getSession();
+  if (!s || !s.token) { window.showAlert('❌ Sesi tidak valid.'); return; }
+  var terpilih = _auditFisikHasil.filter(function(h) { return h.selected; });
+  if (!terpilih.length) { window.showAlert('⚠️ Tidak ada data yang dipilih.'); return; }
+
+  window.showConfirm(
+    'Perbaiki ' + terpilih.length + ' data inspeksi sekarang? Tindakan ini akan menimpa nilai Daya Pakai & Prosen ' +
+    'Beban yang tersimpan dengan nilai fisik hasil hitung ulang dari Arus R/S/T (Daya/kapasitas kVA TIDAK diubah).',
+    'Perbaiki Data Terpilih?',
+    '✅',
+    function() { _auditFisikJalankanPerbaikan(terpilih); }
+  );
+}
+
+async function _auditFisikJalankanPerbaikan(terpilih) {
+  var s = getSession();
+  var btn = document.getElementById('btn-audit-fisik-perbaiki');
+  btn.disabled = true;
+  var progEl = document.getElementById('audit-fisik-progress');
+  var ok = 0, fail = 0;
+
+  for (var i = 0; i < terpilih.length; i++) {
+    var h = terpilih[i];
+    progEl.textContent = 'Memproses ' + (i + 1) + ' / ' + terpilih.length + '…';
+    try {
+      var full = h._rawRow;
+      if (!full) throw new Error('Data baris tidak lengkap (silakan Mulai Audit ulang).');
+
+      var payload = _auditFisikBuildEditPayload(h.id, full, h.dayaPakaiBaru, h.prosenBaru);
+      payload.token = s.token;
+
+      var saveRes = await new Promise(function(resolve) {
+        apiGet(payload, function(res) { resolve(res); });
+      });
+
+      if (saveRes && saveRes.status === 'ok') {
+        ok++;
+        _auditFisikLog('✅ ' + h.noGardu + ' (' + h.tgl + '): Daya Pakai ' + h.dayaPakaiLama + '→' + h.dayaPakaiBaru + ' kVA, Prosen ' + h.prosenLama + '%→' + h.prosenBaru + '%');
+      } else {
+        fail++;
+        _auditFisikLog('❌ ' + h.noGardu + ' (' + h.tgl + '): ' + ((saveRes && saveRes.message) || 'gagal disimpan'));
+      }
+    } catch (e) {
+      fail++;
+      _auditFisikLog('❌ ' + h.noGardu + ' (' + h.tgl + '): ' + e.message);
+    }
+  }
+
+  btn.disabled = false;
+  progEl.textContent = 'Selesai: ' + ok + ' berhasil, ' + fail + ' gagal.';
+  rekapSudahMuat = false; // data beban berubah → rekap harus dimuat ulang
+  muatDaftarGardu(true);  // refresh daftar gardu agar badge beban ikut ter-update
+}
+
 // ── Konteks pemanggil edit inspeksi (detail gardu / pengukuran) ──
 var _editInspeksiKonteks = null;
+var _eiFisikOverrideConfirmedKey = null; // key 'dayaPakai|R|S|T' yg sudah dikonfirmasi lolos guard fisik di Edit Inspeksi
 
 // ── Edit inspeksi dipanggil dari halaman Pengukuran Gardu ──────
 // Wrapper aman: ambil data dari cache map berdasarkan ID
