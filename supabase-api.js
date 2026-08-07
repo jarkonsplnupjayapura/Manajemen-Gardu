@@ -207,6 +207,9 @@ async function _dispatch(action, p, signal) {
     case 'tambahPbpdRiwayat':     return _tambahPbpdRiwayat(p, signal);
     case 'getPbpdRiwayat':        return _getPbpdRiwayat(p, signal);
     case 'hapusPbpdRiwayat':      return _hapusPbpdRiwayat(p, signal);
+    case 'aiRingkasanGardu':      return _aiRingkasanGardu(p, signal);
+    case 'aiCariGarduBermasalah': return _aiCariGarduBermasalah(p, signal);
+    case 'aiCariPbpdOverdue':     return _aiCariPbpdOverdue(p, signal);
     case 'updateStatusPbpd':      return _updateStatusPbpd(p, signal);
     case 'mulaiKerjaPbpd':        return _mulaiKerjaPbpd(p, signal);
     case 'hapusPemeliharaan':     return _hapusPemeliharaan(p, signal);
@@ -1525,6 +1528,52 @@ async function _hapusPbpdRiwayat(p, signal) {
     return { status: 'error', message: (data && data.message) || 'Gagal menghapus riwayat PB/PD.' };
 
   return { status: 'ok', message: data.message };
+}
+
+// ── Fungsi read-only khusus Asisten AI ──────────────────────────────
+// Semua cuma BACA data, tidak ada yang mengubah/menghapus apa pun.
+// Dipakai oleh chat widget AI lewat tool-calling (lihat spesifikasi
+// Asisten AI). Sengaja diekspos juga lewat apiGet biasa supaya bisa
+// dites manual dulu sebelum widget chat-nya jadi.
+
+async function _aiRingkasanGardu(p, signal) {
+  var data = await rpcCall('fn_ai_ringkasan_gardu', {
+    p_token:    p.token,
+    p_no_gardu: (p.noGardu || '').trim().toUpperCase()
+  }, signal);
+
+  if (!data || data.status !== 'ok')
+    return { status: 'error', message: (data && data.message) || 'Gagal memuat ringkasan gardu.' };
+
+  return { status: 'ok', data: data.data };
+}
+
+async function _aiCariGarduBermasalah(p, signal) {
+  var data = await rpcCall('fn_ai_cari_gardu_bermasalah', {
+    p_token:     p.token,
+    p_ulp:       p.ulp       || null,
+    p_penyulang: p.penyulang || null,
+    p_limit:     p.limit     ? parseInt(p.limit) : 50
+  }, signal);
+
+  if (!data || data.status !== 'ok')
+    return { status: 'error', message: (data && data.message) || 'Gagal mencari gardu bermasalah.' };
+
+  return { status: 'ok', data: data.data || [] };
+}
+
+async function _aiCariPbpdOverdue(p, signal) {
+  var data = await rpcCall('fn_ai_cari_pbpd_overdue', {
+    p_token:       p.token,
+    p_hari_ambang: p.hariAmbang ? parseInt(p.hariAmbang) : 14,
+    p_ulp:         p.ulp        || null,
+    p_limit:       p.limit      ? parseInt(p.limit) : 50
+  }, signal);
+
+  if (!data || data.status !== 'ok')
+    return { status: 'error', message: (data && data.message) || 'Gagal mencari PB/PD overdue.' };
+
+  return { status: 'ok', data: data.data || [] };
 }
 
 async function _updateStatusPbpd(p, signal) {
