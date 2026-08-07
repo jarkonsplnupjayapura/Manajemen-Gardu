@@ -206,6 +206,7 @@ async function _dispatch(action, p, signal) {
     case 'getDaftarPemeliharaan': return _getDaftarPemeliharaan(p, signal);
     case 'tambahPbpdRiwayat':     return _tambahPbpdRiwayat(p, signal);
     case 'getPbpdRiwayat':        return _getPbpdRiwayat(p, signal);
+    case 'hapusPbpdRiwayat':      return _hapusPbpdRiwayat(p, signal);
     case 'updateStatusPbpd':      return _updateStatusPbpd(p, signal);
     case 'mulaiKerjaPbpd':        return _mulaiKerjaPbpd(p, signal);
     case 'hapusPemeliharaan':     return _hapusPemeliharaan(p, signal);
@@ -1509,6 +1510,21 @@ async function _getPbpdRiwayat(p, signal) {
     return { status: 'error', message: (data && data.message) || 'Gagal memuat riwayat PB/PD.' };
 
   return { status: 'ok', data: data.data || [] };
+}
+
+// Hapus permanen 1 baris riwayat PB/PD — role-check (admin/staff_up3/
+// superadmin) dilakukan di server (fn_hapus_pbpd_riwayat), sama seperti
+// pola _hapusPemeliharaan.
+async function _hapusPbpdRiwayat(p, signal) {
+  var data = await rpcCall('fn_hapus_pbpd_riwayat', {
+    p_token: p.token,
+    p_id:    parseInt(p.id)
+  }, signal);
+
+  if (!data || data.status !== 'ok')
+    return { status: 'error', message: (data && data.message) || 'Gagal menghapus riwayat PB/PD.' };
+
+  return { status: 'ok', message: data.message };
 }
 
 async function _updateStatusPbpd(p, signal) {

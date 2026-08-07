@@ -15067,6 +15067,10 @@ function pbpdRiwayatMuat(noGardu) {
       wrap.innerHTML = '<div class="empty-state" style="padding:var(--sp-md);"><div class="empty-icon">📋</div>Belum ada proses PB/PD tercatat untuk gardu ini.<br><span style="font-size:var(--fs-xs);">Rekomendasi yang disimpan lewat fitur "🔌 Rekomendasi PB/PD" akan muncul di sini.</span></div>';
       return;
     }
+    // Hapus permanen hanya untuk admin/staff_up3/superadmin — role-check
+    // sesungguhnya tetap di server (fn_hapus_pbpd_riwayat), ini cuma lapisan
+    // tambahan di klien supaya tombolnya tidak muncul untuk role lain.
+    var bisaHapus = s.role === 'admin' || isFullAccessRole(s.role);
     var html = '';
     rows.forEach(function(row) {
       var statusCls = PBPD_STATUS_BADGE[row.status] || 'badge-perlu';
@@ -15090,19 +15094,47 @@ function pbpdRiwayatMuat(noGardu) {
       html += '</div>';
       html += pbpdRenderDetailFasaRiwayat(row.detail_fasa);
       if (belumDikerjakan) {
-        html += '<div style="display:flex;gap:6px;">';
+        html += '<div style="display:flex;gap:6px;'+(bisaHapus?'margin-bottom:6px;':'')+'">';
         html += '<button class="btn" style="flex:1;font-size:11px;padding:6px;background:var(--pln-biru2);color:#fff;border:none;border-radius:6px;font-weight:700;" onclick="pbpdRiwayatMulaiKerja('+row.id+',\''+esc(noGardu)+'\')">▶️ Mulai Kerjakan</button>';
         html += '<button class="btn btn-outline" style="flex:1;font-size:11px;padding:6px;" onclick="pbpdRiwayatUpdateStatus('+row.id+',\'Dibatalkan\',\''+esc(noGardu)+'\')">✕ Batalkan</button>';
         html += '</div>';
       } else if (sedangDikerjakan) {
-        html += '<div style="display:flex;gap:6px;">';
+        html += '<div style="display:flex;gap:6px;'+(bisaHapus?'margin-bottom:6px;':'')+'">';
         html += '<button class="btn btn-outline" style="flex:1;font-size:11px;padding:6px;" onclick="pbpdRiwayatUpdateStatus('+row.id+',\'Selesai Terpasang\',\''+esc(noGardu)+'\')">✅ Tandai Selesai</button>';
         html += '<button class="btn btn-outline" style="flex:1;font-size:11px;padding:6px;" onclick="pbpdRiwayatUpdateStatus('+row.id+',\'Dibatalkan\',\''+esc(noGardu)+'\')">✕ Batalkan</button>';
         html += '</div>';
       }
+      if (bisaHapus) {
+        html += '<button onclick="pbpdHapusRiwayat('+row.id+',\''+esc(noGardu)+'\')" style="width:100%;background:var(--pln-red-pale);color:var(--pln-red);border:1px solid #FECACA;border-radius:6px;font-size:11px;font-weight:700;padding:6px;cursor:pointer;">🗑️ Hapus Riwayat Ini</button>';
+      }
       html += '</div>';
     });
     wrap.innerHTML = html;
+  });
+}
+
+// Hapus permanen 1 baris riwayat PB/PD — khusus admin/staff_up3/superadmin
+// (sama seperti pola hapus riwayat pengukuran). Tindakan tidak dapat
+// dibatalkan, jadi selalu lewat modal konfirmasi dulu.
+function pbpdHapusRiwayat(id, noGardu) {
+  bukaModalKonfirmasi({
+    ikon: '🗑️',
+    judul: 'Hapus Riwayat PB/PD',
+    pesan: 'Hapus catatan riwayat PB/PD ini secara permanen?<br><br>Tindakan ini <strong>tidak dapat dibatalkan</strong>.',
+    labelAksi: '🗑️ Hapus',
+    labelBatal: 'Batal',
+    warna: 'var(--pln-red)'
+  }, function() {
+    var s = getSession();
+    if (!s || !s.token) { showAlert('Sesi tidak valid. Silakan login ulang.'); return; }
+    apiGet({ action: 'hapusPbpdRiwayat', token: s.token, id: id }, function(res) {
+      if (res.status !== 'ok') {
+        showAlert('❌ '+(res.message||'Gagal menghapus riwayat PB/PD.'));
+        return;
+      }
+      showAlert('✅ Riwayat PB/PD berhasil dihapus.');
+      pbpdRiwayatMuat(noGardu);
+    });
   });
 }
 
