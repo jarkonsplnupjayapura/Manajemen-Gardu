@@ -323,6 +323,7 @@ async function _getDaftarGardu(p, signal) {
       'PENYULANG':          g.penyulang || '',
       'ALAMAT':             g.alamat   || '',
       'KAPASITAS_KVA':      g.kapasitas_kva != null ? String(g.kapasitas_kva) : '',
+      'JUMLAH_FASA':        g.jumlah_fasa != null ? String(g.jumlah_fasa) : '',
       'TIPE':               g.tipe     || '',
       'STATUS_OPERASIONAL': g.status_operasional || '',
       'STATUS_KEPEMILIKAN': g.status_kepemilikan || '',
@@ -402,6 +403,7 @@ async function _getDetailLengkap(p, signal) {
     'ALAMAT':             g.alamat     || '',
     'KAPASITAS_KVA':      g.kapasitas_kva != null ? String(g.kapasitas_kva) : '',
     'DAYA_KVA':           g.kapasitas_kva != null ? String(g.kapasitas_kva) : '',
+    'JUMLAH_FASA':        g.jumlah_fasa != null ? String(g.jumlah_fasa) : '',
     'TIPE':               g.tipe       || '',
     'MEREK_TRAFO':        g.merek_trafo || '',
     'STATUS_KEPEMILIKAN': g.status_kepemilikan || '',
@@ -633,6 +635,7 @@ async function _getExportRekap(p, signal) {
       penyulang:   g.penyulang                                     || '',
       alamat:      g.alamat                                        || '',
       daya:        g.kapasitas_kva != null ? String(g.kapasitas_kva) : '',
+      jumlahFasa:  g.jumlah_fasa != null ? String(g.jumlah_fasa) : '',
       status:      g.status_operasional                            || '',
       kepemilikan: g.status_kepemilikan                            || '',
       // ── Kolom master/nameplate trafo (untuk sheet Master Gardu) ──
@@ -679,6 +682,7 @@ function _mapExportRow(r) {
     penyulang:   r.penyulang                               || '',
     alamat:      r.alamat                                  || '',
     daya:        r.daya        != null ? String(r.daya)        : (r.kapasitas_kva != null ? String(r.kapasitas_kva) : ''),
+    jumlahFasa:  r.jumlahFasa != null ? String(r.jumlahFasa) : (r.jumlah_fasa != null ? String(r.jumlah_fasa) : ''),
     status:      r.status      || r.status_operasional     || '',
     kepemilikan: r.kepemilikan || r.status_kepemilikan     || '',
     tglUkur:     r.tglUkur     || r.tgl_ukur               || '',
@@ -736,7 +740,7 @@ async function _tambahGardu(p, signal) {
   var pinHash = await sha256(String(p.pin || '').trim());
   var ulpEnum = _normalizeUlpEnum(p.ulp);
 
-  var data = await rpcCall('fn_tambah_gardu', {
+  var data = await rpcCall('fn_tambah_gardu', _omitNullFasa({
     p_token:              p.token,
     p_pin_hash:           pinHash,
     p_no_gardu:           (p.noGardu || '').trim().toUpperCase(),
@@ -745,6 +749,7 @@ async function _tambahGardu(p, signal) {
     p_penyulang:          p.penyulang  || null,
     p_alamat:             p.alamat     || null,
     p_kapasitas_kva:      _parseNumSafe(p.daya),
+    p_jumlah_fasa:        _parseJumlahFasa(p.jumlahFasa),
     p_tipe:               p.tipe       ? String(p.tipe).toUpperCase() : null,
     p_status_kepemilikan: p.kepemilikan ? String(p.kepemilikan).toUpperCase() : null,
     p_status_operasional: p.statusOp   ? String(p.statusOp).toUpperCase() : 'AKTIF',
@@ -763,7 +768,7 @@ async function _tambahGardu(p, signal) {
     p_volume_oli_liter:   _parseNumSafe(p.npVolumeOli),
     p_berat_total_kg:     _parseNumSafe(p.npBerat),
     p_tahun_produksi:     (p.npTahun !== null && p.npTahun !== undefined && p.npTahun !== '' && !isNaN(parseInt(p.npTahun,10))) ? parseInt(p.npTahun, 10) : null
-  }, signal);
+  }), signal);
 
   if (!data || data.status !== 'ok')
     return { status: 'error', message: (data && data.message) ? data.message : 'Gagal menambahkan gardu.' };
@@ -777,7 +782,7 @@ async function _editGardu(p, signal) {
   var ulpEnum = p.ulp ? _normalizeUlpEnum(p.ulp) : null;
   var noGarduBaru = (p.noGarduBaru || '').trim().toUpperCase();
 
-  var data = await rpcCall('fn_edit_gardu', {
+  var data = await rpcCall('fn_edit_gardu', _omitNullFasa({
     p_token:              p.token,
     p_pin_hash:           pinHash,
     p_no_gardu_lama:      (p.noGarduLama || '').trim().toUpperCase(),
@@ -787,6 +792,7 @@ async function _editGardu(p, signal) {
     p_penyulang:          p.penyulang  || null,
     p_alamat:             p.alamat     || null,
     p_kapasitas_kva:      _parseNumSafe(p.daya),
+    p_jumlah_fasa:        _parseJumlahFasa(p.jumlahFasa),
     p_tipe:               p.tipe       ? String(p.tipe).toUpperCase() : null,
     p_status_kepemilikan: p.kepemilikan ? String(p.kepemilikan).toUpperCase() : null,
     p_status_operasional: p.status     ? String(p.status).toUpperCase() : null,
@@ -805,7 +811,7 @@ async function _editGardu(p, signal) {
     p_volume_oli_liter:   _parseNumSafe(p.npVolumeOli),
     p_berat_total_kg:     _parseNumSafe(p.npBerat),
     p_tahun_produksi:     (p.npTahun !== null && p.npTahun !== undefined && p.npTahun !== '' && !isNaN(parseInt(p.npTahun,10))) ? parseInt(p.npTahun, 10) : null
-  }, signal);
+  }), signal);
 
   if (!data || data.status !== 'ok')
     return { status: 'error', message: (data && data.message) ? data.message : 'Gagal menyimpan perubahan.' };
@@ -1305,6 +1311,18 @@ async function _maintenanceCleanup(p, signal) {
 }
 
 // ── HELPER: Map row gardu ────────────────────────────────────
+// Jumlah fasa trafo: hanya 1 atau 3 yang valid, selain itu null (kosong = tidak diubah di fn_edit_gardu)
+function _parseJumlahFasa(v) {
+  var n = parseInt(v, 10);
+  return (n === 1 || n === 3) ? n : null;
+}
+
+// Buang p_jumlah_fasa dari payload bila kosong, supaya RPC lama (tanpa parameter ini) tetap jalan
+function _omitNullFasa(obj) {
+  if (obj.p_jumlah_fasa === null || obj.p_jumlah_fasa === undefined) delete obj.p_jumlah_fasa;
+  return obj;
+}
+
 function _mapGarduRow(g) {
   return {
     'NO_GARDU':           g.no_gardu   || '',
@@ -1314,6 +1332,7 @@ function _mapGarduRow(g) {
     'ALAMAT':             g.alamat     || '',
     'KAPASITAS_KVA':      g.kapasitas_kva != null ? String(g.kapasitas_kva) : '',
     'DAYA_KVA':           g.kapasitas_kva != null ? String(g.kapasitas_kva) : '',
+    'JUMLAH_FASA':        g.jumlah_fasa != null ? String(g.jumlah_fasa) : '',
     'TIPE':               g.tipe       || '',
     'MEREK_TRAFO':        g.merek_trafo || '',
     'STATUS_KEPEMILIKAN': g.status_kepemilikan || '',

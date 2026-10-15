@@ -3853,6 +3853,12 @@ input[type=number]{-moz-appearance:textfield;}
         <input id="f-alamat" class="form-input" placeholder="Alamat lokasi gardu"></div>
       <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">KAPASITAS (kVA)</label>
         <input id="f-daya" class="form-input" type="number" placeholder="Contoh: 160"></div>
+      <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">JUMLAH FASA</label>
+        <select id="f-jumlah-fasa" class="form-input">
+          <option value="">-- Pilih --</option>
+          <option value="3">3 FASA</option>
+          <option value="1">1 FASA</option>
+        </select></div>
       <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">TIPE</label>
         <select id="f-tipe" class="form-input">
           <option value="">-- Pilih Tipe --</option>
@@ -4014,6 +4020,12 @@ input[type=number]{-moz-appearance:textfield;}
           <input id="ef-alamat" class="form-input" placeholder="Alamat lokasi gardu"></div>
         <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">KAPASITAS (kVA)</label>
           <input id="ef-daya" class="form-input" type="number" placeholder="Contoh: 160"></div>
+        <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">JUMLAH FASA</label>
+          <select id="ef-jumlah-fasa" class="form-input">
+            <option value="">-- Pilih --</option>
+            <option value="3">3 FASA</option>
+            <option value="1">1 FASA</option>
+          </select></div>
         <div><label style="font-size:var(--fs-xs);color:var(--pln-text2);font-weight:600;">TIPE</label>
           <select id="ef-tipe" class="form-input">
             <option value="">-- Pilih Tipe --</option>
@@ -10727,17 +10739,17 @@ function _buildSheetMasterGardu(wb, rows, periodeLabel, ulpLabel, tglCetak) {
     views: [{ state:'frozen', ySplit:4 }]
   });
   ws.columns = [
-    {width:5},{width:14},{width:16},{width:18},{width:16},{width:14},{width:30},{width:12},
+    {width:5},{width:14},{width:16},{width:18},{width:16},{width:14},{width:10},{width:30},{width:12},
     {width:12},{width:14},{width:18},{width:18},{width:16},{width:16},{width:12},{width:12},
     {width:10},{width:10},{width:10},{width:10},{width:14},{width:12},{width:12},{width:12},{width:22}
   ];
 
-  ws.mergeCells('A1:Y1');
+  ws.mergeCells('A1:Z1');
   ws.getCell('A1').value = 'PT. PLN (PERSERO) UP3 JAYAPURA — TABEL MASTER GARDU';
   ws.getCell('A1').style = { font:{bold:true,size:13,color:{argb:'FFFFFFFF'},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FF003B7B'}}, alignment:{horizontal:'center',vertical:'middle'} };
   ws.getRow(1).height = 26;
 
-  ws.mergeCells('A2:Y2');
+  ws.mergeCells('A2:Z2');
   ws.getCell('A2').value = 'ULP: '+ulpLabel+' | Dicetak: '+tglCetak+' | Total Gardu: '+rows.length;
   ws.getCell('A2').style = { font:{size:9,color:{argb:'FF555555'},name:'Calibri'}, fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FFF5A300'}}, alignment:{horizontal:'center',vertical:'middle'} };
   ws.getRow(2).height = 16;
@@ -10745,7 +10757,7 @@ function _buildSheetMasterGardu(wb, rows, periodeLabel, ulpLabel, tglCetak) {
   ws.getRow(3).height = 6; // spacer
 
   // ── Urutan kolom Format C (sesuai template ekspor) ──────────
-  // NO, UNITUP, ULP, NO GARDU, PENYULANG, KAPASITAS (KVA), ALAMAT,
+  // NO, UNITUP, ULP, NO GARDU, PENYULANG, KAPASITAS (KVA), JUMLAH FASA, ALAMAT,
   // LATITUDE, LONGITUDE, TIPE, STATUS_KEPEMILIKAN, STATUS_OPERASIONAL,
   // MEREK TRAFO, SERIAL NUMBER, TEG. PRIMER (V), TEG. SEKUNDER (V),
   // ARUS PRIMER (A), ARUS SEKUNDER (A), FREKUENSI (Hz), VEKTOR GRUP,
@@ -10757,6 +10769,7 @@ function _buildSheetMasterGardu(wb, rows, periodeLabel, ulpLabel, tglCetak) {
     { key:'noGardu',      label:'NO GARDU' },
     { key:'penyulang',    label:'PENYULANG' },
     { key:'daya',         label:'KAPASITAS\n(KVA)' },
+    { key:'jumlahFasa',   label:'JUMLAH\nFASA' },
     { key:'alamat',       label:'ALAMAT' },
     { key:'latitude',     label:'LATITUDE' },
     { key:'longitude',    label:'LONGITUDE' },
@@ -10803,6 +10816,7 @@ function _buildSheetMasterGardu(wb, rows, periodeLabel, ulpLabel, tglCetak) {
     var bg = idx%2===1 ? 'FFF5F9FF' : 'FFFFFFFF';
     COLS.forEach(function(c, ci){
       var v = c.key === 'no' ? (idx+1) : (r[c.key]!=null ? r[c.key] : '');
+      if (c.key === 'jumlahFasa' && (v === '1' || v === '3')) v = v + ' FASA';
       var cell = rRow.getCell(ci+1);
       cell.value = v;
       cell.style = {
@@ -12167,7 +12181,7 @@ function userFriendlyError(technicalMsg, fallback) {
 function bukaFormTambahGardu() {
   document.getElementById('modal-admin-panel').style.display = 'none';
   // Reset form
-  ['f-unitup','f-ulp','f-penyulang','f-tipe','f-kepemilikan'].forEach(function(id){
+  ['f-unitup','f-ulp','f-penyulang','f-tipe','f-kepemilikan','f-jumlah-fasa'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -12281,6 +12295,7 @@ var GARDU_FIELD_LABELS = [
   { id: 'penyulang',            label: 'Penyulang' },
   { id: 'alamat',               label: 'Alamat' },
   { id: 'daya',                 label: 'Daya (kVA)' },
+  { id: 'jumlah-fasa',          label: 'Jumlah Fasa' },
   { id: 'tipe',                 label: 'Tipe' },
   { id: 'kepemilikan',          label: 'Status Kepemilikan' },
   { id: 'merek',                label: 'Merek Trafo' },
@@ -12338,6 +12353,7 @@ function submitTambahGardu() {
       penyulang:(document.getElementById('f-penyulang').value||'').trim(),
       alamat:(document.getElementById('f-alamat').value||'').trim(),
       daya:(document.getElementById('f-daya').value||'').trim(),
+      jumlahFasa:(document.getElementById('f-jumlah-fasa').value||'').trim(),
       tipe:(document.getElementById('f-tipe').value||'').trim(),
       kepemilikan:(document.getElementById('f-kepemilikan').value||'').trim(),
       statusOp:(document.getElementById('f-status-op').value||'AKTIF').trim(),
@@ -12437,6 +12453,7 @@ function cariGarduUntukEdit() {
     document.getElementById('ef-nogardu-baru').value = '';
     document.getElementById('ef-alamat').value = g['ALAMAT']||'';
     document.getElementById('ef-daya').value = g['KAPASITAS_KVA']||'';
+    document.getElementById('ef-jumlah-fasa').value = (g['JUMLAH_FASA']==='1'||g['JUMLAH_FASA']==='3') ? g['JUMLAH_FASA'] : '';
     document.getElementById('ef-merek').value = g['MEREK_TRAFO']||'';
     document.getElementById('ef-lat').value = g['LATITUDE']||'';
     document.getElementById('ef-lng').value = g['LONGITUDE']||'';
@@ -12541,6 +12558,7 @@ function submitEditGardu() {
       penyulang:(document.getElementById('ef-penyulang').value||'').trim(),
       alamat:(document.getElementById('ef-alamat').value||'').trim(),
       daya:(document.getElementById('ef-daya').value||'').trim(),
+      jumlahFasa:(document.getElementById('ef-jumlah-fasa').value||'').trim(),
       tipe:(document.getElementById('ef-tipe').value||'').trim(),
       kepemilikan:(document.getElementById('ef-kepemilikan').value||'').trim(),
       status:(document.getElementById('ef-status').value||'AKTIF'),
